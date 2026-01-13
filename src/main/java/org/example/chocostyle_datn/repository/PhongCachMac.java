@@ -1,4 +1,6 @@
 package org.example.chocostyle_datn.repository;
 
-public class PhongCachMac {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface PhongCachMac extends JpaRepository<PhongCachMac,Long> {
 }

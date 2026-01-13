@@ -1,4 +1,7 @@
 package org.example.chocostyle_datn.repository;
 
-public interface NhanVienRepository {
+import org.example.chocostyle_datn.entity.NhanVien;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface NhanVienRepository extends JpaRepository<NhanVien,Long> {
 }

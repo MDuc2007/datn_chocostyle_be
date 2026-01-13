@@ -1,4 +1,7 @@
 package org.example.chocostyle_datn.repository;
 
-public interface KichCoRepository {
+import org.example.chocostyle_datn.entity.KichCo;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface KichCoRepository extends JpaRepository<KichCo,Long> {
 }

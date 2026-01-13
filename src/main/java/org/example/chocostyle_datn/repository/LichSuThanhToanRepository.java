@@ -1,4 +1,7 @@
 package org.example.chocostyle_datn.repository;
 
-public interface LichSuThanhToanRepository {
+import org.example.chocostyle_datn.entity.LichSuThanhToan;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface LichSuThanhToanRepository extends JpaRepository<LichSuThanhToan,Long> {
 }

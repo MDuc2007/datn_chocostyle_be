@@ -1,7 +1,40 @@
 package org.example.chocostyle_datn.entity;
 
-import jakarta.persistence.Entity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.Hibernate;
 
-@Entity
-public class ChiTietDotGiamGiaId {
-  }
+import java.io.Serializable;
+import java.util.Objects;
+
+@Getter
+@Setter
+@Embeddable
+public class ChiTietDotGiamGiaId implements Serializable {
+    private static final long serialVersionUID = -771419114812568067L;
+    @NotNull
+    @Column(name = "id_dot_giam_gia", nullable = false)
+    private Long idDotGiamGia;
+
+    @NotNull
+    @Column(name = "id_spct", nullable = false)
+    private Long idSpct;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
+        ChiTietDotGiamGiaId entity = (ChiTietDotGiamGiaId) o;
+        return Objects.equals(this.idDotGiamGia, entity.idDotGiamGia) &&
+                Objects.equals(this.idSpct, entity.idSpct);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(idDotGiamGia, idSpct);
+    }
+
+}

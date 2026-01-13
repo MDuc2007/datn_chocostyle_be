@@ -1,4 +1,7 @@
 package org.example.chocostyle_datn.repository;
 
-public interface DiaChiRepository {
+import org.example.chocostyle_datn.entity.DiaChi;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface DiaChiRepository extends JpaRepository<DiaChi, Long> {
 }

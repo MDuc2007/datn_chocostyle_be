@@ -1,4 +1,7 @@
 package org.example.chocostyle_datn.repository;
 
-public class DotGiamGiaRepository {
+import org.example.chocostyle_datn.entity.DotGiamGia;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface DotGiamGiaRepository extends JpaRepository<DotGiamGia,Long> {
 }
