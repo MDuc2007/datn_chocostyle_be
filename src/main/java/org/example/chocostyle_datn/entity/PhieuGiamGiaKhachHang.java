@@ -16,7 +16,7 @@ import java.time.LocalDate;
 public class PhieuGiamGiaKhachHang {
     @Id
     @Column(name = "id_pggkh", nullable = false)
-    private Long id;
+    private Integer id;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

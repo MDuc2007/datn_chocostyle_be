@@ -17,7 +17,7 @@ import org.hibernate.annotations.Nationalized;
 public class MauSac {
     @Id
     @Column(name = "id_mau_sac", nullable = false)
-    private Long id;
+    private Integer id;
 
     @Size(max = 50)
     @NotNull

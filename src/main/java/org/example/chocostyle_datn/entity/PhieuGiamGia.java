@@ -21,7 +21,7 @@ import java.time.LocalDate;
 public class PhieuGiamGia {
     @Id
     @Column(name = "id_pgg", nullable = false)
-    private Long id;
+    private Integer id;
 
     @Size(max = 50)
     @NotNull

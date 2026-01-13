@@ -15,7 +15,7 @@ import org.hibernate.annotations.OnDeleteAction;
 public class HinhAnhSanPham {
     @Id
     @Column(name = "id_hinh_anh", nullable = false)
-    private Long id;
+    private Integer id;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

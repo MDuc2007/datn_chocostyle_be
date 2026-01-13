@@ -17,7 +17,7 @@ import org.hibernate.annotations.Nationalized;
 public class PhongCachMac {
     @Id
     @Column(name = "id_phong_cach_mac", nullable = false)
-    private Long id;
+    private Integer id;
 
     @Size(max = 50)
     @NotNull

@@ -14,7 +14,7 @@ import org.hibernate.annotations.Nationalized;
 public class DiaChi {
     @Id
     @Column(name = "id_dc", nullable = false)
-    private Long id;
+    private Integer id;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
