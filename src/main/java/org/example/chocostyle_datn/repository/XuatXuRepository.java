@@ -1,4 +1,7 @@
 package org.example.chocostyle_datn.repository;
 
-public class XuatXuRepository {
+import org.example.chocostyle_datn.entity.XuatXu;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface XuatXuRepository extends JpaRepository<XuatXu,Long> {
 }

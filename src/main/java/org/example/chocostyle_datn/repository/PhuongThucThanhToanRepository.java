@@ -1,4 +1,7 @@
 package org.example.chocostyle_datn.repository;
 
-public interface PhuongThucThanhToanRepository {
+import org.example.chocostyle_datn.entity.PhuongThucThanhToan;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface PhuongThucThanhToanRepository extends JpaRepository<PhuongThucThanhToan,Long> {
 }
