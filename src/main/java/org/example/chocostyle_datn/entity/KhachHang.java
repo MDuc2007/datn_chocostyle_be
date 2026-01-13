@@ -17,7 +17,7 @@ import java.time.LocalDate;
 public class KhachHang {
     @Id
     @Column(name = "id_kh", nullable = false)
-    private Long id;
+    private Integer id;
 
     @Size(max = 50)
     @NotNull

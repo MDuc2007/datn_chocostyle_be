@@ -17,7 +17,7 @@ import java.time.LocalDate;
 public class NhanVien {
     @Id
     @Column(name = "id_nv", nullable = false)
-    private Long id;
+    private Integer id;
 
     @Size(max = 50)
     @NotNull

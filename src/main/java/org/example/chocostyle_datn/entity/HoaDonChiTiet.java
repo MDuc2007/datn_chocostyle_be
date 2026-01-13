@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 public class HoaDonChiTiet {
     @Id
     @Column(name = "id_hdct", nullable = false)
-    private Long id;
+    private Integer id;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

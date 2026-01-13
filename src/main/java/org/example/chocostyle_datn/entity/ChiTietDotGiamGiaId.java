@@ -17,11 +17,11 @@ public class ChiTietDotGiamGiaId implements Serializable {
     private static final long serialVersionUID = -771419114812568067L;
     @NotNull
     @Column(name = "id_dot_giam_gia", nullable = false)
-    private Long idDotGiamGia;
+    private Integer idDotGiamGia;
 
     @NotNull
     @Column(name = "id_spct", nullable = false)
-    private Long idSpct;
+    private Integer idSpct;
 
     @Override
     public boolean equals(Object o) {

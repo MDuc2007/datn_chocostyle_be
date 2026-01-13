@@ -21,7 +21,7 @@ import java.time.LocalDate;
 public class DotGiamGia {
     @Id
     @Column(name = "id_dot_giam_gia", nullable = false)
-    private Long id;
+    private Integer id;
 
     @Size(max = 50)
     @NotNull

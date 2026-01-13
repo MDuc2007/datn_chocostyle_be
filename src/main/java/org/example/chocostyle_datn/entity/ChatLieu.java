@@ -15,7 +15,7 @@ public class ChatLieu {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_chat_lieu", nullable = false)
-    private Long id;
+    private Integer id;
 
     @Size(max = 50)
     @NotNull

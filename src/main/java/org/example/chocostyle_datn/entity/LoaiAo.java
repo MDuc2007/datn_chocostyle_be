@@ -17,7 +17,7 @@ import org.hibernate.annotations.Nationalized;
 public class LoaiAo {
     @Id
     @Column(name = "id_loai_ao", nullable = false)
-    private Long id;
+    private Integer id;
 
     @Size(max = 50)
     @NotNull
