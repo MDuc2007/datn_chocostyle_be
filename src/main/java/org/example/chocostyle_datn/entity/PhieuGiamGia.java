@@ -1,9 +1,6 @@
 package org.example.chocostyle_datn.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -20,6 +17,7 @@ import java.time.LocalDate;
 @Table(name = "phieu_giam_gia")
 public class PhieuGiamGia {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_pgg", nullable = false)
     private Integer id;
 

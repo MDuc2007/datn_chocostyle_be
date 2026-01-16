@@ -24,7 +24,6 @@ public class SanPhamResponse {
     private String tenLoaiAo;
     private String tenKieuDang;
     private String tenPhongCachMac;
-
     private List<BienTheResponse> bienTheList;
     private List<String> hinhAnhUrls;
 
