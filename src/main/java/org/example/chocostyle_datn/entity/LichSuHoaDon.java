@@ -16,6 +16,7 @@ import java.time.LocalDate;
 @Table(name = "lich_su_hoa_don")
 public class LichSuHoaDon {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_lich_su_hoa_don", nullable = false)
     private Integer id;
 

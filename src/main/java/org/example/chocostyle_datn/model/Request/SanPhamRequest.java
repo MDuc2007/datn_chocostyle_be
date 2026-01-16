@@ -16,7 +16,6 @@ public class SanPhamRequest {
     private String tenSp;
     private String moTa;
     private Integer trangThai;
-
     private Integer idChatLieu;
     private Integer idXuatXu;
 
