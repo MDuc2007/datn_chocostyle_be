@@ -9,12 +9,17 @@ import org.example.chocostyle_datn.model.Request.BienTheRequest;
 import org.example.chocostyle_datn.model.Request.KichCoRequest;
 import org.example.chocostyle_datn.model.Request.SanPhamRequest;
 import org.example.chocostyle_datn.model.Response.BienTheResponse;
+import org.example.chocostyle_datn.model.Response.MauSacResponse;
 import org.example.chocostyle_datn.model.Response.SanPhamResponse;
 import org.example.chocostyle_datn.repository.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +60,7 @@ public class SanPhamService {
         sp.setTrangThai(1);
         sp.setNgayTao(LocalDate.now());
         sp.setNguoiTao(request.getNguoiTao());
+        sp.setHinhAnh(request.getHinhAnh());
 
         sp.setIdChatLieu(chatLieuRepo.findById(request.getIdChatLieu()).orElseThrow());
         sp.setIdXuatXu(xuatXuRepo.findById(request.getIdXuatXu()).orElseThrow());
@@ -62,8 +68,6 @@ public class SanPhamService {
         sanPhamRepo.save(sp);
 
         saveBienThe(sp, request);
-        saveImages(sp, request.getHinhAnhUrls());
-
         return toResponse(sp);
     }
 
@@ -77,14 +81,21 @@ public class SanPhamService {
         sp.setMoTa(request.getMoTa());
         sp.setNgayCapNhat(LocalDate.now());
         sp.setNguoiCapNhat(request.getNguoiTao());
+        sp.setHinhAnh(request.getHinhAnh());
 
-        hinhAnhRepo.deleteByIdSanPham(sp);
+        List<ChiTietSanPham> oldCt = chiTietRepo.findByIdSanPham(sp);
+
+        for (ChiTietSanPham ct : oldCt) {
+            hinhAnhRepo.deleteByChiTietSanPham_Id(ct.getId());
+        }
+
+        chiTietRepo.deleteByIdSanPham(sp);
         chiTietRepo.deleteByIdSanPham(sp);
 
+        sanPhamRepo.save(sp);
         saveBienThe(sp, request);
-        saveImages(sp, request.getHinhAnhUrls());
-
         return toResponse(sp);
+
     }
 
     public void delete(Integer id) {
@@ -93,8 +104,12 @@ public class SanPhamService {
 
     private void saveBienThe(SanPham sp, SanPhamRequest request) {
 
-        for (BienTheRequest mauReq : request.getBienTheList()) {
+        String maxMa = chiTietRepo.findMaxMa();
+        int index = (maxMa == null)
+                ? 1
+                : Integer.parseInt(maxMa.replaceAll("\\D+", "")) + 1;
 
+        for (BienTheRequest mauReq : request.getBienTheList()) {
             for (KichCoRequest sizeReq : mauReq.getSizeList()) {
 
                 ChiTietSanPham ct = new ChiTietSanPham();
@@ -105,31 +120,33 @@ public class SanPhamService {
                 ct.setIdPhongCachMac(phongCachMacRepo.findById(request.getIdPhongCachMac()).orElseThrow());
                 ct.setIdKieuDang(kieuDangRepo.findById(request.getIdKieuDang()).orElseThrow());
 
-                ct.setMaChiTietSanPham(
-                        genMa("CTSP", chiTietRepo.findMaxMa())
-                );
+                ct.setMaChiTietSanPham("CTSP" + String.format("%03d", index++));
                 ct.setSoLuongTon(sizeReq.getSoLuongTon());
                 ct.setGiaNhap(sizeReq.getGiaNhap());
                 ct.setGiaBan(sizeReq.getGiaBan());
-
-                ct.setTrangThai(
-                        sizeReq.getSoLuongTon() > 0 ? 1 : 0
+                ct.setTrangThai(sizeReq.getSoLuongTon() > 0 ? 1 : 0);
+                ct.setNgayTao(LocalDate.now());
+                ct.setNguoiTao(
+                        request.getNguoiTao() != null
+                                ? request.getNguoiTao()
+                                : request.getNguoiCapNhat()
                 );
 
-                ct.setNgayTao(LocalDate.now());
-                ct.setNguoiTao(request.getNguoiTao());
+                // ✅ PHẢI SAVE TRƯỚC
+                ChiTietSanPham savedCt = chiTietRepo.save(ct);
 
-                chiTietRepo.save(ct);
+                // ✅ SAU ĐÓ MỚI LƯU ẢNH
+                saveImages(savedCt, mauReq.getHinhAnhUrls());
             }
         }
     }
 
 
-    private void saveImages(SanPham sp, List<String> urls) {
+    private void saveImages(ChiTietSanPham ctsp, List<String> urls) {
         if (urls == null) return;
         for (String url : urls) {
             HinhAnhSanPham img = new HinhAnhSanPham();
-            img.setIdSanPham(sp);
+            img.setChiTietSanPham(ctsp);
             img.setUrlAnh(url);
             hinhAnhRepo.save(img);
         }
@@ -144,33 +161,71 @@ public class SanPhamService {
         dto.setMoTa(sp.getMoTa());
         dto.setTrangThai(sp.getTrangThai());
         dto.setNgayTao(sp.getNgayTao());
+        dto.setHinhAnh(sp.getHinhAnh());
 
         dto.setTenChatLieu(sp.getIdChatLieu().getTenChatLieu());
         dto.setTenXuatXu(sp.getIdXuatXu().getTenXuatXu());
 
-        dto.setHinhAnhUrls(
-                hinhAnhRepo.findByIdSanPham(sp)
-                        .stream()
-                        .map(HinhAnhSanPham::getUrlAnh)
-                        .toList()
-        );
-
         List<ChiTietSanPham> ctList = chiTietRepo.findByIdSanPham(sp);
 
-        dto.setBienTheList(
+        // 🔥 GROUP BY MA CTSP
+        Map<String, List<ChiTietSanPham>> grouped =
                 ctList.stream()
-                        .map(ct -> new BienTheResponse(
-                                ct.getMaChiTietSanPham(),
-                                ct.getIdKichCo().getTenKichCo(),
-                                ct.getIdMauSac().getTenMauSac(),
-                                ct.getSoLuongTon(),
-                                ct.getGiaBan(),
-                                ct.getGiaNhap(),
-                                ct.getTrangThai()
-                        ))
-                        .toList()
-        );
+                        .collect(Collectors.groupingBy(ChiTietSanPham::getMaChiTietSanPham));
 
+        List<BienTheResponse> bienTheResponses = grouped.values().stream()
+                .map(list -> {
+                    ChiTietSanPham first = list.get(0);
+
+                    BienTheResponse res = new BienTheResponse();
+                    res.setMaChiTietSanPham(first.getMaChiTietSanPham());
+                    res.setGiaBan(first.getGiaBan());
+                    res.setGiaNhap(first.getGiaNhap());
+                    res.setTrangThai(first.getTrangThai());
+
+                    // ✅ TỔNG SỐ LƯỢNG
+                    res.setSoLuongTon(
+                            list.stream()
+                                    .mapToInt(ChiTietSanPham::getSoLuongTon)
+                                    .sum()
+                    );
+
+                    // ✅ MÀU
+                    res.setMauSacList(
+                            list.stream()
+                                    .map(ct -> new MauSacResponse(
+                                            ct.getIdMauSac().getTenMauSac(),
+                                            ct.getIdMauSac().getRgb()   // 🔥 lấy rgb
+                                    ))
+                                    .distinct()
+                                    .toList()
+                    );
+
+
+                    // ✅ SIZE
+                    res.setKichCoList(
+                            list.stream()
+                                    .map(ct -> ct.getIdKichCo().getTenKichCo())
+                                    .distinct()
+                                    .toList()
+                    );
+
+                    // ✅ ẢNH
+                    List<String> images = hinhAnhRepo
+                            .findByChiTietSanPham_Id(first.getId())
+                            .stream()
+                            .map(HinhAnhSanPham::getUrlAnh)
+                            .toList();
+
+                    res.setHinhAnhUrls(images);
+
+                    return res;
+                })
+                .toList();
+
+        dto.setBienTheList(bienTheResponses);
+
+        // 🔹 THÔNG TIN CHUNG
         if (!ctList.isEmpty()) {
             ChiTietSanPham ct = ctList.get(0);
             dto.setTenLoaiAo(ct.getIdLoaiAo().getTenLoai());
@@ -181,6 +236,7 @@ public class SanPhamService {
         return dto;
     }
 
+
     private String genMa(String prefix, String maxMa) {
         if (maxMa == null) {
             return prefix + "01";
@@ -190,6 +246,19 @@ public class SanPhamService {
         int nextNumber = Integer.parseInt(numberPart) + 1;
 
         return prefix + String.format("%02d", nextNumber);
+    }
+
+    public Page<SanPhamResponse> getSanPham(
+            String keyword,
+            Integer status,
+            Integer idChatLieu,
+            Integer idXuatXu,
+            Pageable pageable
+    ) {
+        Page<SanPham> page = sanPhamRepo.searchSanPham(
+                keyword, status, idChatLieu, idXuatXu, pageable
+        );
+        return page.map(this::toResponse);
     }
 
 }

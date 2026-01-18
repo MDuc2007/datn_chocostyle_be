@@ -6,8 +6,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface HinhAnhSanPhamRepository extends JpaRepository<HinhAnhSanPham, Long> {
-    List<HinhAnhSanPham> findByIdSanPham(SanPham sanPham);
+public interface HinhAnhSanPhamRepository
+        extends JpaRepository<HinhAnhSanPham, Integer> {
 
-    void deleteByIdSanPham(SanPham sanPham);
+    List<HinhAnhSanPham> findByChiTietSanPham_Id(Integer idSpct);
+
+    void deleteByChiTietSanPham_Id(Integer idSpct);
 }
+

@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -13,10 +14,11 @@ import java.math.BigDecimal;
 @Setter
 public class BienTheResponse {
     private String maChiTietSanPham;
-    private String tenKichCo;
-    private String tenMauSac;
     private Integer soLuongTon;
     private BigDecimal giaBan;
     private BigDecimal giaNhap;
+    private List<String> hinhAnhUrls;
+    private List<MauSacResponse> mauSacList;
+    private List<String> kichCoList;
     private Integer trangThai;
 }

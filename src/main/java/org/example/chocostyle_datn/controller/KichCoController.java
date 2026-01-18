@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/kich-co")
 @RequiredArgsConstructor
-@CrossOrigin
 public class KichCoController {
 
     private final KichCoService service;

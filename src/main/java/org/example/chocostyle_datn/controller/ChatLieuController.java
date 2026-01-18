@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/chat-lieu")
 @RequiredArgsConstructor
-@CrossOrigin
 public class ChatLieuController {
 
     private final ChatLieuService service;

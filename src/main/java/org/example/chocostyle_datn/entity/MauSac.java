@@ -22,6 +22,11 @@ public class MauSac {
     @Column(name = "ma_mau_sac", nullable = false, length = 50)
     private String maMauSac;
 
+    @Size(max = 50)
+    @NotNull
+    @Column(name = "rgb", nullable = false, length = 50)
+    private String rgb;
+
     @Size(max = 100)
     @NotNull
     @Nationalized

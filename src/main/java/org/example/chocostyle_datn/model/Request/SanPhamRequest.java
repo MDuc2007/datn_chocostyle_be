@@ -18,12 +18,13 @@ public class SanPhamRequest {
     private Integer trangThai;
     private Integer idChatLieu;
     private Integer idXuatXu;
+    private String hinhAnh;
 
     private Integer idLoaiAo;
     private Integer idKieuDang;
     private Integer idPhongCachMac;
     private List<BienTheRequest> bienTheList;
-    private List<String> hinhAnhUrls;
-
     private String nguoiTao;
+    private String nguoiCapNhat;
+
 }
