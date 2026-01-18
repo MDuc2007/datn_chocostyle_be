@@ -1,64 +1,52 @@
 package org.example.chocostyle_datn.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
-import org.hibernate.annotations.Nationalized;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 
-@Getter
-@Setter
 @Entity
 @Table(name = "dia_chi")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class DiaChi {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_dc", nullable = false)
+    @Column(name = "id_dc")
     private Integer id;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_kh", nullable = false)
-    private KhachHang idKh;
-
-    @Size(max = 50)
-    @NotNull
-    @Column(name = "ma_dia_chi", nullable = false, length = 50)
+    @Column(name = "ma_dia_chi")
     private String maDiaChi;
 
-    @Size(max = 255)
-    @NotNull
-    @Nationalized
-    @Column(name = "ten_dia_chi", nullable = false)
+    @Column(name = "ten_dia_chi")
     private String tenDiaChi;
 
-    @Size(max = 100)
-    @NotNull
-    @Nationalized
-    @Column(name = "thanh_pho", nullable = false, length = 100)
-    private String thanhPho;
-
-    @Size(max = 100)
-    @NotNull
-    @Nationalized
-    @Column(name = "quan", nullable = false, length = 100)
-    private String quan;
-
-    @Size(max = 100)
-    @NotNull
-    @Nationalized
-    @Column(name = "phuong", nullable = false, length = 100)
-    private String phuong;
-
-    @Size(max = 255)
-    @NotNull
-    @Nationalized
-    @Column(name = "dia_chi_cu_the", nullable = false)
+    @Column(name = "dia_chi_cu_the", nullable = false) // Khớp với lỗi 'column does not allow nulls'
     private String diaChiCuThe;
 
-    @NotNull
-    @Column(name = "mac_dinh", nullable = false)
+    // --- CÁC TRƯỜNG LƯU TÊN (HIỂN THỊ) ---
+    private String thanhPho;
+    private String quan;
+    private String phuong;
+
+    // --- QUAN TRỌNG: CÁC TRƯỜNG LƯU ID (DÙNG CHO DROPDOWN KHI SỬA) ---
+    // Đảm bảo trong Database của bạn đã có 3 cột này
+    @Column(name = "province_id")
+    private Integer provinceId;
+
+    @Column(name = "district_id")
+    private Integer districtId;
+
+    @Column(name = "ward_code")
+    private String wardCode;
+
+    @Column(name = "mac_dinh")
     private Boolean macDinh = false;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_kh")
+    private KhachHang khachHang;
 }
