@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
-
 import java.math.BigDecimal;
 
 @Getter
@@ -13,7 +12,7 @@ import java.math.BigDecimal;
 @Table(name = "hoa_don_chi_tiet")
 public class HoaDonChiTiet {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // <--- Fix lỗi Identifier
     @Column(name = "id_hdct", nullable = false)
     private Integer id;
 
@@ -38,5 +37,4 @@ public class HoaDonChiTiet {
     @NotNull
     @Column(name = "so_luong", nullable = false)
     private Integer soLuong;
-
 }

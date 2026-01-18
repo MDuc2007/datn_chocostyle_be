@@ -8,8 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
+import java.time.LocalDateTime; // Fix import
 
 @Getter
 @Setter
@@ -17,7 +16,7 @@ import java.time.LocalDate;
 @Table(name = "thanh_toan")
 public class ThanhToan {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // <--- Fix lỗi Identifier
     @Column(name = "id_thanh_toan", nullable = false)
     private Integer id;
 
@@ -52,7 +51,7 @@ public class ThanhToan {
     private String maGiaoDichNgoai;
 
     @Column(name = "thoi_gian_thanh_toan")
-    private LocalDate thoiGianThanhToan;
+    private LocalDateTime thoiGianThanhToan; // Fix: LocalDateTime
 
     @Size(max = 100)
     @Column(name = "ma_tham_chieu", length = 100)
@@ -69,7 +68,7 @@ public class ThanhToan {
     private String duLieuQr;
 
     @Column(name = "thoi_gian_het_han")
-    private LocalDate thoiGianHetHan;
+    private LocalDateTime thoiGianHetHan; // Fix: LocalDateTime
 
     @Nationalized
     @Lob
@@ -78,14 +77,13 @@ public class ThanhToan {
 
     @NotNull
     @Column(name = "thoi_gian_tao", nullable = false)
-    private LocalDate thoiGianTao;
+    private LocalDateTime thoiGianTao; // Fix: LocalDateTime
 
     @Column(name = "thoi_gian_cap_nhat")
-    private LocalDate thoiGianCapNhat;
+    private LocalDateTime thoiGianCapNhat; // Fix: LocalDateTime
 
     @Nationalized
     @Lob
     @Column(name = "ghi_chu")
     private String ghiChu;
-
 }
