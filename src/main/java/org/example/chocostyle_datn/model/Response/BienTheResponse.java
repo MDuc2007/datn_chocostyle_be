@@ -22,3 +22,4 @@ public class BienTheResponse {
     private List<String> kichCoList;
     private Integer trangThai;
 }
+    
