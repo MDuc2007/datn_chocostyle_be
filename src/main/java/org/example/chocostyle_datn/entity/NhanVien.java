@@ -9,6 +9,7 @@ import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Date;
 
 @Getter
 @Setter
@@ -59,7 +60,18 @@ public class NhanVien {
     @Lob
     @Column(name = "dia_chi")
     private String diaChi;
+    @Column(name = "tinh_thanh_id") private Integer tinhThanhId;
+    @Column(name = "quan_huyen_id") private Integer quanHuyenId;
+    @Column(name = "xa_phuong_id") private Integer xaPhuongId;
 
+    @Nationalized
+    @Column(name = "tinh_thanh_ten") private String tinhThanh;
+
+    @Nationalized
+    @Column(name = "quan_huyen_ten") private String quanHuyen;
+
+    @Nationalized
+    @Column(name = "xa_phuong_ten") private String xaPhuong;
     @Size(max = 50)
     @NotNull
     @Nationalized
@@ -76,9 +88,22 @@ public class NhanVien {
 
     @NotNull
     @Column(name = "ngay_tao", nullable = false)
-    private LocalDate ngayTao;
+    private Date ngayTao;
 
     @Column(name = "ngay_cap_nhat")
-    private LocalDate ngayCapNhat;
+    private Date ngayCapNhat;
 
+    @Column(name = "avatar")
+    private String avatar;
+
+    @PrePersist
+    public void prePersist() {
+        this.ngayTao = new Date(); // Lấy ngày giờ hiện tại
+    }
+
+    // Chạy TRƯỚC khi UPDATE vào DB
+    @PreUpdate
+    public void preUpdate() {
+        this.ngayCapNhat = new Date(); // Cập nhật lại ngày sửa đổi
+    }
 }

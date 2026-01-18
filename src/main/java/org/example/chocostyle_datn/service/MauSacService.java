@@ -37,7 +37,7 @@ public class MauSacService {
 
     private String genMa(String p, String max) {
         if (max == null) return p + "01";
-        return p + String.format("%02d", Integer.parseInt(max.replace(p, "")) + 1);
+        return p + String.format("%03d", Integer.parseInt(max.replace(p, "")) + 1);
     }
 }
 
