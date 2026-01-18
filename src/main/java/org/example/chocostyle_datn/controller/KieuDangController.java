@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/kieu-dang")
 @RequiredArgsConstructor
-@CrossOrigin
 public class KieuDangController {
 
     private final KieuDangService service;

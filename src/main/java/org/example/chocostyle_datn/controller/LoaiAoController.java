@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/loai-ao")
 @RequiredArgsConstructor
-@CrossOrigin
 public class LoaiAoController {
 
     private final LoaiAoService service;

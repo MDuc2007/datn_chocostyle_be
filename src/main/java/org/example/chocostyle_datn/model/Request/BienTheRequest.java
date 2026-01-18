@@ -14,4 +14,6 @@ import java.util.List;
 public class BienTheRequest {
     private Integer mauSacId;
     private List<KichCoRequest> sizeList;
+    private List<String> hinhAnhUrls;
+
 }

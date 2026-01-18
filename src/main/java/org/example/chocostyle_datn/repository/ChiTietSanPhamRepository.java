@@ -12,4 +12,5 @@ public interface ChiTietSanPhamRepository extends JpaRepository<ChiTietSanPham, 
     void deleteByIdSanPham(SanPham sanPham);
     @Query("select max(ctsp.maChiTietSanPham) from ChiTietSanPham ctsp")
     String findMaxMa();
+    List<ChiTietSanPham> findByIdSanPham_Id(Integer idSanPham);
 }

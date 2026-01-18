@@ -19,10 +19,10 @@ public class HinhAnhSanPham {
     private Integer id;
 
     @NotNull
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "id_san_pham", nullable = false)
-    private SanPham idSanPham;
+    @JoinColumn(name = "id_san_pham_chi_tiet", nullable = false)
+    private ChiTietSanPham chiTietSanPham;
 
     @NotNull
     @Nationalized

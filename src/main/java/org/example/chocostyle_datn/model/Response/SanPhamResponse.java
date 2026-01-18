@@ -18,6 +18,7 @@ public class SanPhamResponse {
     private String tenSp;
     private String moTa;
     private Integer trangThai;
+    private String hinhAnh;
 
     private String tenChatLieu;
     private String tenXuatXu;
@@ -25,7 +26,7 @@ public class SanPhamResponse {
     private String tenKieuDang;
     private String tenPhongCachMac;
     private List<BienTheResponse> bienTheList;
-    private List<String> hinhAnhUrls;
-
     private LocalDate ngayTao;
+    private String nguoiCapNhat;
+
 }
