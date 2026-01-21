@@ -1,7 +1,7 @@
 package org.example.chocostyle_datn.controller;
 
-import org.example.chocostyle_datn.model.Request.NhanVienRequest;
-import org.example.chocostyle_datn.model.Response.NhanVienResponse;
+import org.example.chocostyle_datn.model.request.NhanVienRequest;
+import org.example.chocostyle_datn.model.response.NhanVienResponse;
 import org.example.chocostyle_datn.service.NhanVienService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

@@ -1,15 +1,13 @@
 package org.example.chocostyle_datn.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.chocostyle_datn.model.Request.SanPhamRequest;
-import org.example.chocostyle_datn.model.Response.SanPhamResponse;
+import org.example.chocostyle_datn.model.request.SanPhamRequest;
+import org.example.chocostyle_datn.model.response.SanPhamResponse;
 import org.example.chocostyle_datn.service.SanPhamService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/san-pham")
