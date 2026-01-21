@@ -15,7 +15,8 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/hoa-don")
-@CrossOrigin("*") // Cho phép Frontend (Vue.js) gọi API không bị chặn CORS
+//@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class HoaDonController {
 
     @Autowired

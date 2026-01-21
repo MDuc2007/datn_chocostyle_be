@@ -14,6 +14,8 @@ public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia, Inte
 
     Optional<PhieuGiamGia> findByMaPgg(String maPgg);
 
+    List<PhieuGiamGia> findByTrangThaiNot(Integer trangThai);
+
     @Query("SELECT p FROM PhieuGiamGia p WHERE p.trangThai <> 0 ORDER BY p.id DESC")
     List<PhieuGiamGia> findAllOrderByIdDesc();
 
