@@ -31,15 +31,24 @@ public class HoaDonService {
 
 
     // =================================================================
-    // 2. LẤY CHI TIẾT (GET DETAIL) - Đã thêm Ship & Giảm giá
+    // 1. LẤY CHI TIẾT (GET DETAIL) - PHIÊN BẢN CHỐNG NULL
     // =================================================================
     @Transactional(readOnly = true)
     public HoaDonDetailResponse getDetail(Integer id) {
-        HoaDon hd = hoaDonRepo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn"));
+        // Tìm hóa đơn
+        HoaDon hd = hoaDonRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn"));
 
+        // Lấy danh sách liên quan
         List<HoaDonChiTiet> hdcts = hdctRepo.findByIdHoaDon_Id(id);
         List<LichSuHoaDon> lichSus = lichSuRepo.findByIdHoaDon_IdOrderByThoiGianDesc(id);
         List<ThanhToan> thanhToans = thanhToanRepo.findByIdHoaDon_Id(id);
+
+        // Xử lý an toàn cho Nhân viên (tránh lỗi nếu nhân viên bị xóa)
+        String tenNhanVien = "Không xác định";
+        if (hd.getIdNhanVien() != null) {
+            tenNhanVien = hd.getIdNhanVien().getHoTen();
+        }
 
         return HoaDonDetailResponse.builder()
                 .id(hd.getId())
@@ -47,36 +56,57 @@ public class HoaDonService {
                 .tenKhachHang(hd.getTenKhachHang())
                 .soDienThoai(hd.getSoDienThoai())
                 .diaChi(hd.getDiaChiKhachHang())
-                .tenNhanVien(hd.getIdNhanVien() != null ? hd.getIdNhanVien().getHoTen() : "")
+                .tenNhanVien(tenNhanVien)
                 .trangThai(hd.getTrangThai())
                 .loaiDon(hd.getLoaiDon())
                 .ngayTao(hd.getNgayTao())
                 .ghiChu(hd.getGhiChu())
                 .tongTienHang(hd.getTongTienGoc())
-
-                // --- ĐÃ BỔ SUNG THEO YÊU CẦU ---
                 .phiShip(hd.getPhiVanChuyen() != null ? hd.getPhiVanChuyen() : BigDecimal.ZERO)
                 .giamGia(hd.getSoTienGiam() != null ? hd.getSoTienGiam() : BigDecimal.ZERO)
-                // -------------------------------
-
                 .tongThanhToan(hd.getTongTienThanhToan())
-                .sanPhamList(hdcts.stream().map(ct -> HoaDonSanPhamResponse.builder()
-                        .tenSanPham(ct.getIdSpct().getIdSanPham() != null ? ct.getIdSpct().getIdSanPham().getTenSp() : "SP Ẩn")
-                        .mauSac(ct.getIdSpct().getIdMauSac() != null ? ct.getIdSpct().getIdMauSac().getTenMauSac() : "-")
-                        .kichCo(ct.getIdSpct().getIdKichCo() != null ? ct.getIdSpct().getIdKichCo().getTenKichCo() : "-")
-                        .soLuong(ct.getSoLuong())
-                        .donGia(ct.getDonGia())
-                        .thanhTien(ct.getThanhTien())
-                        .build()).collect(Collectors.toList()))
+
+                // --- LOGIC MAPPING SẢN PHẨM AN TOÀN ---
+                .sanPhamList(hdcts.stream().map(ct -> {
+                    // Mặc định giá trị nếu dữ liệu null
+                    String tenSp = "Sản phẩm ẩn/Đã xóa";
+                    String tenMau = "-";
+                    String tenSize = "-";
+
+                    // Kiểm tra từng cấp độ để tránh NullPointerException
+                    if (ct.getIdSpct() != null) {
+                        if (ct.getIdSpct().getIdSanPham() != null) {
+                            tenSp = ct.getIdSpct().getIdSanPham().getTenSp();
+                        }
+                        if (ct.getIdSpct().getIdMauSac() != null) {
+                            tenMau = ct.getIdSpct().getIdMauSac().getTenMauSac();
+                        }
+                        if (ct.getIdSpct().getIdKichCo() != null) {
+                            tenSize = ct.getIdSpct().getIdKichCo().getTenKichCo();
+                        }
+                    }
+
+                    return HoaDonSanPhamResponse.builder()
+                            .tenSanPham(tenSp)
+                            .mauSac(tenMau)
+                            .kichCo(tenSize)
+                            .soLuong(ct.getSoLuong())
+                            .donGia(ct.getDonGia())
+                            .thanhTien(ct.getThanhTien())
+                            .build();
+                }).collect(Collectors.toList()))
+                // --------------------------------------
+
                 .lichSuList(lichSus.stream().map(ls -> HoaDonLichSuResponse.builder()
                         .trangThai(ls.getTrangThai())
                         .hanhDong(ls.getHanhDong())
                         .ghiChu(ls.getGhiChu())
                         .thoiGian(ls.getThoiGian() != null ? ls.getThoiGian().toString() : "")
-                        .nguoiThucHien("Admin")
+                        .nguoiThucHien("Hệ thống")
                         .build()).collect(Collectors.toList()))
+
                 .thanhToanList(thanhToans.stream().map(tt -> HoaDonThanhToanResponse.builder()
-                        .phuongThuc(tt.getIdPttt() != null ? tt.getIdPttt().getTenPttt() : "Không rõ")
+                        .phuongThuc((tt.getIdPttt() != null) ? tt.getIdPttt().getTenPttt() : "Khác")
                         .soTien(tt.getSoTien())
                         .trangThai(tt.getTrangThai())
                         .thoiGian(tt.getThoiGianThanhToan() != null ? tt.getThoiGianThanhToan().toString() : "")
