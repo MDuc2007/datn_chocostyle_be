@@ -1,10 +1,10 @@
 package org.example.chocostyle_datn.controller;
 
 
-import org.example.chocostyle_datn.model.Request.SearchHoaDonRequest;
-import org.example.chocostyle_datn.model.Request.UpdateTrangThaiRequest;
-import org.example.chocostyle_datn.model.Response.HoaDonDetailResponse;
-import org.example.chocostyle_datn.model.Response.HoaDonResponse;
+import org.example.chocostyle_datn.model.request.SearchHoaDonRequest;
+import org.example.chocostyle_datn.model.request.UpdateTrangThaiRequest;
+import org.example.chocostyle_datn.model.response.HoaDonDetailResponse;
+import org.example.chocostyle_datn.model.response.HoaDonResponse;
 import org.example.chocostyle_datn.service.HoaDonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -72,7 +72,7 @@ public class HoaDonController {
      * Body: JSON chứa thông tin khách, nhân viên, list sản phẩm
      */
     @PostMapping // Không cần thêm path phụ, gọi thẳng vào /api/hoa-don
-    public ResponseEntity<?> taoHoaDon(@RequestBody org.example.chocostyle_datn.model.Request.CreateOrderRequest request) {
+    public ResponseEntity<?> taoHoaDon(@RequestBody org.example.chocostyle_datn.model.request.CreateOrderRequest request) {
         try {
             Integer idHoaDon = hoaDonService.taoHoaDonMoi(request);
             return ResponseEntity.status(201).body("Tạo đơn thành công. ID: " + idHoaDon);

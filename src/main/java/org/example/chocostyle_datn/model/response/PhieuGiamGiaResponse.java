@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.Response;
+package org.example.chocostyle_datn.model.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -7,7 +7,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Getter
 @Setter

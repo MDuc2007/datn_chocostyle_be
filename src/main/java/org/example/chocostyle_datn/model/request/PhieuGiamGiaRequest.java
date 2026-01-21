@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.Request;
+package org.example.chocostyle_datn.model.request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
