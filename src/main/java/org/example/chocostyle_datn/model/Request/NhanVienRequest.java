@@ -17,6 +17,7 @@ public class NhanVienRequest {
     private String email;
     private String sdt;
     private String diaChi;
+    private String diaChiCuThe;
     // Nhận cả ID và Tên từ Frontend gửi về
     private Integer tinhThanhId;
     private String tinhThanh;

@@ -60,9 +60,17 @@ public class NhanVien {
     @Lob
     @Column(name = "dia_chi")
     private String diaChi;
-    @Column(name = "tinh_thanh_id") private Integer tinhThanhId;
-    @Column(name = "quan_huyen_id") private Integer quanHuyenId;
-    @Column(name = "xa_phuong_id") private Integer xaPhuongId;
+
+    @Column(name = "tinh_thanh_id")
+    private Integer tinhThanhId;
+    @Column(name = "quan_huyen_id")
+    private Integer quanHuyenId;
+    @Column(name = "xa_phuong_id")
+    private Integer xaPhuongId;
+
+    @Nationalized
+    @Column(name = "dia_chi_cu_the")
+    private String diaChiCuThe;
 
     @Nationalized
     @Column(name = "tinh_thanh_ten") private String tinhThanh;

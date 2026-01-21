@@ -20,6 +20,11 @@ public class NhanVienController {
     public List<NhanVienResponse> getAll() {
         return service.getAllNhanVien();
     }
+    // 2. Lấy chi tiết (Dùng cho trang Edit)
+    @GetMapping("/{id}")
+    public ResponseEntity<NhanVienResponse> getDetail(@PathVariable Integer id) {
+        return ResponseEntity.ok(service.getNhanVienById(id));
+    }
     @PostMapping
     public ResponseEntity<NhanVienResponse> create(@RequestBody NhanVienRequest request) {
         NhanVienResponse createdNv = service.createNhanVien(request);
