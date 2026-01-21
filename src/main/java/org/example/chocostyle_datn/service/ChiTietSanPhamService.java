@@ -45,5 +45,10 @@ public class ChiTietSanPhamService {
     public void delete(Integer id) {
         repo.deleteById(id);
     }
+    public ChiTietSanPham getById(Integer id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("CTSP not found"));
+    }
+
 }
 

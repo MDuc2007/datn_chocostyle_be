@@ -1,10 +1,9 @@
-package org.example.chocostyle_datn.model.Response;
+package org.example.chocostyle_datn.model.response;
 
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data

@@ -38,4 +38,9 @@ public class ChiTietSanPhamController {
     public void delete(@PathVariable Integer id) {
         service.delete(id);
     }
+    @GetMapping("/{id}")
+    public ChiTietSanPham getById(@PathVariable Integer id) {
+        return service.getById(id);
+    }
+
 }

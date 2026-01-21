@@ -1,8 +1,8 @@
 package org.example.chocostyle_datn.controller;
 
 import jakarta.validation.Valid;
-import org.example.chocostyle_datn.model.Request.PhieuGiamGiaRequest;
-import org.example.chocostyle_datn.model.Response.PhieuGiamGiaResponse;
+import org.example.chocostyle_datn.model.request.PhieuGiamGiaRequest;
+import org.example.chocostyle_datn.model.response.PhieuGiamGiaResponse;
 import org.example.chocostyle_datn.service.PhieuGiamGiaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

@@ -7,24 +7,20 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-public class PhieuGiamGiaResponse {
+@AllArgsConstructor
+public class DotGiamGiaResponse {
     private Integer id;
-    private String maPgg;
-    private String tenPgg;
-    private String kieuApDung;
-    private String loaiGiam;
-    private BigDecimal giaTri;
-    private BigDecimal giaTriToiDa;
-    private BigDecimal dieuKienDonHang;
+    private String maDotGiamGia;
+    private String tenDotGiamGia;
+    private BigDecimal giaTriGiam;
     private LocalDate ngayBatDau;
     private LocalDate ngayKetThuc;
-    private Integer soLuong;
-    private Integer soLuongDaDung;
     private Integer trangThai;
-}
+    List<Integer> chiTietSanPhamIds;
 
+}
