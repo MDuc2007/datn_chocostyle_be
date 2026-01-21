@@ -1,8 +1,12 @@
 package org.example.chocostyle_datn.service;
 
+import org.example.chocostyle_datn.entity.KhachHang;
 import org.example.chocostyle_datn.entity.PhieuGiamGia;
-import org.example.chocostyle_datn.model.request.PhieuGiamGiaRequest;
-import org.example.chocostyle_datn.model.response.PhieuGiamGiaResponse;
+import org.example.chocostyle_datn.entity.PhieuGiamGiaKhachHang;
+import org.example.chocostyle_datn.model.Request.PhieuGiamGiaRequest;
+import org.example.chocostyle_datn.model.Response.PhieuGiamGiaResponse;
+import org.example.chocostyle_datn.repository.KhachHangRepository;
+import org.example.chocostyle_datn.repository.PhieuGiamGiaKhachHangRepository;
 import org.example.chocostyle_datn.repository.PhieuGiamGiaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,6 +20,16 @@ import java.util.stream.Collectors;
 public class PhieuGiamGiaService {
     @Autowired
     private PhieuGiamGiaRepository phieuGiamGiaRepository;
+
+    @Autowired
+    private KhachHangRepository khachHangRepository;
+
+    @Autowired
+    private PhieuGiamGiaKhachHangRepository pggKhRepository;
+
+    @Autowired
+    private EmailService emailService;
+
 
     public List<PhieuGiamGiaResponse> getAllPGG() {
         return phieuGiamGiaRepository.findAllOrderByIdDesc()
@@ -69,7 +83,30 @@ public class PhieuGiamGiaService {
         }
     }
 
-    private Integer tinhTrangThai(LocalDate batDau, LocalDate ketThuc) {
+    public PhieuGiamGiaResponse toggleTrangThai(Integer id) {
+        PhieuGiamGia pgg = phieuGiamGiaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu giảm giá"));
+
+        if (pgg.getTrangThai() == 0) {
+            Integer trangThaiMoi = tinhTrangThaiThuc(
+                    pgg.getNgayBatDau(),
+                    pgg.getNgayKetThuc()
+            );
+
+            if (trangThaiMoi == 0) {
+                throw new IllegalArgumentException("Phiếu giảm giá đã hết hạn, không thể kích hoạt lại");
+            }
+
+            pgg.setTrangThai(trangThaiMoi);
+        } else {
+            pgg.setTrangThai(0);
+        }
+
+        phieuGiamGiaRepository.save(pgg);
+        return toResponse(pgg);
+    }
+
+    private Integer tinhTrangThaiThuc(LocalDate batDau, LocalDate ketThuc) {
         LocalDate today = LocalDate.now();
 
         if (today.isBefore(batDau)) {
@@ -84,6 +121,8 @@ public class PhieuGiamGiaService {
     }
 
     public PhieuGiamGiaResponse createPGG(PhieuGiamGiaRequest req) {
+        validateRequest(req);
+
         PhieuGiamGia pgg = new PhieuGiamGia();
 
         pgg.setMaPgg(generateMaPgg());
@@ -97,12 +136,31 @@ public class PhieuGiamGiaService {
         pgg.setNgayKetThuc(req.getNgayKetThuc());
         pgg.setSoLuong(req.getSoLuong());
         pgg.setSoLuongDaDung(0);
-        pgg.setTrangThai(tinhTrangThai(
+        pgg.setTrangThai(tinhTrangThaiThuc(
                 req.getNgayBatDau(),
                 req.getNgayKetThuc()
         ));
 
-        return toResponse(phieuGiamGiaRepository.save(pgg));
+        pgg = phieuGiamGiaRepository.save(pgg);
+
+        if ("PERSONAL".equals(req.getKieuApDung())) {
+            for (Integer khId : req.getKhachHangIds()) {
+                KhachHang kh = khachHangRepository.findById(khId)
+                        .orElseThrow();
+
+                PhieuGiamGiaKhachHang pggKh = new PhieuGiamGiaKhachHang();
+                pggKh.setKhachHang(kh);
+                pggKh.setPhieuGiamGia(pgg);
+                pggKh.setMaPhieuGiamGiaKh(pgg.getMaPgg() + "-" + kh.getMaKh());
+                pggKh.setNgayNhan(java.time.LocalDateTime.now());
+                pggKh.setDaSuDung(false);
+
+                pggKhRepository.save(pggKh);
+
+                emailService.sendVoucherEmail(kh, pgg);
+            }
+        }
+        return toResponse(pgg);
     }
 
     public PhieuGiamGiaResponse updatePGG(Integer id, PhieuGiamGiaRequest req) {
@@ -118,7 +176,7 @@ public class PhieuGiamGiaService {
         pgg.setNgayBatDau(req.getNgayBatDau());
         pgg.setNgayKetThuc(req.getNgayKetThuc());
         pgg.setSoLuong(req.getSoLuong());
-        pgg.setTrangThai(tinhTrangThai(
+        pgg.setTrangThai(tinhTrangThaiThuc(
                 req.getNgayBatDau(),
                 req.getNgayKetThuc()
         ));
@@ -137,23 +195,37 @@ public class PhieuGiamGiaService {
 
     public List<PhieuGiamGiaResponse> filterPGG(
             String loaiGiam,
+            String kieuApDung,
             Integer trangThai,
             String fromDate,
             String toDate
     ) {
-        return phieuGiamGiaRepository.findByTrangThaiNot(0)
+        return phieuGiamGiaRepository.findAll()
                 .stream()
-                .filter(pgg -> loaiGiam == null || loaiGiam.isEmpty()
-                        || pgg.getLoaiGiam().equals(loaiGiam))
-                .filter(pgg -> trangThai == null
-                        || pgg.getTrangThai().equals(trangThai))
-                .filter(pgg -> fromDate == null || fromDate.isEmpty()
-                        || !pgg.getNgayBatDau().isBefore(LocalDate.parse(fromDate)))
-                .filter(pgg -> toDate == null || toDate.isEmpty()
-                        || !pgg.getNgayKetThuc().isAfter(LocalDate.parse(toDate)))
+                .filter(pgg ->
+                        loaiGiam == null || loaiGiam.isEmpty()
+                                || pgg.getLoaiGiam().equals(loaiGiam)
+                )
+                .filter(pgg ->
+                        kieuApDung == null || kieuApDung.isEmpty()
+                                || pgg.getKieuApDung().equals(kieuApDung)
+                )
+                .filter(pgg ->
+                        trangThai == null
+                                || pgg.getTrangThai().equals(trangThai)
+                )
+                .filter(pgg ->
+                        fromDate == null || fromDate.isEmpty()
+                                || !pgg.getNgayBatDau().isBefore(LocalDate.parse(fromDate))
+                )
+                .filter(pgg ->
+                        toDate == null || toDate.isEmpty()
+                                || !pgg.getNgayKetThuc().isAfter(LocalDate.parse(toDate))
+                )
                 .map(this::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
+
 
     private PhieuGiamGiaResponse toResponse(PhieuGiamGia pgg) {
         return new PhieuGiamGiaResponse(
@@ -172,6 +244,7 @@ public class PhieuGiamGiaService {
                 pgg.getTrangThai()
         );
     }
+
     public PhieuGiamGiaResponse getPGGById(Integer id) {
         PhieuGiamGia pgg = phieuGiamGiaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu giảm giá"));

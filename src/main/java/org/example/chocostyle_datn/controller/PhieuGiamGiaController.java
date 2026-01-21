@@ -1,8 +1,8 @@
 package org.example.chocostyle_datn.controller;
 
 import jakarta.validation.Valid;
-import org.example.chocostyle_datn.model.request.PhieuGiamGiaRequest;
-import org.example.chocostyle_datn.model.response.PhieuGiamGiaResponse;
+import org.example.chocostyle_datn.model.Request.PhieuGiamGiaRequest;
+import org.example.chocostyle_datn.model.Response.PhieuGiamGiaResponse;
 import org.example.chocostyle_datn.service.PhieuGiamGiaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +25,11 @@ public class PhieuGiamGiaController {
     @GetMapping("/{id}")
     public ResponseEntity<PhieuGiamGiaResponse> getPGGById(@PathVariable Integer id) {
         return ResponseEntity.ok(phieuGiamGiaService.getPGGById(id));
+    }
+
+    @PutMapping("/{id}/toggle")
+    public PhieuGiamGiaResponse toggle(@PathVariable Integer id) {
+        return phieuGiamGiaService.toggleTrangThai(id);
     }
 
     @GetMapping("/next-code")
@@ -51,12 +56,13 @@ public class PhieuGiamGiaController {
     @GetMapping("/filter")
     public ResponseEntity<List<PhieuGiamGiaResponse>> filterPGG(
             @RequestParam(required = false) String loaiGiam,
+            @RequestParam(required = false) String kieuApDung,
             @RequestParam(required = false) Integer trangThai,
             @RequestParam(required = false) String fromDate,
             @RequestParam(required = false) String toDate
     ) {
         return ResponseEntity.ok(
-                phieuGiamGiaService.filterPGG(loaiGiam, trangThai, fromDate, toDate)
+                phieuGiamGiaService.filterPGG(loaiGiam,kieuApDung, trangThai, fromDate, toDate)
         );
     }
 }
