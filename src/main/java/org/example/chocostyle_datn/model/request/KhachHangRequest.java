@@ -10,7 +10,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class KhachHangRequest {
-
         private String avatar; // Trường mới thêm để lưu đường dẫn ảnh
         private String tenKhachHang;
         private String tenTaiKhoan;

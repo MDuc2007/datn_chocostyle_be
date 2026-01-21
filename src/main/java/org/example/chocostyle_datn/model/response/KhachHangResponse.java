@@ -1,6 +1,8 @@
-package org.example.chocostyle_datn.model.response;
+package org.example.chocostyle_datn.model.Response;
 
 import lombok.*;
+
+import java.time.LocalDate;
 
 @Data
 @Builder
@@ -12,6 +14,7 @@ public class KhachHangResponse {
     private String maKhachHang;
     private String tenKhachHang;
     private String email;
+    private LocalDate ngaySinh;
     private String soDienThoai;
     private String diaChiChinh;
     private Integer trangThai;

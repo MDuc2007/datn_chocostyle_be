@@ -4,8 +4,8 @@ import org.example.chocostyle_datn.entity.DiaChi;
 import org.example.chocostyle_datn.entity.KhachHang;
 import org.example.chocostyle_datn.model.request.DiaChiRequest;
 import org.example.chocostyle_datn.model.request.KhachHangRequest;
-import org.example.chocostyle_datn.model.response.KhachHangDetailResponse;
-import org.example.chocostyle_datn.model.response.KhachHangResponse;
+import org.example.chocostyle_datn.model.Response.KhachHangDetailResponse;
+import org.example.chocostyle_datn.model.Response.KhachHangResponse;
 import org.example.chocostyle_datn.repository.DiaChiRepository;
 import org.example.chocostyle_datn.repository.KhachHangRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +50,7 @@ public class KhachHangService {
                     .maKhachHang(kh.getMaKh())
                     .tenKhachHang(kh.getTenKhachHang())
                     .email(kh.getEmail())
+                    .ngaySinh(kh.getNgaySinh())
                     .soDienThoai(kh.getSoDienThoai())
                     .diaChiChinh(diaChiChinh)
                     .trangThai(kh.getTrangThai())

@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.request;
+package org.example.chocostyle_datn.model.Request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -42,5 +43,6 @@ public class PhieuGiamGiaRequest {
     @NotNull(message = "Số lượng không được để trống")
     private Integer soLuong;
 
+    private List<Integer> khachHangIds;
 }
 
