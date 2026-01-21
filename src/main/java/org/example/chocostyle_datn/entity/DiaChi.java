@@ -32,16 +32,6 @@ public class DiaChi {
     private String quan;
     private String phuong;
 
-    // --- QUAN TRỌNG: CÁC TRƯỜNG LƯU ID (DÙNG CHO DROPDOWN KHI SỬA) ---
-    // Đảm bảo trong Database của bạn đã có 3 cột này
-    @Column(name = "province_id")
-    private Integer provinceId;
-
-    @Column(name = "district_id")
-    private Integer districtId;
-
-    @Column(name = "ward_code")
-    private String wardCode;
 
     @Column(name = "mac_dinh")
     private Boolean macDinh = false;

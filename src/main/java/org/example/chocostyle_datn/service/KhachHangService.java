@@ -80,6 +80,8 @@ public class KhachHangService {
                 .trangThai(kh.getTrangThai())
                 .ngayTao(kh.getNgayTao()) // Map ngày tạo hệ thống
                 .ngayCapNhat(kh.getNgayCapNhat()) // Map ngày cập nhật hệ thống
+                .soLuongDonHang(kh.getSoLuongDonHang())
+                .tongChiTieu(kh.getTongChiTieu())
                 .listDiaChi(listDiaChiEntities.stream()
                         .map(dc -> KhachHangDetailResponse.DiaChiDetailResponse.builder()
                                 .id(dc.getId())

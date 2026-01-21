@@ -1,6 +1,8 @@
 package org.example.chocostyle_datn.model.Response;
 
 import lombok.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +32,9 @@ public class KhachHangDetailResponse {
     private Integer trangThai;      // trang_thai
     private LocalDate ngayTao;
     private LocalDate ngayCapNhat;
+
+    private Integer soLuongDonHang;
+    private BigDecimal tongChiTieu;
 
     // --- DANH SÁCH ĐỊA CHỈ (Bảng dia_chi) ---
     // FE sẽ dùng list này để render ra các block địa chỉ có nút "Mặc định"
