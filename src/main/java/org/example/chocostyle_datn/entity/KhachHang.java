@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -26,8 +27,6 @@ public class KhachHang {
     @NotNull
     @Column(name = "ma_kh", unique = true) // unique để không trùng
     private String maKh;
-
-
 
     @Size(max = 255)
     @NotNull
@@ -74,9 +73,14 @@ public class KhachHang {
     @Column(name = "ngay_cap_nhat")
     private LocalDate ngayCapNhat;
 
-    @Column(name = "avatar") // Tên cột trong SQL
+    @Column(name = "avatar")
     private String avatar;
 
+    @Column(name = "so_luong_don_hang")
+    private Integer soLuongDonHang;
+
+    @Column(name = "tong_chi_tieu")
+    private BigDecimal tongChiTieu;
     // Thêm quan hệ OneToMany
     @OneToMany(mappedBy = "khachHang", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<DiaChi> listDiaChiObj = new ArrayList<>();
