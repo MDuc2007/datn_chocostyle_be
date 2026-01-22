@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.request;
+package org.example.chocostyle_datn.model.Request;
 
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;

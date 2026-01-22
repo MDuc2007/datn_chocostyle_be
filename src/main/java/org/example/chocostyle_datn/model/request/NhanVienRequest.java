@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.request;
+package org.example.chocostyle_datn.model.Request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,7 +22,7 @@ public class NhanVienRequest {
 
     private Integer quanHuyenId;
     private String quanHuyen;
-
+    private String diaChiCuThe;
     private Integer xaPhuongId;
     private String xaPhuong;
     private Boolean gioiTinh;
