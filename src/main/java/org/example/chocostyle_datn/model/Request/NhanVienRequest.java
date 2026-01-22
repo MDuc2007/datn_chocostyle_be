@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.Request;
+package org.example.chocostyle_datn.model.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.util.Date;
 
 @Getter
 @Setter

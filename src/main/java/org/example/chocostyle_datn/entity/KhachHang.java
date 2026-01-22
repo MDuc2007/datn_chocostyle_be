@@ -7,8 +7,11 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Nationalized;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -16,13 +19,13 @@ import java.time.LocalDate;
 @Table(name = "khach_hang")
 public class KhachHang {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // <--- THÊM DÒNG NÀY
     @Column(name = "id_kh", nullable = false)
     private Integer id;
 
     @Size(max = 50)
     @NotNull
-    @Column(name = "ma_kh", nullable = false, length = 50)
+    @Column(name = "ma_kh", unique = true) // unique để không trùng
     private String maKh;
 
     @Size(max = 255)
@@ -69,5 +72,17 @@ public class KhachHang {
 
     @Column(name = "ngay_cap_nhat")
     private LocalDate ngayCapNhat;
+
+    @Column(name = "avatar")
+    private String avatar;
+
+    @Column(name = "so_luong_don_hang")
+    private Integer soLuongDonHang;
+
+    @Column(name = "tong_chi_tieu")
+    private BigDecimal tongChiTieu;
+    // Thêm quan hệ OneToMany
+    @OneToMany(mappedBy = "khachHang", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<DiaChi> listDiaChiObj = new ArrayList<>();
 
 }

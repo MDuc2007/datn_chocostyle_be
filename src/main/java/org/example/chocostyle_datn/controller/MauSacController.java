@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/mau-sac")
 @RequiredArgsConstructor
-@CrossOrigin
 public class MauSacController {
 
     private final MauSacService service;

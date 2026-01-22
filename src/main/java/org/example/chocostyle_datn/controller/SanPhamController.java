@@ -1,25 +1,25 @@
 package org.example.chocostyle_datn.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.chocostyle_datn.model.Request.SanPhamRequest;
-import org.example.chocostyle_datn.model.Response.SanPhamResponse;
+import org.example.chocostyle_datn.model.request.SanPhamRequest;
+import org.example.chocostyle_datn.model.response.SanPhamResponse;
 import org.example.chocostyle_datn.service.SanPhamService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/san-pham")
 @RequiredArgsConstructor
-@CrossOrigin
 public class SanPhamController {
 
     private final SanPhamService sanPhamService;
 
-    @GetMapping
-    public List<SanPhamResponse> getAll() {
-        return sanPhamService.getAll();
-    }
+//    @GetMapping
+//    public List<SanPhamResponse> getAll() {
+//        return sanPhamService.getAll();
+//    }
 
     @GetMapping("/{id}")
     public SanPhamResponse getById(@PathVariable Integer id) {
@@ -43,5 +43,24 @@ public class SanPhamController {
     public void delete(@PathVariable Integer id) {
         sanPhamService.delete(id);
     }
+    @GetMapping
+    public ResponseEntity<Page<SanPhamResponse>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Integer idChatLieu,
+            @RequestParam(required = false) Integer idXuatXu
+    ) {
+        Page<SanPhamResponse> result = sanPhamService.getSanPham(
+                keyword,
+                status,
+                idChatLieu,
+                idXuatXu,
+                PageRequest.of(page, size)
+        );
+        return ResponseEntity.ok(result);
+    }
+
 }
 

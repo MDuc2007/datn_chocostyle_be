@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/phong-cach-mac")
 @RequiredArgsConstructor
-@CrossOrigin
 public class PhongCachMacController {
 
     private final PhongCachMacService service;

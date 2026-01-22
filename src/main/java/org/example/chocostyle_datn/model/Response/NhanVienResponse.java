@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.Response;
+package org.example.chocostyle_datn.model.response;
 
 import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;

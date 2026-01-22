@@ -10,7 +10,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/xuat-xu")
 @RequiredArgsConstructor
-@CrossOrigin
 public class XuatXuController {
 
     private final XuatXuService service;
