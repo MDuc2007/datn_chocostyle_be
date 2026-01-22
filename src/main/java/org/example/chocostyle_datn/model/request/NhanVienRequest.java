@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.Request;
+package org.example.chocostyle_datn.model.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,13 +16,14 @@ public class NhanVienRequest {
     private String email;
     private String sdt;
     private String diaChi;
+    private String diaChiCuThe;
     // Nhận cả ID và Tên từ Frontend gửi về
     private Integer tinhThanhId;
     private String tinhThanh;
 
     private Integer quanHuyenId;
     private String quanHuyen;
-    private String diaChiCuThe;
+
     private Integer xaPhuongId;
     private String xaPhuong;
     private Boolean gioiTinh;

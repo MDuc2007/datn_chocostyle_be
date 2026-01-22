@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.Request;
+package org.example.chocostyle_datn.model.request;
 
 import lombok.Getter;
 import lombok.Setter;

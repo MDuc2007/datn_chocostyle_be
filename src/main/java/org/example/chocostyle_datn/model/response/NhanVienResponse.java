@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.Response;
+package org.example.chocostyle_datn.model.response;
 
 import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
@@ -33,5 +33,6 @@ public class NhanVienResponse {
     private Integer xaPhuongId;
     private Date ngayTao;
     private Date ngayCapNhat;
+
     private String cccd;
 }

@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.Response;
+package org.example.chocostyle_datn.model.response;
 
 import lombok.*;
 import java.math.BigDecimal;
