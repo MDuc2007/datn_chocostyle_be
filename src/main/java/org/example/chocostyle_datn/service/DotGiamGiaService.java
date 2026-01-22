@@ -5,8 +5,8 @@
     import org.example.chocostyle_datn.entity.ChiTietDotGiamGiaId;
     import org.example.chocostyle_datn.entity.ChiTietSanPham;
     import org.example.chocostyle_datn.entity.DotGiamGia;
-    import org.example.chocostyle_datn.model.request.DotGiamGiaRequest;
-    import org.example.chocostyle_datn.model.response.DotGiamGiaResponse;
+    import org.example.chocostyle_datn.model.Request.DotGiamGiaRequest;
+    import org.example.chocostyle_datn.model.Response.DotGiamGiaResponse;
     import org.example.chocostyle_datn.repository.ChiTietDotGiamGiaRepository;
     import org.example.chocostyle_datn.repository.ChiTietSanPhamRepository;
     import org.example.chocostyle_datn.repository.DotGiamGiaRepository;

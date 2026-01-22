@@ -1,11 +1,13 @@
 package org.example.chocostyle_datn.model.response;
 
+import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.Date;
 
 @Getter
 @Setter
@@ -29,4 +31,8 @@ public class NhanVienResponse {
     private Integer tinhThanhId;
     private Integer quanHuyenId;
     private Integer xaPhuongId;
+    private Date ngayTao;
+    private Date ngayCapNhat;
+
+    private String cccd;
 }

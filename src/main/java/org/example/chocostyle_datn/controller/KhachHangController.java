@@ -1,7 +1,7 @@
 package org.example.chocostyle_datn.controller;
 
 import jakarta.validation.Valid;
-import org.example.chocostyle_datn.model.request.KhachHangRequest;
+import org.example.chocostyle_datn.model.Request.KhachHangRequest;
 import org.example.chocostyle_datn.model.Response.KhachHangDetailResponse;
 import org.example.chocostyle_datn.model.Response.KhachHangResponse;
 import org.example.chocostyle_datn.service.KhachHangService;

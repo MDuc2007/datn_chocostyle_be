@@ -1,9 +1,11 @@
 package org.example.chocostyle_datn.service;
 
 import org.example.chocostyle_datn.entity.*;
+import org.example.chocostyle_datn.model.Request.CartItemRequest;
+import org.example.chocostyle_datn.model.Request.CreateOrderRequest;
 import org.example.chocostyle_datn.model.request.SearchHoaDonRequest;
-import org.example.chocostyle_datn.model.request.UpdateTrangThaiRequest;
-import org.example.chocostyle_datn.model.response.*;
+import org.example.chocostyle_datn.model.Request.UpdateTrangThaiRequest;
+import org.example.chocostyle_datn.model.Response.*;
 import org.example.chocostyle_datn.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -217,7 +219,7 @@ public class HoaDonService {
     // 2. FULL CODE: TẠO HÓA ĐƠN MỚI
     // ========================================================================
     @Transactional
-    public Integer taoHoaDonMoi(org.example.chocostyle_datn.model.request.CreateOrderRequest req) {
+    public Integer taoHoaDonMoi(CreateOrderRequest req) {
 
         // --- BƯỚC 1: KHỞI TẠO HÓA ĐƠN ---
         HoaDon hd = new HoaDon();
@@ -310,7 +312,7 @@ public class HoaDonService {
 
         // --- BƯỚC 5: LƯU CHI TIẾT SẢN PHẨM & TRỪ KHO ---
         if (req.getSanPhamChiTiet() != null) {
-            for (org.example.chocostyle_datn.model.request.CartItemRequest item : req.getSanPhamChiTiet()) {
+            for (CartItemRequest item : req.getSanPhamChiTiet()) {
 
                 // Tìm chi tiết sản phẩm
                 ChiTietSanPham sp = spctRepo.findById(item.getIdChiTietSanPham())

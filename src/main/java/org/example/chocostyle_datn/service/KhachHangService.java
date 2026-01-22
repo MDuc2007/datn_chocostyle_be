@@ -2,8 +2,8 @@ package org.example.chocostyle_datn.service;
 
 import org.example.chocostyle_datn.entity.DiaChi;
 import org.example.chocostyle_datn.entity.KhachHang;
-import org.example.chocostyle_datn.model.request.DiaChiRequest;
-import org.example.chocostyle_datn.model.request.KhachHangRequest;
+import org.example.chocostyle_datn.model.Request.DiaChiRequest;
+import org.example.chocostyle_datn.model.Request.KhachHangRequest;
 import org.example.chocostyle_datn.model.Response.KhachHangDetailResponse;
 import org.example.chocostyle_datn.model.Response.KhachHangResponse;
 import org.example.chocostyle_datn.repository.DiaChiRepository;

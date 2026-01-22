@@ -1,7 +1,7 @@
 package org.example.chocostyle_datn.controller;
 
-import org.example.chocostyle_datn.model.request.NhanVienRequest;
-import org.example.chocostyle_datn.model.response.NhanVienResponse;
+import org.example.chocostyle_datn.model.Request.NhanVienRequest;
+import org.example.chocostyle_datn.model.Response.NhanVienResponse;
 import org.example.chocostyle_datn.service.NhanVienService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +19,11 @@ public class NhanVienController {
     @GetMapping
     public List<NhanVienResponse> getAll() {
         return service.getAllNhanVien();
+    }
+    // 2. Lấy chi tiết (Dùng cho trang Edit)
+    @GetMapping("/{id}")
+    public ResponseEntity<NhanVienResponse> getDetail(@PathVariable Integer id) {
+        return ResponseEntity.ok(service.getNhanVienById(id));
     }
     @PostMapping
     public ResponseEntity<NhanVienResponse> create(@RequestBody NhanVienRequest request) {
