@@ -33,5 +33,6 @@ public class NhanVienResponse {
     private Integer xaPhuongId;
     private Date ngayTao;
     private Date ngayCapNhat;
+
     private String cccd;
 }

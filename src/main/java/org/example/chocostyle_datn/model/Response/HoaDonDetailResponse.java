@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.response;
+package org.example.chocostyle_datn.model.Response;
 
 
 import lombok.*;

@@ -2,8 +2,10 @@ package org.example.chocostyle_datn.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.example.chocostyle_datn.entity.ChiTietSanPham;
-import org.example.chocostyle_datn.repository.ChiTietSanPhamRepository;
+import org.example.chocostyle_datn.entity.*;
+import org.example.chocostyle_datn.model.Request.ChiTietSanPhamRequest;
+import org.example.chocostyle_datn.model.Response.ChiTietSanPhamResponse;
+import org.example.chocostyle_datn.repository.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -11,44 +13,181 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class ChiTietSanPhamService {
 
-    private final ChiTietSanPhamRepository repo;
+    private final ChiTietSanPhamRepository repository;
+    private final HinhAnhSanPhamRepository hinhAnhSanPhamRepository;
 
-    public List<ChiTietSanPham> getAll() {
-        return repo.findAll();
+    private final SanPhamRepository sanPhamRepository;
+    private final KichCoRepository kichCoRepository;
+    private final MauSacRepository mauSacRepository;
+    private final LoaiAoRepository loaiAoRepository;
+    private final PhongCachMacRepository phongCachMacRepository;
+    private final KieuDangRepository kieuDangRepository;
+
+    /* ================= GET ================= */
+
+    public List<ChiTietSanPhamResponse> getAll() {
+        return repository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
-    public List<ChiTietSanPham> getBySanPham(Integer idSanPham) {
-        return repo.findByIdSanPham_Id(idSanPham);
+    public ChiTietSanPhamResponse getById(Integer id) {
+        ChiTietSanPham ctsp = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chi tiết sản phẩm"));
+        return mapToResponse(ctsp);
     }
 
-    public ChiTietSanPham create(ChiTietSanPham e) {
-        String max = repo.findMaxMa();
-        String ma = max == null ? "CTSP01"
-                : "CTSP" + String.format("%02d", Integer.parseInt(max.substring(4)) + 1);
-        e.setMaChiTietSanPham(ma);
-        e.setNgayTao(LocalDate.now());
-        return repo.save(e);
+    /* ================= CREATE ================= */
+
+    @Transactional
+    public ChiTietSanPhamResponse create(ChiTietSanPhamRequest data) {
+
+        ChiTietSanPham ctsp = new ChiTietSanPham();
+
+        ctsp.setIdSanPham(
+                sanPhamRepository.findById(data.getIdSanPham())
+                        .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"))
+        );
+        ctsp.setIdKichCo(
+                kichCoRepository.findById(data.getIdKichCo())
+                        .orElseThrow(() -> new RuntimeException("Kích cỡ không tồn tại"))
+        );
+        ctsp.setIdMauSac(
+                mauSacRepository.findById(data.getIdMauSac())
+                        .orElseThrow(() -> new RuntimeException("Màu sắc không tồn tại"))
+        );
+        ctsp.setIdLoaiAo(
+                loaiAoRepository.findById(data.getIdLoaiAo())
+                        .orElseThrow(() -> new RuntimeException("Loại áo không tồn tại"))
+        );
+        ctsp.setIdPhongCachMac(
+                phongCachMacRepository.findById(data.getIdPhongCachMac())
+                        .orElseThrow(() -> new RuntimeException("Phong cách mặc không tồn tại"))
+        );
+        ctsp.setIdKieuDang(
+                kieuDangRepository.findById(data.getIdKieuDang())
+                        .orElseThrow(() -> new RuntimeException("Kiểu dáng không tồn tại"))
+        );
+
+        ctsp.setSoLuongTon(data.getSoLuongTon());
+        ctsp.setGiaNhap(data.getGiaNhap());
+        ctsp.setGiaBan(data.getGiaBan());
+        ctsp.setTrangThai(1);
+
+        ctsp.setNgayTao(LocalDate.now());
+        ctsp.setNguoiTao(data.getNguoiCapNhat());
+
+        repository.save(ctsp);
+
+        if (data.getHinhAnh() != null) {
+            for (String url : data.getHinhAnh()) {
+                HinhAnhSanPham img = new HinhAnhSanPham();
+                img.setChiTietSanPham(ctsp);
+                img.setUrlAnh(url);
+                hinhAnhSanPhamRepository.save(img);
+            }
+        }
+
+        return mapToResponse(ctsp);
     }
 
-    public ChiTietSanPham update(Integer id, ChiTietSanPham e) {
-        ChiTietSanPham old = repo.findById(id).orElseThrow();
-        e.setId(id);
-        e.setMaChiTietSanPham(old.getMaChiTietSanPham());
-        e.setNgayTao(old.getNgayTao());
-        e.setNgayCapNhat(LocalDate.now());
-        return repo.save(e);
+    /* ================= UPDATE ================= */
+
+    @Transactional
+    public ChiTietSanPhamResponse update(Integer id, ChiTietSanPhamRequest data) {
+
+        ChiTietSanPham ctsp = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chi tiết sản phẩm"));
+
+        ctsp.setIdSanPham(
+                sanPhamRepository.findById(data.getIdSanPham())
+                        .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"))
+        );
+        ctsp.setIdKichCo(
+                kichCoRepository.findById(data.getIdKichCo())
+                        .orElseThrow(() -> new RuntimeException("Kích cỡ không tồn tại"))
+        );
+        ctsp.setIdMauSac(
+                mauSacRepository.findById(data.getIdMauSac())
+                        .orElseThrow(() -> new RuntimeException("Màu sắc không tồn tại"))
+        );
+        ctsp.setIdLoaiAo(
+                loaiAoRepository.findById(data.getIdLoaiAo())
+                        .orElseThrow(() -> new RuntimeException("Loại áo không tồn tại"))
+        );
+        ctsp.setIdPhongCachMac(
+                phongCachMacRepository.findById(data.getIdPhongCachMac())
+                        .orElseThrow(() -> new RuntimeException("Phong cách mặc không tồn tại"))
+        );
+        ctsp.setIdKieuDang(
+                kieuDangRepository.findById(data.getIdKieuDang())
+                        .orElseThrow(() -> new RuntimeException("Kiểu dáng không tồn tại"))
+        );
+
+        ctsp.setSoLuongTon(data.getSoLuongTon());
+        ctsp.setGiaNhap(data.getGiaNhap());
+        ctsp.setGiaBan(data.getGiaBan());
+        ctsp.setTrangThai(data.getTrangThai());
+
+        ctsp.setNgayCapNhat(LocalDate.now());
+        ctsp.setNguoiCapNhat(data.getNguoiCapNhat());
+
+        repository.save(ctsp);
+
+        if (data.getHinhAnh() != null) {
+            hinhAnhSanPhamRepository.deleteByChiTietSanPham_Id(ctsp.getId());
+            for (String url : data.getHinhAnh()) {
+                HinhAnhSanPham img = new HinhAnhSanPham();
+                img.setChiTietSanPham(ctsp);
+                img.setUrlAnh(url);
+                hinhAnhSanPhamRepository.save(img);
+            }
+        }
+
+        return mapToResponse(ctsp);
     }
+
+    /* ================= DELETE ================= */
 
     public void delete(Integer id) {
-        repo.deleteById(id);
-    }
-    public ChiTietSanPham getById(Integer id) {
-        return repo.findById(id)
-                .orElseThrow(() -> new RuntimeException("CTSP not found"));
+        repository.deleteById(id);
     }
 
+    /* ================= MAP RESPONSE ================= */
+
+    private ChiTietSanPhamResponse mapToResponse(ChiTietSanPham ctsp) {
+
+        ChiTietSanPhamResponse res = new ChiTietSanPhamResponse();
+
+        res.setId(ctsp.getId());
+        res.setMaChiTietSanPham(ctsp.getMaChiTietSanPham());
+        res.setSoLuongTon(ctsp.getSoLuongTon());
+        res.setGiaNhap(ctsp.getGiaNhap());
+        res.setGiaBan(ctsp.getGiaBan());
+        res.setTrangThai(ctsp.getTrangThai());
+
+        res.setTenMauSac(ctsp.getIdMauSac().getTenMauSac());
+        res.setTenKichCo(ctsp.getIdKichCo().getTenKichCo());
+        res.setTenLoaiAo(ctsp.getIdLoaiAo().getTenLoai());
+        res.setTenPhongCachMac(ctsp.getIdPhongCachMac().getTenPhongCach());
+        res.setTenKieuDang(ctsp.getIdKieuDang().getTenKieuDang());
+        res.setTenSanPham(ctsp.getIdSanPham().getTenSp());
+
+        res.setNguoiTao(ctsp.getNguoiTao());
+        res.setNgayTao(ctsp.getNgayTao());
+        res.setNgayCapNhat(ctsp.getNgayCapNhat());
+        res.setNguoiCapNhat(ctsp.getNguoiCapNhat());
+
+        res.setHinhAnh(
+                hinhAnhSanPhamRepository.findByChiTietSanPham_Id(ctsp.getId())
+                        .stream()
+                        .map(HinhAnhSanPham::getUrlAnh)
+                        .toList()
+        );
+
+        return res;
+    }
 }
-

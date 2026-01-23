@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.response;
+package org.example.chocostyle_datn.model.Response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,6 +13,7 @@ import java.util.List;
 @Getter
 @Setter
 public class BienTheResponse {
+    private String id;
     private String maChiTietSanPham;
     private Integer soLuongTon;
     private BigDecimal giaBan;

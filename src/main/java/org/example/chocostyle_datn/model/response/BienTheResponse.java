@@ -13,6 +13,7 @@ import java.util.List;
 @Getter
 @Setter
 public class BienTheResponse {
+    private String id;
     private String maChiTietSanPham;
     private Integer soLuongTon;
     private BigDecimal giaBan;

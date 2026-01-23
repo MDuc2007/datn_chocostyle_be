@@ -2,6 +2,8 @@ package org.example.chocostyle_datn.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.chocostyle_datn.entity.ChiTietSanPham;
+import org.example.chocostyle_datn.model.Request.ChiTietSanPhamRequest;
+import org.example.chocostyle_datn.model.Response.ChiTietSanPhamResponse;
 import org.example.chocostyle_datn.service.ChiTietSanPhamService;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,33 +16,40 @@ public class ChiTietSanPhamController {
 
     private final ChiTietSanPhamService service;
 
+    /* ================= GET ================= */
+
     @GetMapping
-    public List<ChiTietSanPham> getAll() {
+    public List<ChiTietSanPhamResponse> getAll() {
         return service.getAll();
     }
 
-    @GetMapping("/san-pham/{id}")
-    public List<ChiTietSanPham> getBySanPham(@PathVariable Integer id) {
-        return service.getBySanPham(id);
+    @GetMapping("/{id}")
+    public ChiTietSanPhamResponse getById(@PathVariable Integer id) {
+        return service.getById(id);
     }
 
+    /* ================= CREATE ================= */
+    // 👉 Nếu sau này muốn chuẩn hơn thì đổi sang Request DTO
     @PostMapping
-    public ChiTietSanPham create(@RequestBody ChiTietSanPham e) {
-        return service.create(e);
+    public ChiTietSanPhamResponse create(@RequestBody ChiTietSanPhamRequest chiTietSanPham) {
+        return service.create(chiTietSanPham);
     }
+
+    /* ================= UPDATE ================= */
 
     @PutMapping("/{id}")
-    public ChiTietSanPham update(@PathVariable Integer id, @RequestBody ChiTietSanPham e) {
-        return service.update(id, e);
+    public ChiTietSanPhamResponse update(
+            @PathVariable Integer id,
+            @RequestBody ChiTietSanPhamRequest request
+    ) {
+        return service.update(id, request);
     }
+
+    /* ================= DELETE ================= */
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
         service.delete(id);
-    }
-    @GetMapping("/{id}")
-    public ChiTietSanPham getById(@PathVariable Integer id) {
-        return service.getById(id);
     }
 
 }
