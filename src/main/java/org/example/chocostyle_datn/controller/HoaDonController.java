@@ -2,7 +2,7 @@ package org.example.chocostyle_datn.controller;
 
 
 import org.example.chocostyle_datn.model.Request.CreateOrderRequest;
-import org.example.chocostyle_datn.model.request.SearchHoaDonRequest;
+import org.example.chocostyle_datn.model.Request.SearchHoaDonRequest;
 import org.example.chocostyle_datn.model.Request.UpdateTrangThaiRequest;
 import org.example.chocostyle_datn.model.Response.HoaDonDetailResponse;
 import org.example.chocostyle_datn.model.Response.HoaDonResponse;

@@ -22,7 +22,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/khach-hang")
-@CrossOrigin(origins = "*", allowedHeaders = "*") //
 public class KhachHangController {
 
     @Autowired

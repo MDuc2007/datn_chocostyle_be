@@ -1,4 +1,4 @@
-package org.example.chocostyle_datn.model.response;
+package org.example.chocostyle_datn.model.Response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,6 +27,8 @@ public class SanPhamResponse {
     private String tenPhongCachMac;
     private List<BienTheResponse> bienTheList;
     private LocalDate ngayTao;
+    private String nguoiTao;
+    private LocalDate ngayCapNhat;
     private String nguoiCapNhat;
 
 }
