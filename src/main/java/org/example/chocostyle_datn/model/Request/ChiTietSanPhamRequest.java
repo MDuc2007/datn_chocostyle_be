@@ -31,4 +31,6 @@ public class ChiTietSanPhamRequest {
 
     // 👉 URL ảnh Cloudinary
     private List<String> hinhAnh;
+    //tesst
+
 }

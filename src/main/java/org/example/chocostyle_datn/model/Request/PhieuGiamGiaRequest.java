@@ -44,5 +44,7 @@ public class PhieuGiamGiaRequest {
     private Integer soLuong;
 
     private List<Integer> khachHangIds;
+    //tesst
+
 }
 
