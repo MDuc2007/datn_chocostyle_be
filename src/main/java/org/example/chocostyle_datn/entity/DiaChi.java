@@ -27,11 +27,14 @@ public class DiaChi {
     @Column(name = "dia_chi_cu_the", nullable = false) // Khớp với lỗi 'column does not allow nulls'
     private String diaChiCuThe;
 
-    // --- CÁC TRƯỜNG LƯU TÊN (HIỂN THỊ) ---
+    @Column(name = "thanh_pho", nullable = false)
     private String thanhPho;
-    private String quan;
-    private String phuong;
 
+    @Column(name = "quan", nullable = false)
+    private String quan;
+
+    @Column(name = "phuong", nullable = false)
+    private String phuong;
 
     @Column(name = "mac_dinh")
     private Boolean macDinh = false;

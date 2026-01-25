@@ -79,8 +79,7 @@ public class PhieuGiamGiaService {
         }
 
         if (req.getSoLuong() <= 0) {
-            throw new IllegalArgumentException("Số lượng phải lớn hơn 0");
-        }
+            throw new IllegalArgumentException("Số lượng phải lớn hơn 0");}
     }
 
     public PhieuGiamGiaResponse toggleTrangThai(Integer id) {
@@ -120,8 +119,16 @@ public class PhieuGiamGiaService {
         return 0;
     }
 
+    public Boolean checkTenTrung(String tenPgg) {
+        return phieuGiamGiaRepository.existsByTenPggIgnoreCase(tenPgg.trim());
+    }
+
     public PhieuGiamGiaResponse createPGG(PhieuGiamGiaRequest req) {
         validateRequest(req);
+
+        if (phieuGiamGiaRepository.existsByTenPggIgnoreCase(req.getTenPgg())) {
+            throw new IllegalArgumentException("Tên phiếu giảm giá đã tồn tại");
+        }
 
         PhieuGiamGia pgg = new PhieuGiamGia();
 
@@ -161,11 +168,29 @@ public class PhieuGiamGiaService {
             }
         }
         return toResponse(pgg);
+    }public Boolean checkTenTrungKhiUpdate(Integer id, String tenPgg) {
+        return phieuGiamGiaRepository
+                .existsByTenPggIgnoreCaseAndIdNot(tenPgg.trim(), id);
     }
 
     public PhieuGiamGiaResponse updatePGG(Integer id, PhieuGiamGiaRequest req) {
+        validateRequest(req);
+
+        if (phieuGiamGiaRepository
+                .existsByTenPggIgnoreCaseAndIdNot(req.getTenPgg(), id)) {
+            throw new IllegalArgumentException("Tên phiếu giảm giá đã tồn tại");
+        }
+
         PhieuGiamGia pgg = phieuGiamGiaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu giảm giá"));
+
+        if (pgg.getTrangThai() == 0) {
+            throw new IllegalArgumentException("Phiếu giảm giá đã kết thúc, không thể cập nhật");
+        }
+
+        if (req.getSoLuong() < pgg.getSoLuongDaDung()) {
+            throw new IllegalArgumentException("Số lượng không được nhỏ hơn số đã sử dụng");
+        }
 
         pgg.setTenPgg(req.getTenPgg());
         pgg.setKieuApDung(req.getKieuApDung());
@@ -180,6 +205,51 @@ public class PhieuGiamGiaService {
                 req.getNgayBatDau(),
                 req.getNgayKetThuc()
         ));
+
+        if ("PERSONAL".equals(req.getKieuApDung())) {
+
+            if (req.getKhachHangIds() == null || req.getKhachHangIds().isEmpty()) {
+                throw new IllegalArgumentException("Voucher cá nhân phải chọn khách hàng");
+            }
+
+            if (req.getKhachHangIds().size() > req.getSoLuong()) {
+                throw new IllegalArgumentException("Số khách hàng không được vượt quá số lượng voucher");
+            }
+
+            List<PhieuGiamGiaKhachHang> existedList =
+                    pggKhRepository.findByPhieuGiamGiaId(id);
+
+            List<Integer> existedKhIds = existedList.stream()
+                    .map(x -> x.getKhachHang().getId())
+                    .toList();
+
+            List<Integer> daSuDungIds = existedList.stream()
+                    .filter(PhieuGiamGiaKhachHang::getDaSuDung)
+                    .map(x -> x.getKhachHang().getId())
+                    .toList();
+
+            if (!req.getKhachHangIds().containsAll(daSuDungIds)) {
+                throw new IllegalArgumentException("Không thể bỏ khách hàng đã sử dụng voucher");
+            }
+
+            List<Integer> newKhIds = req.getKhachHangIds().stream()
+                    .filter(khId -> !existedKhIds.contains(khId))
+                    .toList();
+
+            for (Integer khId : newKhIds) {
+                KhachHang kh = khachHangRepository.findById(khId)
+                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng"));
+
+                PhieuGiamGiaKhachHang pggKh = new PhieuGiamGiaKhachHang();pggKh.setKhachHang(kh);
+                pggKh.setPhieuGiamGia(pgg);
+                pggKh.setMaPhieuGiamGiaKh(pgg.getMaPgg() + "-" + kh.getMaKh());
+                pggKh.setNgayNhan(java.time.LocalDateTime.now());
+                pggKh.setDaSuDung(false);
+
+                pggKhRepository.save(pggKh);
+                emailService.sendVoucherEmail(kh, pgg);
+            }
+        }
 
         return toResponse(phieuGiamGiaRepository.save(pgg));
     }
@@ -228,8 +298,7 @@ public class PhieuGiamGiaService {
 
 
     private PhieuGiamGiaResponse toResponse(PhieuGiamGia pgg) {
-        return new PhieuGiamGiaResponse(
-                pgg.getId(),
+        return new PhieuGiamGiaResponse(pgg.getId(),
                 pgg.getMaPgg(),
                 pgg.getTenPgg(),
                 pgg.getKieuApDung(),

@@ -62,5 +62,16 @@ public class SanPhamController {
         return ResponseEntity.ok(result);
     }
 
+    @PutMapping("/{id}/change-status")
+    public ResponseEntity<Void> changeStatus(
+            @PathVariable Integer id,
+            @RequestParam Integer trangThai,
+            @RequestParam String nguoiCapNhat
+    ) {
+        sanPhamService.changeStatusSanPham(id, trangThai, nguoiCapNhat);
+        return ResponseEntity.ok().build();
+    }
+
+
 }
 

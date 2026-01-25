@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/nhan-vien")
-@CrossOrigin //
 public class NhanVienController {
     @Autowired
     private NhanVienService service;

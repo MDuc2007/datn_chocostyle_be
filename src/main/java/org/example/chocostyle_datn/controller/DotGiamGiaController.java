@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 @Validated
-@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/promotions")
 
