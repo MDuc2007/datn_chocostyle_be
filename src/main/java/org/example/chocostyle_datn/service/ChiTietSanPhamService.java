@@ -5,7 +5,10 @@ import lombok.RequiredArgsConstructor;
 import org.example.chocostyle_datn.entity.*;
 import org.example.chocostyle_datn.model.Request.ChiTietSanPhamRequest;
 import org.example.chocostyle_datn.model.Response.ChiTietSanPhamResponse;
+import org.example.chocostyle_datn.model.Response.SanPhamResponse;
 import org.example.chocostyle_datn.repository.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -24,6 +27,7 @@ public class ChiTietSanPhamService {
     private final LoaiAoRepository loaiAoRepository;
     private final PhongCachMacRepository phongCachMacRepository;
     private final KieuDangRepository kieuDangRepository;
+    private final ChiTietSanPhamRepository chiTietSanPhamRepository;
 
     /* ================= GET ================= */
 
@@ -101,11 +105,6 @@ public class ChiTietSanPhamService {
 
         ChiTietSanPham ctsp = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy chi tiết sản phẩm"));
-
-        ctsp.setIdSanPham(
-                sanPhamRepository.findById(data.getIdSanPham())
-                        .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"))
-        );
         ctsp.setIdKichCo(
                 kichCoRepository.findById(data.getIdKichCo())
                         .orElseThrow(() -> new RuntimeException("Kích cỡ không tồn tại"))
@@ -154,6 +153,23 @@ public class ChiTietSanPhamService {
 
     public void delete(Integer id) {
         repository.deleteById(id);
+    }
+
+    public Page<ChiTietSanPhamResponse> getChiTietSanPham(
+            Long productId,
+            String keyword,
+            Long mauSacId,
+            Long kichCoId,
+            Pageable pageable
+    ) {
+        Page<ChiTietSanPham> page = chiTietSanPhamRepository.filterCTSP(
+                productId,
+                keyword,
+                mauSacId,
+                kichCoId,
+                pageable
+        );
+        return page.map(this::mapToResponse);
     }
 
     /* ================= MAP RESPONSE ================= */
