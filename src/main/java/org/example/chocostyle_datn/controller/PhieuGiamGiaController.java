@@ -3,6 +3,7 @@ package org.example.chocostyle_datn.controller;
 import jakarta.validation.Valid;
 import org.example.chocostyle_datn.model.Request.PhieuGiamGiaRequest;
 import org.example.chocostyle_datn.model.Response.PhieuGiamGiaResponse;
+import org.example.chocostyle_datn.repository.PhieuGiamGiaRepository;
 import org.example.chocostyle_datn.service.PhieuGiamGiaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -10,11 +11,15 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/admin/voucher")
 public class PhieuGiamGiaController {
     @Autowired
     private PhieuGiamGiaService phieuGiamGiaService;
+
+    @Autowired
+    private PhieuGiamGiaRepository phieuGiamGiaRepository;
 
     @GetMapping
     public ResponseEntity<List<PhieuGiamGiaResponse>> getAllPGG() {
@@ -34,6 +39,18 @@ public class PhieuGiamGiaController {
     @GetMapping("/next-code")
     public ResponseEntity<String> getNextMaPgg() {
         return ResponseEntity.ok(phieuGiamGiaService.generateMaPgg());
+    }
+
+    @GetMapping("/check-name")
+    public Boolean checkTenTrung(
+            @RequestParam String ten,
+            @RequestParam(required = false) Integer id
+    ) {
+        if (id == null) {
+            return phieuGiamGiaRepository.existsByTenPggIgnoreCase(ten.trim());
+        }
+        return phieuGiamGiaRepository
+                .existsByTenPggIgnoreCaseAndIdNot(ten.trim(), id);
     }
 
     @PostMapping
@@ -60,8 +77,7 @@ public class PhieuGiamGiaController {
             @RequestParam(required = false) String fromDate,
             @RequestParam(required = false) String toDate
     ) {
-        return ResponseEntity.ok(
-                phieuGiamGiaService.filterPGG(loaiGiam,kieuApDung, trangThai, fromDate, toDate)
+        return ResponseEntity.ok(phieuGiamGiaService.filterPGG(loaiGiam,kieuApDung, trangThai, fromDate, toDate)
         );
     }
 }

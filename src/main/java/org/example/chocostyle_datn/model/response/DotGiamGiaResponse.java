@@ -21,6 +21,6 @@ public class DotGiamGiaResponse {
     private LocalDate ngayBatDau;
     private LocalDate ngayKetThuc;
     private Integer trangThai;
-    List<Integer> chiTietSanPhamIds;
-
+    private List<Integer> chiTietSanPhamIds;
+    private List<DotGiamGiaSanPhamResponse> sanPhamApDung;
 }

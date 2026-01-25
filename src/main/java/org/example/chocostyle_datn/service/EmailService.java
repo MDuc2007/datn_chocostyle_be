@@ -56,6 +56,7 @@ public class EmailService {
             System.err.println("Lỗi gửi mail: " + e.getMessage());
         }
     }
+    @Async
     public void sendVoucherEmail(KhachHang kh, PhieuGiamGia pgg) {
 
         if (kh.getEmail() == null || kh.getEmail().isBlank()) return;

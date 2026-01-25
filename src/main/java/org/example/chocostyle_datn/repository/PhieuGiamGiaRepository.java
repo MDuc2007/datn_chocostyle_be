@@ -10,6 +10,10 @@ import java.util.Optional;
 public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia,Integer> {
     List<PhieuGiamGia> findByTrangThaiNot(Integer trangThai);
 
+    boolean existsByTenPggIgnoreCase(String tenPgg);
+
+    boolean existsByTenPggIgnoreCaseAndIdNot(String tenPgg, Integer id);
+
     Optional<PhieuGiamGia> findByMaPgg(String maPgg);
 
     @Query("SELECT p FROM PhieuGiamGia p ORDER BY p.id DESC")
