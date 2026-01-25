@@ -14,3 +14,4 @@ public class DotGiamGiaSanPhamResponse {
     private String maSp;
     private String tenSp;
     private List<Integer> chiTietSanPhamIds;}
+//tesst

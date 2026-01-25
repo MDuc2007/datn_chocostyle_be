@@ -27,4 +27,6 @@ public class PhieuGiamGiaResponse {
     private Integer soLuong;
     private Integer soLuongDaDung;
     private Integer trangThai;
+    //tesst
+
 }

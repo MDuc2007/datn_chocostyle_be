@@ -34,4 +34,6 @@ public class ChiTietSanPhamResponse {
     private String nguoiTao;
     private LocalDate ngayCapNhat;
     private String nguoiCapNhat;
+    //tesst
+
 }
