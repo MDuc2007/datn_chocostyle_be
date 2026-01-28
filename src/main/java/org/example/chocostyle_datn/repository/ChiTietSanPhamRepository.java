@@ -28,11 +28,23 @@ public interface ChiTietSanPhamRepository extends JpaRepository<ChiTietSanPham, 
             AND (:kichCoId IS NULL OR ctsp.idKichCo.id = :kichCoId)
             """)
     Page<ChiTietSanPham> filterCTSP(
-            @Param("productId") Long productId,
+            @Param("productId") Integer productId,
             @Param("keyword") String keyword,
-            @Param("mauSacId") Long mauSacId,
-            @Param("kichCoId") Long kichCoId,
+            @Param("mauSacId") Integer mauSacId,
+            @Param("kichCoId") Integer kichCoId,
             Pageable pageable
     );
-
+    @Query("""
+            SELECT ctsp FROM ChiTietSanPham ctsp
+            WHERE 
+            (:keyword IS NULL OR LOWER(ctsp.maChiTietSanPham) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            AND (:mauSacId IS NULL OR ctsp.idMauSac.id = :mauSacId)
+            AND (:kichCoId IS NULL OR ctsp.idKichCo.id = :kichCoId)
+            """)
+    Page<ChiTietSanPham> getAllCTSP(
+            @Param("keyword") String keyword,
+            @Param("mauSacId") Integer mauSacId,
+            @Param("kichCoId") Integer kichCoId,
+            Pageable pageable
+    );
 }
