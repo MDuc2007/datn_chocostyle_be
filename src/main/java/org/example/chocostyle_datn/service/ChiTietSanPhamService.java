@@ -155,11 +155,26 @@ public class ChiTietSanPhamService {
         repository.deleteById(id);
     }
 
-    public Page<ChiTietSanPhamResponse> getChiTietSanPham(
-            Long productId,
+    public Page<ChiTietSanPhamResponse> getAll(
             String keyword,
-            Long mauSacId,
-            Long kichCoId,
+            Integer mauSacId,
+            Integer kichCoId,
+            Pageable pageable
+    ) {
+        Page<ChiTietSanPham> page = chiTietSanPhamRepository.getAllCTSP(
+                keyword,
+                mauSacId,
+                kichCoId,
+                pageable
+        );
+        return page.map(this::mapToResponse);
+    }
+
+    public Page<ChiTietSanPhamResponse> getChiTietSanPham(
+            Integer productId,
+            String keyword,
+            Integer mauSacId,
+            Integer kichCoId,
             Pageable pageable
     ) {
         Page<ChiTietSanPham> page = chiTietSanPhamRepository.filterCTSP(
@@ -170,6 +185,24 @@ public class ChiTietSanPhamService {
                 pageable
         );
         return page.map(this::mapToResponse);
+    }
+
+    public void changeStatusChiTietSanPham(
+            Integer sanPhamId,
+            Integer trangThai,
+            String nguoiCapNhat
+    ) {
+
+        if (trangThai != 1 && trangThai != 2) {
+            throw new IllegalArgumentException("Trạng thái không hợp lệ");
+        }
+
+        ChiTietSanPham sp = chiTietSanPhamRepository.findById(sanPhamId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+        sp.setTrangThai(trangThai);
+        sp.setNgayCapNhat(LocalDate.now());
+        sp.setNguoiCapNhat(nguoiCapNhat);
+        chiTietSanPhamRepository.save(sp);
     }
 
     /* ================= MAP RESPONSE ================= */

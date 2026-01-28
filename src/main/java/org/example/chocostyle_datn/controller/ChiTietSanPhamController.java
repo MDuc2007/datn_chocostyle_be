@@ -23,12 +23,31 @@ public class ChiTietSanPhamController {
 
     /* ================= GET ================= */
 
+    @GetMapping("")
+    public ResponseEntity<Page<ChiTietSanPhamResponse>> getAll(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer mauSacId,
+            @RequestParam(required = false) Integer kichCoId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ChiTietSanPhamResponse> result =
+                chiTietSanPhamService.getAll(
+                        keyword,
+                        mauSacId,
+                        kichCoId,
+                        pageable
+                );
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/filter")
     public ResponseEntity<Page<ChiTietSanPhamResponse>> filterCTSP(
-            @RequestParam Long productId,
+            @RequestParam Integer productId,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long mauSacId,
-            @RequestParam(required = false) Long kichCoId,
+            @RequestParam(required = false) Integer mauSacId,
+            @RequestParam(required = false) Integer kichCoId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "8") int size
     ) {
@@ -72,6 +91,15 @@ public class ChiTietSanPhamController {
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
         service.delete(id);
+    }
+    @PutMapping("/{id}/change-status")
+    public ResponseEntity<Void> changeStatus(
+            @PathVariable Integer id,
+            @RequestParam Integer trangThai,
+            @RequestParam String nguoiCapNhat
+    ) {
+        chiTietSanPhamService.changeStatusChiTietSanPham(id, trangThai, nguoiCapNhat);
+        return ResponseEntity.ok().build();
     }
 
 }
