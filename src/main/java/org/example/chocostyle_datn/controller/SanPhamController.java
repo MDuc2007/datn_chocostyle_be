@@ -1,13 +1,19 @@
 package org.example.chocostyle_datn.controller;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.chocostyle_datn.model.Request.SanPhamRequest;
+import org.example.chocostyle_datn.model.Response.SanPhamHomeListResponse;
 import org.example.chocostyle_datn.model.Response.SanPhamResponse;
+import org.example.chocostyle_datn.service.SanPhamExcelService;
 import org.example.chocostyle_datn.service.SanPhamService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/san-pham")
@@ -15,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class SanPhamController {
 
     private final SanPhamService sanPhamService;
+    private final SanPhamExcelService sanPhamExcelService;
 
 //    @GetMapping
 //    public List<SanPhamResponse> getAll() {
@@ -43,6 +50,7 @@ public class SanPhamController {
     public void delete(@PathVariable Integer id) {
         sanPhamService.delete(id);
     }
+
     @GetMapping
     public ResponseEntity<Page<SanPhamResponse>> getAll(
             @RequestParam(defaultValue = "0") int page,
@@ -72,6 +80,45 @@ public class SanPhamController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/export-excel")
+    public void exportSanPhamExcel(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Integer idChatLieu,
+            @RequestParam(required = false) Integer idXuatXu,
+            HttpServletResponse response
+    ) throws IOException {
+
+        response.setContentType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+        response.setHeader(
+                "Content-Disposition",
+                "attachment; filename=san_pham.xlsx"
+        );
+
+        List<SanPhamResponse> data =
+                sanPhamService.getAllForExport(
+                        keyword, status, idChatLieu, idXuatXu
+                );
+
+        sanPhamExcelService.writeExcel(data, response.getOutputStream());
+    }
+//    @GetMapping("/qr/{qrCode}")
+//    public Object scan(@PathVariable String qrCode) {
+//        return sanPhamService.scanByQrCode(qrCode);
+//    }
+
+    @GetMapping("/home")
+    public ResponseEntity<List<SanPhamHomeListResponse>> getDanhSachSanPhamHome() {
+        return ResponseEntity.ok(sanPhamService.getDanhSachSanPham());
+    }
+
+    // 🔥 Sản phẩm bán chạy
+    @GetMapping("/best-seller")
+    public ResponseEntity<List<SanPhamHomeListResponse>> getSanPhamBanChay() {
+        return ResponseEntity.ok(sanPhamService.getSanPhamBanChay());
+    }
 
 }
 

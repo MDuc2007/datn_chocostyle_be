@@ -2,6 +2,7 @@ package org.example.chocostyle_datn.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.chocostyle_datn.entity.KieuDang;
+import org.example.chocostyle_datn.entity.MauSac;
 import org.example.chocostyle_datn.service.KieuDangService;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,6 +33,13 @@ public class KieuDangController {
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) {
         service.delete(id);
+    }
+    @PutMapping("/{id}/doi-trang-thai")
+    public KieuDang doiTrangThai(
+            @PathVariable Integer id,
+            @RequestParam String nguoiCapNhat
+    ) {
+        return service.doiTrangThai(id, nguoiCapNhat);
     }
 }
 

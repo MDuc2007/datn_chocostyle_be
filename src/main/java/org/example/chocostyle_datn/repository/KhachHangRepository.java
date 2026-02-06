@@ -14,7 +14,16 @@ import java.util.Optional;
 @Repository
 public interface KhachHangRepository extends JpaRepository<KhachHang,Integer> {
     // --- PHẦN 1: TÌM KIẾM & LỌC (Dùng cho trang danh sách) ---
+    Optional<KhachHang> findByTenTaiKhoan(String tenTaiKhoan);
 
+
+    // 2. Tìm user để đăng nhập Google/Facebook (Dựa vào Email)
+    // Trả về Optional để xử lý trường hợp chưa có tài khoản thì tự tạo mới
+    Optional<KhachHang> findByEmail(String email);
+
+
+    // 3. Check trùng Tên tài khoản khi Đăng ký
+    boolean existsByTenTaiKhoan(String tenTaiKhoan);
     // Tìm kiếm linh hoạt.
     // COALESCE(:keyword, '') để xử lý null an toàn hơn.
     @Query("""

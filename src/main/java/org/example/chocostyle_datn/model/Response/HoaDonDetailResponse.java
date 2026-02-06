@@ -4,6 +4,7 @@ package org.example.chocostyle_datn.model.Response;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -21,7 +22,7 @@ public class HoaDonDetailResponse {
     private String tenNhanVien;
     private Integer trangThai;
     private Integer loaiDon;
-    private LocalDate ngayTao;
+    private LocalDateTime ngayTao;
     private String ghiChu;
 
     // 2. Thông tin tiền

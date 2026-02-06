@@ -2,6 +2,7 @@ package org.example.chocostyle_datn.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.example.chocostyle_datn.Exception.DuplicateException;
 import org.example.chocostyle_datn.entity.ChiTietSanPham;
 import org.example.chocostyle_datn.entity.HinhAnhSanPham;
 import org.example.chocostyle_datn.entity.SanPham;
@@ -10,11 +11,14 @@ import org.example.chocostyle_datn.model.Request.KichCoRequest;
 import org.example.chocostyle_datn.model.Request.SanPhamRequest;
 import org.example.chocostyle_datn.model.Response.BienTheResponse;
 import org.example.chocostyle_datn.model.Response.MauSacResponse;
+import org.example.chocostyle_datn.model.Response.SanPhamHomeListResponse;
 import org.example.chocostyle_datn.model.Response.SanPhamResponse;
 import org.example.chocostyle_datn.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import static org.example.chocostyle_datn.util.TextNormalizeUtil.normalize;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -36,6 +40,9 @@ public class SanPhamService {
     private final LoaiAoRepository loaiAoRepo;
     private final PhongCachMacRepository phongCachMacRepo;
     private final KieuDangRepository kieuDangRepo;
+    @Autowired
+    private QrCodeService qrCodeService;
+
 
     public List<SanPhamResponse> getAll() {
         return sanPhamRepo.findAll().stream().map(this::toResponse).toList();
@@ -49,7 +56,9 @@ public class SanPhamService {
     }
 
     public SanPhamResponse create(SanPhamRequest request) {
-
+        if (sanPhamRepo.existsByTenIgnoreSpace(request.getTenSp())) {
+            throw new DuplicateException("Tên sản phẩm đã tồn tại");
+        }
         SanPham sp = new SanPham();
 
         sp.setMaSp(
@@ -67,16 +76,34 @@ public class SanPhamService {
 
         sanPhamRepo.save(sp);
 
+        String qrContent = sp.getMaSp();
+        sp.setQrCode(qrContent);
+
+        String qrUrl = qrCodeService.generateAndUploadQr(qrContent, qrContent);
+        sp.setQrImage(qrUrl);
+
+        sanPhamRepo.save(sp);
+
         String maxMa = chiTietRepo.findMaxMa();
         saveBienThe(sp, request, maxMa);
+
         return toResponse(sp);
     }
 
 
     public SanPhamResponse update(Integer id, SanPhamRequest request) {
-
         SanPham sp = sanPhamRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+
+        boolean isDuplicate = sanPhamRepo.existsByTenIgnoreSpace(request.getTenSp());
+
+        String oldCompare = sp.getTenSp().replace(" ", "").toLowerCase();
+        String newCompare = request.getTenSp().replace(" ", "").toLowerCase();
+
+        if (isDuplicate && !oldCompare.equals(newCompare)) {
+            throw new DuplicateException("Tên sản phẩm đã tồn tại");
+        }
+
         sp.setIdChatLieu(
                 chatLieuRepo.findById(request.getIdChatLieu())
                         .orElseThrow(() -> new RuntimeException("Không tìm thấy chất liệu"))
@@ -149,7 +176,15 @@ public class SanPhamService {
                                 : request.getNguoiCapNhat()
                 );
 
+                String qrContent = ct.getMaChiTietSanPham();
+                ct.setQrCode(qrContent);
+
+                String qrUrl = qrCodeService.generateAndUploadQr(qrContent, qrContent);
+                ct.setQrImage(qrUrl);
+
+                // ✅ SAVE 1 LẦN DUY NHẤT
                 ChiTietSanPham savedCt = chiTietRepo.save(ct);
+
                 saveImages(savedCt, mauReq.getHinhAnhUrls());
             }
         }
@@ -166,6 +201,129 @@ public class SanPhamService {
         }
     }
 
+
+    private String genMa(String prefix, String maxMa) {
+        if (maxMa == null) {
+            return prefix + "01";
+        }
+
+        String numberPart = maxMa.replaceAll("\\D+", "");
+        int nextNumber = Integer.parseInt(numberPart) + 1;
+
+        return prefix + String.format("%02d", nextNumber);
+    }
+
+    public Page<SanPhamResponse> getSanPham(
+            String keyword,
+            Integer status,
+            Integer idChatLieu,
+            Integer idXuatXu,
+            Pageable pageable
+    ) {
+        Page<SanPham> page = sanPhamRepo.searchSanPham(
+                keyword, status, idChatLieu, idXuatXu, pageable
+        );
+        return page.map(this::toResponse);
+    }
+
+    public void changeStatusSanPham(
+            Integer sanPhamId,
+            Integer trangThai,
+            String nguoiCapNhat
+    ) {
+
+        if (trangThai != 1 && trangThai != 2) {
+            throw new IllegalArgumentException("Trạng thái không hợp lệ");
+        }
+
+        SanPham sp = sanPhamRepo.findById(sanPhamId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+
+        // 1️⃣ Cập nhật trạng thái sản phẩm
+        sp.setTrangThai(trangThai);
+        sp.setNgayCapNhat(LocalDate.now());
+        sp.setNguoiCapNhat(nguoiCapNhat);
+        sanPhamRepo.save(sp);
+
+        // 2️⃣ Cập nhật biến thể
+        List<ChiTietSanPham> ctList = chiTietRepo.findByIdSanPham(sp);
+
+        for (ChiTietSanPham ct : ctList) {
+
+            if (trangThai == 2) {
+                // 🔴 Ngừng bán → tất cả biến thể = 2
+                ct.setTrangThai(2);
+            } else {
+                // 🟢 Mở bán → dựa vào tồn kho
+                if (ct.getSoLuongTon() > 0) {
+                    ct.setTrangThai(1);
+                } else {
+                    ct.setTrangThai(0);
+                }
+            }
+
+            ct.setNgayCapNhat(LocalDate.now());
+            ct.setNguoiCapNhat(nguoiCapNhat);
+        }
+
+        chiTietRepo.saveAll(ctList);
+    }
+
+    public List<SanPhamResponse> getAllForExport(
+            String keyword,
+            Integer status,
+            Integer idChatLieu,
+            Integer idXuatXu
+    ) {
+        return sanPhamRepo
+                .searchSanPhamNoPage(keyword, status, idChatLieu, idXuatXu)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+
+    public void updateSoLuongBienThe(Integer chiTietId, int soLuongMoi, String nguoiCapNhat) {
+
+        ChiTietSanPham ct = chiTietRepo.findById(chiTietId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy biến thể"));
+
+        ct.setSoLuongTon(soLuongMoi);
+
+        // ⚠️ CHỈ đổi trạng thái nếu KHÔNG phải ngừng bán
+        if (ct.getTrangThai() != 2) {
+            if (soLuongMoi > 0) {
+                ct.setTrangThai(1); // đang bán
+            } else {
+                ct.setTrangThai(0); // hết hàng
+            }
+        }
+
+        ct.setNgayCapNhat(LocalDate.now());
+        ct.setNguoiCapNhat(nguoiCapNhat);
+
+        chiTietRepo.save(ct);
+    }
+
+    // 🛍️ Danh sách sản phẩm
+    public List<SanPhamHomeListResponse> getDanhSachSanPham() {
+        return sanPhamRepo.getDanhSachSanPham();
+    }
+
+    public List<SanPhamHomeListResponse> getSanPhamBanChay() {
+        return sanPhamRepo.getSanPhamBanChay()
+                .stream()
+                .map(p -> new SanPhamHomeListResponse(
+                        p.getId(),
+                        p.getTenSp(),
+                        p.getHinhAnh(),
+                        p.getGiaMin(),
+                        p.getGiaMax(),
+                        p.getSoLuongDaBan()
+                ))
+                .toList();
+    }
+
     private SanPhamResponse toResponse(SanPham sp) {
 
         SanPhamResponse dto = new SanPhamResponse();
@@ -179,6 +337,8 @@ public class SanPhamService {
         dto.setNgayCapNhat(sp.getNgayCapNhat());
         dto.setNguoiCapNhat(sp.getNguoiCapNhat());
         dto.setHinhAnh(sp.getHinhAnh());
+        dto.setQrCode(sp.getQrCode());
+        dto.setQrImage(sp.getQrImage());
 
         dto.setTenChatLieu(sp.getIdChatLieu().getTenChatLieu());
         dto.setTenXuatXu(sp.getIdXuatXu().getTenXuatXu());
@@ -253,99 +413,6 @@ public class SanPhamService {
 
         return dto;
     }
-
-
-    private String genMa(String prefix, String maxMa) {
-        if (maxMa == null) {
-            return prefix + "01";
-        }
-
-        String numberPart = maxMa.replaceAll("\\D+", "");
-        int nextNumber = Integer.parseInt(numberPart) + 1;
-
-        return prefix + String.format("%02d", nextNumber);
-    }
-
-    public Page<SanPhamResponse> getSanPham(
-            String keyword,
-            Integer status,
-            Integer idChatLieu,
-            Integer idXuatXu,
-            Pageable pageable
-    ) {
-        Page<SanPham> page = sanPhamRepo.searchSanPham(
-                keyword, status, idChatLieu, idXuatXu, pageable
-        );
-        return page.map(this::toResponse);
-    }
-
-    public void changeStatusSanPham(
-            Integer sanPhamId,
-            Integer trangThai,
-            String nguoiCapNhat
-    ) {
-
-        if (trangThai != 1 && trangThai != 2) {
-            throw new IllegalArgumentException("Trạng thái không hợp lệ");
-        }
-
-        SanPham sp = sanPhamRepo.findById(sanPhamId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
-
-        // 1️⃣ Cập nhật trạng thái sản phẩm
-        sp.setTrangThai(trangThai);
-        sp.setNgayCapNhat(LocalDate.now());
-        sp.setNguoiCapNhat(nguoiCapNhat);
-        sanPhamRepo.save(sp);
-
-        // 2️⃣ Cập nhật biến thể
-        List<ChiTietSanPham> ctList = chiTietRepo.findByIdSanPham(sp);
-
-        for (ChiTietSanPham ct : ctList) {
-
-            if (trangThai == 2) {
-                // 🔴 Ngừng bán → tất cả biến thể = 2
-                ct.setTrangThai(2);
-            } else {
-                // 🟢 Mở bán → dựa vào tồn kho
-                if (ct.getSoLuongTon() > 0) {
-                    ct.setTrangThai(1);
-                } else {
-                    ct.setTrangThai(0);
-                }
-            }
-
-            ct.setNgayCapNhat(LocalDate.now());
-            ct.setNguoiCapNhat(nguoiCapNhat);
-        }
-
-        chiTietRepo.saveAll(ctList);
-    }
-
-
-    public void updateSoLuongBienThe(Integer chiTietId, int soLuongMoi, String nguoiCapNhat) {
-
-        ChiTietSanPham ct = chiTietRepo.findById(chiTietId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy biến thể"));
-
-        ct.setSoLuongTon(soLuongMoi);
-
-        // ⚠️ CHỈ đổi trạng thái nếu KHÔNG phải ngừng bán
-        if (ct.getTrangThai() != 2) {
-            if (soLuongMoi > 0) {
-                ct.setTrangThai(1); // đang bán
-            } else {
-                ct.setTrangThai(0); // hết hàng
-            }
-        }
-
-        ct.setNgayCapNhat(LocalDate.now());
-        ct.setNguoiCapNhat(nguoiCapNhat);
-
-        chiTietRepo.save(ct);
-    }
-
-
 }
 
 

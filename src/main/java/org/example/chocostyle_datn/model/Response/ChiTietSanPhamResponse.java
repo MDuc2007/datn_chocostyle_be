@@ -28,12 +28,15 @@ public class ChiTietSanPhamResponse {
     private String tenPhongCachMac;
     private String tenKieuDang;
     private String tenSanPham;
+    private String maSanPham;
 
     private List<String> hinhAnh;
     private LocalDate ngayTao;
     private String nguoiTao;
     private LocalDate ngayCapNhat;
     private String nguoiCapNhat;
+    private String qrCode;
+    private String qrImage;
     //tesst
 
 }

@@ -1,13 +1,16 @@
 package org.example.chocostyle_datn.model.Response;
 
+
 import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+
 import java.time.LocalDate;
 import java.util.Date;
+
 
 @Getter
 @Setter
@@ -26,6 +29,7 @@ public class NhanVienResponse {
     private LocalDate ngaySinh;
     private Boolean gioiTinh;
 
+
     // --- THÊM CÁC TRƯỜNG NÀY ĐỂ BIND VÀO FORM SỬA ---
     private String diaChiCuThe; // Địa chỉ cụ thể (input text)
     private Integer tinhThanhId;
@@ -33,8 +37,9 @@ public class NhanVienResponse {
     private Integer xaPhuongId;
     private Date ngayTao;
     private Date ngayCapNhat;
-
-    private String cccd;
-    //tesst
-
+    private LocalDate ngayVaoLam;
+//    private String cccd;
 }
+
+
+

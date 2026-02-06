@@ -27,5 +27,13 @@ public class MauSacController {
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Integer id) { service.delete(id); }
+
+    @PutMapping("/{id}/doi-trang-thai")
+    public MauSac doiTrangThai(
+            @PathVariable Integer id,
+            @RequestParam String nguoiCapNhat
+    ) {
+        return service.doiTrangThai(id, nguoiCapNhat);
+    }
 }
 

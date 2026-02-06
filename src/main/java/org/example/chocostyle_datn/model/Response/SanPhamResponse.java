@@ -30,5 +30,8 @@ public class SanPhamResponse {
     private String nguoiTao;
     private LocalDate ngayCapNhat;
     private String nguoiCapNhat;
+    private String qrCode;
+    private String qrImage;
+
 //tesst
 }

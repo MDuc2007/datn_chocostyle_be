@@ -93,4 +93,11 @@ public class ChiTietSanPham {
     @Column(name = "nguoi_cap_nhat", length = 100)
     private String nguoiCapNhat;
 
+    @Size(max = 100)
+    @Column(name = "qr_code", unique = true)
+    private String qrCode;
+
+    @Column(name = "qr_image")
+    private String qrImage;
+
 }
