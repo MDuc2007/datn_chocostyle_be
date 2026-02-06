@@ -18,6 +18,8 @@ public class KhachHangResponse {
     private String soDienThoai;
     private String diaChiChinh;
     private Integer trangThai;
+    private LocalDate lanMuaGanNhat;
+
 //tesst
 
 }

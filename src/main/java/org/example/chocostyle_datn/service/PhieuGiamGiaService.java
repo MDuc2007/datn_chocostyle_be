@@ -9,6 +9,8 @@ import org.example.chocostyle_datn.repository.KhachHangRepository;
 import org.example.chocostyle_datn.repository.PhieuGiamGiaKhachHangRepository;
 import org.example.chocostyle_datn.repository.PhieuGiamGiaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@EnableScheduling
 public class PhieuGiamGiaService {
     @Autowired
     private PhieuGiamGiaRepository phieuGiamGiaRepository;
@@ -74,12 +77,51 @@ public class PhieuGiamGiaService {
             throw new IllegalArgumentException("Giảm theo % không được vượt quá 100%");
         }
 
-        if (req.getNgayBatDau().isAfter(req.getNgayKetThuc())) {
-            throw new IllegalArgumentException("Ngày bắt đầu phải trước ngày kết thúc");
+        if (req.getNgayBatDau().isAfter(req.getNgayKetThuc())) {throw new IllegalArgumentException("Ngày bắt đầu phải trước ngày kết thúc");
         }
 
         if (req.getSoLuong() <= 0) {
-            throw new IllegalArgumentException("Số lượng phải lớn hơn 0");}
+            throw new IllegalArgumentException("Số lượng phải lớn hơn 0");
+        }
+    }
+
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void autoUpdateTrangThai() {
+        LocalDate today = LocalDate.now();
+
+        List<PhieuGiamGia> list = phieuGiamGiaRepository.findAll();
+
+        for (PhieuGiamGia pgg : list) {
+
+            // 1. Hết hạn → tắt cứng
+            if (today.isAfter(pgg.getNgayKetThuc())) {
+                if (pgg.getTrangThai() != 0) {
+                    pgg.setTrangThai(0);
+                    phieuGiamGiaRepository.save(pgg);
+                }
+                continue;
+            }
+
+            // 2. Nếu bị tắt tay → bỏ qua
+            if (pgg.getTrangThai() == 0) {
+                continue;
+            }
+
+            // 3. Chưa tới ngày
+            if (today.isBefore(pgg.getNgayBatDau())) {
+                if (pgg.getTrangThai() != 2) {
+                    pgg.setTrangThai(2);
+                    phieuGiamGiaRepository.save(pgg);
+                }
+            }
+            // 4. Đang hiệu lực
+            else {
+                if (pgg.getTrangThai() != 1) {
+                    pgg.setTrangThai(1);
+                    phieuGiamGiaRepository.save(pgg);
+                }
+            }
+        }
     }
 
     public PhieuGiamGiaResponse toggleTrangThai(Integer id) {
@@ -132,8 +174,7 @@ public class PhieuGiamGiaService {
 
         PhieuGiamGia pgg = new PhieuGiamGia();
 
-        pgg.setMaPgg(generateMaPgg());
-        pgg.setTenPgg(req.getTenPgg());
+        pgg.setMaPgg(generateMaPgg());pgg.setTenPgg(req.getTenPgg());
         pgg.setKieuApDung(req.getKieuApDung());
         pgg.setLoaiGiam(req.getLoaiGiam());
         pgg.setGiaTri(req.getGiaTri());
@@ -168,7 +209,9 @@ public class PhieuGiamGiaService {
             }
         }
         return toResponse(pgg);
-    }public Boolean checkTenTrungKhiUpdate(Integer id, String tenPgg) {
+    }
+
+    public Boolean checkTenTrungKhiUpdate(Integer id, String tenPgg) {
         return phieuGiamGiaRepository
                 .existsByTenPggIgnoreCaseAndIdNot(tenPgg.trim(), id);
     }
@@ -184,8 +227,8 @@ public class PhieuGiamGiaService {
         PhieuGiamGia pgg = phieuGiamGiaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu giảm giá"));
 
-        if (pgg.getTrangThai() == 0) {
-            throw new IllegalArgumentException("Phiếu giảm giá đã kết thúc, không thể cập nhật");
+        if (LocalDate.now().isAfter(pgg.getNgayKetThuc())) {
+            throw new IllegalArgumentException("Phiếu giảm giá đã hết hạn, không thể cập nhật");
         }
 
         if (req.getSoLuong() < pgg.getSoLuongDaDung()) {
@@ -204,9 +247,7 @@ public class PhieuGiamGiaService {
         pgg.setTrangThai(tinhTrangThaiThuc(
                 req.getNgayBatDau(),
                 req.getNgayKetThuc()
-        ));
-
-        if ("PERSONAL".equals(req.getKieuApDung())) {
+        ));if ("PERSONAL".equals(req.getKieuApDung())) {
 
             if (req.getKhachHangIds() == null || req.getKhachHangIds().isEmpty()) {
                 throw new IllegalArgumentException("Voucher cá nhân phải chọn khách hàng");
@@ -240,7 +281,8 @@ public class PhieuGiamGiaService {
                 KhachHang kh = khachHangRepository.findById(khId)
                         .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khách hàng"));
 
-                PhieuGiamGiaKhachHang pggKh = new PhieuGiamGiaKhachHang();pggKh.setKhachHang(kh);
+                PhieuGiamGiaKhachHang pggKh = new PhieuGiamGiaKhachHang();
+                pggKh.setKhachHang(kh);
                 pggKh.setPhieuGiamGia(pgg);
                 pggKh.setMaPhieuGiamGiaKh(pgg.getMaPgg() + "-" + kh.getMaKh());
                 pggKh.setNgayNhan(java.time.LocalDateTime.now());
@@ -270,6 +312,8 @@ public class PhieuGiamGiaService {
             String fromDate,
             String toDate
     ) {
+        LocalDate today = LocalDate.now();
+
         return phieuGiamGiaRepository.findAll()
                 .stream()
                 .filter(pgg ->
@@ -277,13 +321,32 @@ public class PhieuGiamGiaService {
                                 || pgg.getLoaiGiam().equals(loaiGiam)
                 )
                 .filter(pgg ->
-                        kieuApDung == null || kieuApDung.isEmpty()
-                                || pgg.getKieuApDung().equals(kieuApDung)
+                        kieuApDung == null || kieuApDung.isEmpty()|| pgg.getKieuApDung().equals(kieuApDung)
                 )
-                .filter(pgg ->
-                        trangThai == null
-                                || pgg.getTrangThai().equals(trangThai)
-                )
+                .filter(pgg -> {
+                    if (trangThai == null) return true;
+
+                    // ĐANG DIỄN RA
+                    if (trangThai == 1) {
+                        return !today.isBefore(pgg.getNgayBatDau())
+                                && !today.isAfter(pgg.getNgayKetThuc())
+                                && pgg.getTrangThai() == 1;
+                    }
+
+                    // SẮP DIỄN RA
+                    if (trangThai == 2) {
+                        return today.isBefore(pgg.getNgayBatDau())
+                                && pgg.getTrangThai() == 2;
+                    }
+
+                    // ĐÃ KẾT THÚC / TẮT
+                    if (trangThai == 0) {
+                        return today.isAfter(pgg.getNgayKetThuc())
+                                || pgg.getTrangThai() == 0;
+                    }
+
+                    return true;
+                })
                 .filter(pgg ->
                         fromDate == null || fromDate.isEmpty()
                                 || !pgg.getNgayBatDau().isBefore(LocalDate.parse(fromDate))
@@ -295,7 +358,6 @@ public class PhieuGiamGiaService {
                 .map(this::toResponse)
                 .toList();
     }
-
 
     private PhieuGiamGiaResponse toResponse(PhieuGiamGia pgg) {
         return new PhieuGiamGiaResponse(pgg.getId(),

@@ -15,11 +15,11 @@ import java.util.List;
 @Setter
 public class ChiTietSanPhamRequest {
     private Integer idSanPham;
-    private Integer idKichCo;
-    private Integer idMauSac;
-    private Integer idLoaiAo;
-    private Integer idPhongCachMac;
-    private Integer idKieuDang;
+//    private Integer idKichCo;
+//    private Integer idMauSac;
+//    private Integer idLoaiAo;
+//    private Integer idPhongCachMac;
+//    private Integer idKieuDang;
 
     private Integer soLuongTon;
     private BigDecimal giaNhap;

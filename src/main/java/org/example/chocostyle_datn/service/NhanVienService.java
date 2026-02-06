@@ -6,9 +6,12 @@ import org.example.chocostyle_datn.model.Response.NhanVienResponse;
 import org.example.chocostyle_datn.repository.NhanVienRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+// 1. IMPORT PASSWORD ENCODER
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Random;
 import java.util.regex.Pattern;
@@ -23,9 +26,12 @@ public class NhanVienService {
     @Autowired
     private EmailService emailService;
 
+    // 2. INJECT PASSWORD ENCODER
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     // 1. LẤY TẤT CẢ (Sắp xếp giảm dần theo ID -> Người mới nhất lên đầu)
     public List<NhanVienResponse> getAllNhanVien() {
-        // Sort.by(Sort.Direction.DESC, "id"): Sắp xếp cột 'id' giảm dần
         return repo.findAll(Sort.by(Sort.Direction.DESC, "id")).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -38,27 +44,40 @@ public class NhanVienService {
         return mapToResponse(nv);
     }
 
-    // 3. THÊM MỚI
+    // 3. THÊM MỚI (ĐÃ SỬA LOGIC MÃ HÓA)
     public NhanVienResponse createNhanVien(NhanVienRequest request) {
         NhanVien nv = new NhanVien();
 
         // Gọi hàm map chung (bao gồm logic ghép địa chỉ)
         mapRequestToEntity(request, nv);
 
+        // 1. Chức vụ luôn là "Nhân viên" (hoặc logic tùy bạn)
+        nv.setVaiTro("Nhân viên");
+
+        // 2. Ngày vào làm là ngày hiện tại (Hôm nay)
+        nv.setNgayVaoLam(LocalDate.now());
+
         nv.setMaNv(generateNextMaNv(request.getHoTen()));
-        nv.setMatKhau(generateRandomPassword(8));
         nv.setTrangThai(1);
+
+        // --- BẮT ĐẦU SỬA ---
+        // B1: Tạo mật khẩu ngẫu nhiên (Lưu vào biến tạm để gửi mail)
+        String rawPassword = generateRandomPassword(8);
+
+        // B2: Mã hóa mật khẩu trước khi lưu vào Database
+        nv.setMatKhau(passwordEncoder.encode(rawPassword));
+        // --- KẾT THÚC SỬA ---
+
         NhanVien savedNv = repo.save(nv);
 
-        // 👇 2. GỌI HÀM GỬI EMAIL SAU KHI LƯU THÀNH CÔNG
-        // Chạy trong try-catch để nếu lỗi mail thì vẫn tạo được nhân viên bình thường
+        // 👇 2. GỌI HÀM GỬI EMAIL
         try {
             if (savedNv.getEmail() != null && !savedNv.getEmail().isEmpty()) {
                 emailService.sendAccountInfo(
                         savedNv.getEmail(),
                         savedNv.getHoTen(),
                         savedNv.getMaNv(),
-                        savedNv.getMatKhau() // Gửi password gốc chưa mã hóa
+                        rawPassword // QUAN TRỌNG: Gửi mật khẩu gốc (chưa mã hóa) cho nhân viên xem
                 );
             }
         } catch (Exception e) {
@@ -67,7 +86,6 @@ public class NhanVienService {
 
         return mapToResponse(savedNv);
     }
-
 
     // 4. CẬP NHẬT
     public NhanVienResponse updateNhanVien(Integer id, NhanVienRequest request) {
@@ -88,7 +106,7 @@ public class NhanVienService {
         if (req.getHoTen() != null) nv.setHoTen(req.getHoTen());
         if (req.getEmail() != null) nv.setEmail(req.getEmail());
         if (req.getSdt() != null) nv.setSoDienThoai(req.getSdt());
-        if (req.getCccd() != null) nv.setCccd(req.getCccd());
+        // if (req.getCccd() != null) nv.setCccd(req.getCccd());
         if (req.getGioiTinh() != null) nv.setGioiTinh(req.getGioiTinh());
         if (req.getNgaySinh() != null) nv.setNgaySinh(req.getNgaySinh());
         if (req.getVaiTro() != null) nv.setVaiTro(req.getVaiTro());
@@ -109,10 +127,8 @@ public class NhanVienService {
         if (req.getXaPhuong() != null) nv.setXaPhuong(req.getXaPhuong());
 
         // 3. TỰ ĐỘNG GHÉP CHUỖI FULL (Lưu vào cột dia_chi)
-        // Logic: "Số 10, Ngõ 5, Xã A, Huyện B, Tỉnh C"
         StringBuilder full = new StringBuilder();
 
-        // Lấy giá trị mới nhất (từ request hoặc từ DB cũ)
         String cuThe = req.getDiaChiCuThe() != null ? req.getDiaChiCuThe() : nv.getDiaChiCuThe();
         String xa = req.getXaPhuong() != null ? req.getXaPhuong() : nv.getXaPhuong();
         String huyen = req.getQuanHuyen() != null ? req.getQuanHuyen() : nv.getQuanHuyen();
@@ -135,7 +151,7 @@ public class NhanVienService {
                 nv.getEmail(),
                 nv.getSoDienThoai(),
 
-                nv.getDiaChi(), // Trả về chuỗi Full cho bảng hiển thị
+                nv.getDiaChi(),
 
                 nv.getVaiTro(),
                 nv.getTrangThai(),
@@ -143,7 +159,6 @@ public class NhanVienService {
                 nv.getNgaySinh(),
                 nv.getGioiTinh(),
 
-                // Trả về chi tiết cho Form Sửa
                 nv.getDiaChiCuThe(),
                 nv.getTinhThanhId(),
                 nv.getQuanHuyenId(),
@@ -151,68 +166,51 @@ public class NhanVienService {
 
                 nv.getNgayTao(),
                 nv.getNgayCapNhat(),
-                nv.getCccd()
+                nv.getNgayVaoLam()
+                // nv.getCccd()
         );
     }
 
     private String generateNextMaNv(String fullName) {
         if (fullName == null || fullName.trim().isEmpty()) {
-            return "NV" + System.currentTimeMillis(); // Fallback nếu không có tên
+            return "NV" + System.currentTimeMillis();
         }
 
-        // B1: Tạo tiền tố (Prefix). VD: "Trần Lê Lệnh Quyết" -> "Quyettll"
         String prefix = generatePrefixFromApps(fullName);
-
-        // B2: Tìm trong DB xem có mã nào bắt đầu bằng "Quyettll" chưa
         String lastMaNv = repo.findMaxMaNvByPrefix(prefix);
 
         if (lastMaNv == null) {
-            // Chưa có ai -> Bắt đầu là 001
             return prefix + "001";
         }
 
-        // B3: Nếu có rồi (VD: Quyettll005) -> Cắt lấy số đuôi, tăng lên 1
         try {
-            // Cắt bỏ phần chữ, lấy phần số ở cuối
             String numberPart = lastMaNv.substring(prefix.length());
             int number = Integer.parseInt(numberPart);
             number++;
-            // Format lại thành 3 chữ số (VD: 6 -> 006)
             return prefix + String.format("%03d", number);
         } catch (Exception e) {
-            // Phòng trường hợp lỗi format, trả về ngẫu nhiên để không crash
             return prefix + System.currentTimeMillis();
         }
     }
 
-    // Hàm tách chữ cái: "Trần Lê Lệnh Quyết" -> "Quyettll"
     private String generatePrefixFromApps(String fullName) {
-        // 1. Bỏ dấu tiếng Việt: "Trần Lê Lệnh Quyết" -> "Tran Le Lenh Quyet"
         String unaccented = removeAccent(fullName);
-
-        // 2. Tách các từ: ["Tran", "Le", "Lenh", "Quyet"]
         String[] parts = unaccented.trim().split("\\s+");
 
         if (parts.length == 0) return "NV";
 
-        // 3. Lấy tên chính (Từ cuối cùng) -> "Quyet"
         String mainName = parts[parts.length - 1];
-        // Viết hoa chữ cái đầu của tên (Quyet)
         mainName = mainName.substring(0, 1).toUpperCase() + mainName.substring(1).toLowerCase();
 
-        // 4. Lấy ký tự đầu của Họ đệm -> "Tran", "Le", "Lenh" -> "t", "l", "l"
         StringBuilder suffix = new StringBuilder();
         for (int i = 0; i < parts.length - 1; i++) {
             if (parts[i].length() > 0) {
                 suffix.append(parts[i].substring(0, 1).toLowerCase());
             }
         }
-
-        // Kết quả: Quyet + tll
         return mainName + suffix.toString();
     }
 
-    // Hàm tiện ích: Loại bỏ dấu Tiếng Việt
     private String removeAccent(String s) {
         if (s == null) return "";
         String temp = Normalizer.normalize(s, Normalizer.Form.NFD);
@@ -230,3 +228,4 @@ public class NhanVienService {
         return sb.toString();
     }
 }
+

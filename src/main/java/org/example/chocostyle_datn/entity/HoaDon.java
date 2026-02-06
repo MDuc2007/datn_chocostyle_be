@@ -54,13 +54,13 @@ public class HoaDon {
     private Integer trangThai;
 
     @Column(name = "ngay_tao")
-    private LocalDate ngayTao; // Fix: LocalDateTime
+    private LocalDateTime ngayTao; // Fix: LocalDateTime
 
     @Column(name = "ngay_thanh_toan")
-    private LocalDate ngayThanhToan; // Fix: LocalDateTime
+    private LocalDateTime ngayThanhToan; // Fix: LocalDateTime
 
     @Column(name = "ngay_cap_nhat")
-    private LocalDate ngayCapNhat; // Fix: LocalDateTime
+    private LocalDateTime ngayCapNhat; // Fix: LocalDateTime
 
     @Column(name = "ten_khach_hang")
     private String tenKhachHang;

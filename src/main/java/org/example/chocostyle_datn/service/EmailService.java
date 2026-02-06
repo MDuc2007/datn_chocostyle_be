@@ -5,6 +5,7 @@ import jakarta.mail.internet.MimeMessage;
 import org.example.chocostyle_datn.entity.KhachHang;
 import org.example.chocostyle_datn.entity.PhieuGiamGia;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -148,6 +149,14 @@ public class EmailService {
 
     private String formatMoney(Object value) {
         return value + " VND";
+    }
+
+    public void sendSimpleMessage(String to, String subject, String text) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject(subject);
+        message.setText(text);
+        mailSender.send(message);
     }
 
 

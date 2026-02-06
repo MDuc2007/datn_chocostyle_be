@@ -52,4 +52,7 @@ public class PhongCachMac {
     @Column(name = "nguoi_cap_nhat", length = 100)
     private String nguoiCapNhat;
 
+    @NotNull
+    @Column(name = "trang_thai", nullable = false)
+    private Integer trangThai;
 }
