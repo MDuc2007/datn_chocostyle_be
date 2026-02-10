@@ -11,6 +11,7 @@ import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -61,10 +62,10 @@ public class SanPham {
 
     @NotNull
     @Column(name = "ngay_tao", nullable = false)
-    private LocalDate ngayTao;
+    private LocalDateTime ngayTao;
 
     @Column(name = "ngay_cap_nhat")
-    private LocalDate ngayCapNhat;
+    private LocalDateTime ngayCapNhat;
 
     @Size(max = 100)
     @NotNull

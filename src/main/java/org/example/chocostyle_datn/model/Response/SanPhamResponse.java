@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @NoArgsConstructor
@@ -26,9 +27,9 @@ public class SanPhamResponse {
     private String tenKieuDang;
     private String tenPhongCachMac;
     private List<BienTheResponse> bienTheList;
-    private LocalDate ngayTao;
+    private LocalDateTime ngayTao;
     private String nguoiTao;
-    private LocalDate ngayCapNhat;
+    private LocalDateTime ngayCapNhat;
     private String nguoiCapNhat;
     private String qrCode;
     private String qrImage;

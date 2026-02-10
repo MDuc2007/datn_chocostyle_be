@@ -17,4 +17,18 @@ public interface NhanVienRepository extends JpaRepository<NhanVien,Integer> {
     @Query("SELECT n FROM NhanVien n WHERE n.email = :input OR n.maNv = :input")
     Optional<NhanVien> findByEmailOrMaNhanVien(@Param("input") String input);
 
+    Optional<NhanVien> findByEmail(String email);
+
+    // Sử dụng nativeQuery = true để chọc thẳng vào SQL
+    @Query(value = "SELECT COUNT(*) FROM khach_hang WHERE email = :email", nativeQuery = true)
+    int countEmailInKhachHang(@Param("email") String email);
+    // 1. Check trùng khi Thêm mới
+    boolean existsByEmail(String email);
+    boolean existsBySoDienThoai(String soDienThoai);
+
+
+    // 2. Check trùng khi Cập nhật (Trừ chính ID đang sửa ra)
+    boolean existsByEmailAndIdNot(String email, Integer id);
+    boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Integer id);
+
 }

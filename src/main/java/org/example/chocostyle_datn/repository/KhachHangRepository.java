@@ -9,54 +9,84 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+
+import java.util.List;
 import java.util.Optional;
 
+
 @Repository
-public interface KhachHangRepository extends JpaRepository<KhachHang,Integer> {
-    // --- PHẦN 1: TÌM KIẾM & LỌC (Dùng cho trang danh sách) ---
+public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
+
+
+    // =========================================================================
+    // PHẦN 1: DÀNH CHO AUTHENTICATION (QUAN TRỌNG NHẤT)
+    // =========================================================================
+
+
+    /**
+     * Phương thức này giải quyết vấn đề đăng nhập bằng cả Username hoặc Email.
+     * Nó nhận vào 1 chuỗi (input) và kiểm tra xem chuỗi đó có trùng với tenTaiKhoan
+     * HOẶC trùng với email trong database không.
+     */
+    @Query("SELECT k FROM KhachHang k WHERE k.tenTaiKhoan = :input OR k.email = :input")
+    Optional<KhachHang> findByTenTaiKhoanOrEmail(@Param("input") String input);
+
+
+    // Tìm user để đăng nhập thường (Giữ lại nếu cần dùng riêng lẻ)
     Optional<KhachHang> findByTenTaiKhoan(String tenTaiKhoan);
 
 
-    // 2. Tìm user để đăng nhập Google/Facebook (Dựa vào Email)
-    // Trả về Optional để xử lý trường hợp chưa có tài khoản thì tự tạo mới
+    // Tìm user để đăng nhập Google/Facebook
     Optional<KhachHang> findByEmail(String email);
 
 
-    // 3. Check trùng Tên tài khoản khi Đăng ký
+    // Check trùng
     boolean existsByTenTaiKhoan(String tenTaiKhoan);
-    // Tìm kiếm linh hoạt.
-    // COALESCE(:keyword, '') để xử lý null an toàn hơn.
+    boolean existsBySoDienThoai(String soDienThoai);
+    boolean existsByEmail(String email);
+    boolean existsByMaKh(String maKh);
+
+
+    boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Integer id);
+    boolean existsByEmailAndIdNot(String email, Integer id);
+    boolean existsByTenTaiKhoanAndIdNot(String tenTaiKhoan, Integer id);
+    // =========================================================================
+    // PHẦN 2: TÌM KIẾM & LỌC (ADMIN)
+    // =========================================================================
+
+
     @Query("""
-        SELECT kh FROM KhachHang kh
-        WHERE ( :keyword IS NULL OR :keyword = '' 
-                OR kh.tenKhachHang LIKE %:keyword% 
-                OR kh.soDienThoai LIKE %:keyword% 
-                OR kh.email LIKE %:keyword% )
-        AND ( :status IS NULL OR kh.trangThai = :status )
-    """)
+       SELECT kh FROM KhachHang kh
+       WHERE ( :keyword IS NULL OR :keyword = ''
+               OR kh.tenKhachHang LIKE %:keyword%
+               OR kh.soDienThoai LIKE %:keyword%
+               OR kh.email LIKE %:keyword%
+               OR kh.maKh LIKE %:keyword% )
+       AND ( :status IS NULL OR kh.trangThai = :status )
+   """)
     Page<KhachHang> searchKhachHang(
             @Param("keyword") String keyword,
             @Param("status") Integer status,
             Pageable pageable
     );
-    // Lưu ý: Sort sẽ được xử lý tự động thông qua biến 'pageable' truyền vào.
 
-    // --- PHẦN 2: VALIDATION (Dùng check trùng khi Thêm/Sửa) ---
-
-    // Kiểm tra trùng Số điện thoại
-    boolean existsBySoDienThoai(String soDienThoai);
-
-    // Kiểm tra trùng Email (nếu email không bắt buộc thì check null trước ở service)
-    boolean existsByEmail(String email);
-
-    // Kiểm tra trùng Mã khách hàng (nếu tự nhập)
-    boolean existsByMaKh(String maKh);
-
-    // Tìm khách hàng theo ID để update (tránh dùng getById bị lỗi Lazy loading)
-    Optional<KhachHang> findById(Integer id);
-
-    // --- PHẦN 3: THỐNG KÊ NHANH (Dùng cho Dashboard/Tabs) ---
 
     // Đếm số lượng theo trạng thái
     long countByTrangThai(Integer trangThai);
+
+
+    @Query("""
+   SELECT kh FROM KhachHang kh
+   WHERE (:keyword IS NULL OR
+          kh.tenKhachHang LIKE %:keyword% OR
+          kh.soDienThoai LIKE %:keyword% OR
+          kh.email LIKE %:keyword%)
+     AND (:status IS NULL OR kh.trangThai = :status)
+   ORDER BY kh.ngayTao DESC
+""")
+    List<KhachHang> searchKhachHangForExport(
+            @Param("keyword") String keyword,
+            @Param("status") Integer status
+    );
+
 }

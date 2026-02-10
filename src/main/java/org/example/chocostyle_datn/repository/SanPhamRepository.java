@@ -17,24 +17,24 @@ public interface SanPhamRepository extends JpaRepository<SanPham, Integer> {
     String findMaxMa();
 
     @Query("""
-    SELECT sp FROM SanPham sp
-    WHERE (
-        :keyword IS NULL OR :keyword = ''
-        OR sp.tenSp LIKE %:keyword%
-        OR sp.maSp LIKE %:keyword%
-    )
-    AND (:status IS NULL OR sp.trangThai = :status)
-    AND (:idChatLieu IS NULL OR sp.idChatLieu.id = :idChatLieu)
-    AND (:idXuatXu IS NULL OR sp.idXuatXu.id = :idXuatXu)
-    ORDER BY CAST(SUBSTRING(sp.maSp, 3) AS int) ASC
+SELECT sp FROM SanPham sp
+WHERE (
+    :keyword IS NULL OR :keyword = ''
+    OR sp.tenSp LIKE %:keyword%
+    OR sp.maSp LIKE %:keyword%
+)
+AND (:status IS NULL OR sp.trangThai = :status)
+AND (:idChatLieu IS NULL OR sp.idChatLieu.id = :idChatLieu)
+AND (:idXuatXu IS NULL OR sp.idXuatXu.id = :idXuatXu)
 """)
     Page<SanPham> searchSanPham(
-            @Param("keyword") String keyword,
-            @Param("status") Integer status,
-            @Param("idChatLieu") Integer idChatLieu,
-            @Param("idXuatXu") Integer idXuatXu,
+            String keyword,
+            Integer status,
+            Integer idChatLieu,
+            Integer idXuatXu,
             Pageable pageable
     );
+
 
 
     @Query("""

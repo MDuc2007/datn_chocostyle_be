@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import static org.example.chocostyle_datn.util.TextNormalizeUtil.normalize;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -67,7 +68,7 @@ public class SanPhamService {
         sp.setTenSp(request.getTenSp());
         sp.setMoTa(request.getMoTa());
         sp.setTrangThai(1);
-        sp.setNgayTao(LocalDate.now());
+        sp.setNgayTao(LocalDateTime.now());
         sp.setNguoiTao(request.getNguoiTao());
         sp.setHinhAnh(request.getHinhAnh());
 
@@ -116,7 +117,7 @@ public class SanPhamService {
 
         sp.setTenSp(request.getTenSp());
         sp.setMoTa(request.getMoTa());
-        sp.setNgayCapNhat(LocalDate.now());
+        sp.setNgayCapNhat(LocalDateTime.now());
         sp.setNguoiCapNhat(request.getNguoiCapNhat());
         sp.setHinhAnh(request.getHinhAnh());
 
@@ -241,7 +242,7 @@ public class SanPhamService {
 
         // 1️⃣ Cập nhật trạng thái sản phẩm
         sp.setTrangThai(trangThai);
-        sp.setNgayCapNhat(LocalDate.now());
+        sp.setNgayCapNhat(LocalDateTime.now());
         sp.setNguoiCapNhat(nguoiCapNhat);
         sanPhamRepo.save(sp);
 

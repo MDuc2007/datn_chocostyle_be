@@ -1,45 +1,32 @@
 package org.example.chocostyle_datn.entity;
 
-
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-
-
-
+import lombok.*;
 import java.time.LocalDateTime;
 
-
 @Entity
-@Data
+@Table(name = "password_reset_token")
+@Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class PasswordResetToken {
-
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
+    @Column(name = "token", nullable = false, length = 6)
     private String token;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_type", nullable = false, length = 20)
+    private ResetAccountType accountType;
 
+    @Column(name = "account_id", nullable = false)
+    private Integer accountId;
+
+    @Column(name = "expiry_date", nullable = false)
     private LocalDateTime expiryDate;
-
-
-    // Liên kết 1-1 với User: Một token chỉ thuộc về 1 người dùng
-    @OneToOne(targetEntity = KhachHang.class, fetch = FetchType.EAGER)
-    @JoinColumn(nullable = false, name = "user_id")
-    private KhachHang user;
-
-
-    // Constructor để tạo nhanh token hết hạn sau 24h (hoặc 30 phút tùy bạn)
-    public PasswordResetToken(String token, KhachHang user) {
-        this.token = token;
-        this.user = user;
-        // Token hết hạn sau 30 phút
-        this.expiryDate = LocalDateTime.now().plusMinutes(30);
-    }
 }
-

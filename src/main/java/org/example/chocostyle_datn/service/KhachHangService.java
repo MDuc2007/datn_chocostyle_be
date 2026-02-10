@@ -45,6 +45,11 @@ public class KhachHangService {
     private PasswordEncoder passwordEncoder;
 
 
+    public List<KhachHang> getKhachHangForExport(String keyword, Integer status) {
+        return khachHangRepository.searchKhachHangForExport(keyword, status);
+    }
+
+
     // 1. LẤY DANH SÁCH
     public Page<KhachHangResponse> getKhachHangs(String keyword, Integer status, Pageable pageable) {
         Page<KhachHang> page = khachHangRepository.searchKhachHang(keyword, status, pageable);
@@ -67,6 +72,7 @@ public class KhachHangService {
                     .tenKhachHang(kh.getTenKhachHang())
                     .email(kh.getEmail())
                     .soDienThoai(kh.getSoDienThoai())
+                    .ngaySinh(kh.getNgaySinh())
                     .diaChiChinh(diaChiChinh)
                     .trangThai(kh.getTrangThai())
                     .avatar(processAvatarUrl(kh.getAvatar()))
@@ -116,7 +122,13 @@ public class KhachHangService {
     // 3. THÊM MỚI (ĐÃ SỬA MÃ HÓA MẬT KHẨU)
     @Transactional
     public KhachHang addKhachHang(KhachHangRequest request, MultipartFile file) {
-        validateUniqueFields(request.getSoDienThoai(), request.getEmail(), null);
+        // Trong hàm addKhachHang, sửa dòng đầu tiên thành:
+        validateUniqueFields(
+                request.getSoDienThoai(),
+                request.getEmail(),
+                request.getTenTaiKhoan(),
+                null // thêm mới
+        );
 
 
         KhachHang kh = new KhachHang();
@@ -159,6 +171,14 @@ public class KhachHangService {
     // 4. CẬP NHẬT
     @Transactional
     public KhachHang updateKhachHang(Integer id, KhachHangRequest request, MultipartFile file) {
+        validateUniqueFields(
+                request.getSoDienThoai(),
+                request.getEmail(),
+                request.getTenTaiKhoan(),
+                id // loại trừ chính nó
+        );
+
+
         KhachHang kh = khachHangRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Khách hàng không tồn tại"));
 
@@ -279,9 +299,48 @@ public class KhachHangService {
     }
 
 
-    private void validateUniqueFields(String sdt, String email, Integer currentId) {
-        // Có thể thêm logic kiểm tra trùng lặp tại đây nếu cần
+
+
+    private void validateUniqueFields(String sdt, String email, String tenTaiKhoan, Integer currentId) {
+
+
+        if (sdt != null && !sdt.isBlank()) {
+            boolean exists = (currentId == null)
+                    ? khachHangRepository.existsBySoDienThoai(sdt)
+                    : khachHangRepository.existsBySoDienThoaiAndIdNot(sdt, currentId);
+
+
+            if (exists) {
+                throw new RuntimeException("Số điện thoại '" + sdt + "' đã tồn tại!");
+            }
+        }
+
+
+        if (email != null && !email.isBlank()) {
+            boolean exists = (currentId == null)
+                    ? khachHangRepository.existsByEmail(email)
+                    : khachHangRepository.existsByEmailAndIdNot(email, currentId);
+
+
+            if (exists) {
+                throw new RuntimeException("Email '" + email + "' đã tồn tại!");
+            }
+        }
+
+
+        if (tenTaiKhoan != null && !tenTaiKhoan.isBlank()) {
+            boolean exists = (currentId == null)
+                    ? khachHangRepository.existsByTenTaiKhoan(tenTaiKhoan)
+                    : khachHangRepository.existsByTenTaiKhoanAndIdNot(tenTaiKhoan, currentId);
+
+
+            if (exists) {
+                throw new RuntimeException("Tên tài khoản '" + tenTaiKhoan + "' đã tồn tại!");
+            }
+        }
     }
+
+
 
 
     private String saveAvatar(MultipartFile file) {
@@ -297,5 +356,8 @@ public class KhachHangService {
             throw new RuntimeException("Lỗi upload ảnh", e);
         }
     }
+
+
+
 }
 
