@@ -1,13 +1,15 @@
 package org.example.chocostyle_datn.controller;
 
+
 import org.example.chocostyle_datn.Security.oauth2.JwtTokenProvider;
-import org.example.chocostyle_datn.entity.AuthenticationProvider;
-import org.example.chocostyle_datn.entity.KhachHang;
+import org.example.chocostyle_datn.entity.*;
 import org.example.chocostyle_datn.model.Request.LoginRequest;
 import org.example.chocostyle_datn.model.Request.RegisterRequest;
 import org.example.chocostyle_datn.model.Request.ResetPasswordRequest;
 // import org.example.chocostyle_datn.model.Response.JwtAuthenticationResponse; // Tạm tắt để dùng Map trả về cho linh hoạt
 import org.example.chocostyle_datn.repository.KhachHangRepository;
+import org.example.chocostyle_datn.repository.NhanVienRepository;
+import org.example.chocostyle_datn.service.EmailService;
 import org.example.chocostyle_datn.service.PasswordResetService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,35 +21,50 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.stream.Collectors;
+
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
+
     @Autowired
     AuthenticationManager authenticationManager;
+
 
     @Autowired
     KhachHangRepository khachHangRepository;
 
+
+    @Autowired
+    NhanVienRepository nhanVienRepository;
     @Autowired
     PasswordEncoder passwordEncoder;
+
 
     @Autowired
     JwtTokenProvider tokenProvider;
 
+
     @Autowired
     PasswordResetService passwordResetService;
+    @Autowired
+    private EmailService emailService;
+
 
     // ==========================================================
     // --- API 1: ĐĂNG NHẬP (LOGIN) - ĐÃ SỬA LOGIC ---
     // ==========================================================
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
+
 
         // 1. Xác thực Username/Password (Gọi qua CustomUserDetailsService)
         Authentication authentication = authenticationManager.authenticate(
@@ -57,18 +74,26 @@ public class AuthController {
                 )
         );
 
+
         // 2. Lưu thông tin vào Context
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
 
         // 3. Tạo Token JWT
         String jwt = tokenProvider.generateToken(authentication.getName());
 
+
         // 4. LẤY THÔNG TIN USER TỪ AUTHENTICATION (Thay vì query DB lại)
         // CustomUserDetailsService đã nạp đủ thông tin (Role, Username) vào đây rồi
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();// Vì user có thể có nhiều quyền, ta join lại thành chuỗi hoặc lấy quyền đầu tiên
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
+
+        // 5. Lấy Role (Ví dụ: ROLE_ADMIN, ROLE_USER)
+        // Vì user có thể có nhiều quyền, ta join lại thành chuỗi hoặc lấy quyền đầu tiên
         String roles = userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
                 .collect(Collectors.joining(","));
+
 
         // 6. Trả về JSON (Dùng Map cho nhanh, không cần tạo class Response mới)
         Map<String, Object> response = new HashMap<>();
@@ -78,8 +103,10 @@ public class AuthController {
         response.put("role", roles); // QUAN TRỌNG: Trả về role để Frontend redirect
         response.put("status", "success");
 
+
         return ResponseEntity.ok(response);
     }
+
 
     // ==========================================================
     // --- API 2: ĐĂNG KÝ (REGISTER) - GIỮ NGUYÊN ---
@@ -91,9 +118,11 @@ public class AuthController {
             return ResponseEntity.badRequest().body(createMessage("Lỗi: Tên tài khoản đã tồn tại!"));
         }
 
+
         if (khachHangRepository.existsByEmail(signUpRequest.getEmail())) {
             return ResponseEntity.badRequest().body(createMessage("Lỗi: Email đã được sử dụng!"));
         }
+
 
         KhachHang khachHang = new KhachHang();
         khachHang.setTenKhachHang(signUpRequest.getHoTen());
@@ -107,37 +136,57 @@ public class AuthController {
         // Tạo mã ngẫu nhiên tránh trùng
         khachHang.setMaKh("KH" + System.currentTimeMillis() % 100000);
 
+
         khachHangRepository.save(khachHang);
+
 
         return ResponseEntity.ok(createMessage("Đăng ký tài khoản thành công!"));
     }
+
 
     // ==========================================================
     // --- API 3: QUÊN MẬT KHẨU (FORGOT PASSWORD) ---
     // ==========================================================
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> sendOtp(@RequestParam String email) {
+    public ResponseEntity<?> sendOtp(
+            @RequestParam String email,
+            @RequestParam ResetAccountType type
+    ) {
         try {
-            passwordResetService.sendOtp(email);
+            passwordResetService.sendOtp(email, type);
             return ResponseEntity.ok(createMessage("Mã xác thực (OTP) đã được gửi đến email của bạn!"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(createMessage(e.getMessage()));
         }
-    }// --- API 4: ĐỔI MẬT KHẨU (RESET PASSWORD) ---
+    }
+
+
+
+
+    // ==========================================================
+    // --- API 4: ĐỔI MẬT KHẨU (RESET PASSWORD) ---
     // ==========================================================
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+    public ResponseEntity<?> resetPassword(
+            @RequestBody ResetPasswordRequest request
+    ) {
         try {
             passwordResetService.verifyOtpAndResetPassword(
                     request.getEmail(),
-                    request.getToken(),
-                    request.getNewPassword()
+                    request.getOtp(),
+                    request.getNewPassword(),
+                    request.getType()
             );
-            return ResponseEntity.ok(createMessage("Đổi mật khẩu thành công! Bạn có thể đăng nhập ngay."));
+            return ResponseEntity.ok(createMessage("Đổi mật khẩu thành công!"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(createMessage(e.getMessage()));
         }
     }
+
+
+
+
+
 
     // --- Hàm phụ trợ JSON Message ---
     private Map<String, String> createMessage(String message) {
@@ -147,6 +196,3 @@ public class AuthController {
     }
 }
 
-// ==========================================================
-
-        // 5. Lấy Role (Ví dụ: ROLE_ADMIN, ROLE_USER)

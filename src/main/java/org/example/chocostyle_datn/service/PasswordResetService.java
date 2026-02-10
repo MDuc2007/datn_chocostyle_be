@@ -1,8 +1,8 @@
 package org.example.chocostyle_datn.service;
 
 
-import org.example.chocostyle_datn.entity.KhachHang;
-import org.example.chocostyle_datn.entity.PasswordResetToken;
+import org.example.chocostyle_datn.entity.*;
+import org.example.chocostyle_datn.repository.NhanVienRepository;
 import org.example.chocostyle_datn.repository.PasswordResetTokenRepository;
 import org.example.chocostyle_datn.repository.KhachHangRepository; // Thay bằng Repository User của bạn
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,14 +13,16 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.Random;
-
-
 @Service
 public class PasswordResetService {
 
 
     @Autowired
-    private KhachHangRepository userRepository;
+    private KhachHangRepository khachHangRepository;
+
+
+    @Autowired
+    private NhanVienRepository nhanVienRepository;
 
 
     @Autowired
@@ -35,69 +37,128 @@ public class PasswordResetService {
     private PasswordEncoder passwordEncoder;
 
 
-    public void sendOtp(String email) {
-        KhachHang user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email không tồn tại trong hệ thống!"));
+    // =========================
+    // 1. GỬI OTP
+    // =========================
+    public void sendOtp(String email, ResetAccountType type) {
 
 
-        // Xóa token cũ nếu có
-        tokenRepository.findByUser(user).ifPresent(tokenRepository::delete);
+        Integer accountId;
+        String fullName;
 
 
-        // --- TẠO MÃ OTP 6 SỐ ---
-        Random rnd = new Random();
-        int number = rnd.nextInt(999999);
-        String otp = String.format("%06d", number); // Ví dụ: 012345
-        // ------------------------
-
-
-        // Lưu OTP vào DB
-        PasswordResetToken myToken = new PasswordResetToken(otp, user);
-        tokenRepository.save(myToken);
-
-
-        // Gửi Email chứa mã
-        String subject = "Mã xác thực đổi mật khẩu - ChocoStyle";
-        String content = "Xin chào " + user.getTenKhachHang() + ",\n\n"
-                + "Mã xác thực (OTP) của bạn là: " + otp + "\n\n"
-                + "Mã này sẽ hết hạn sau 30 phút. Vui lòng không chia sẻ mã này cho ai khác.";
-
-
-        emailService.sendSimpleMessage(email, subject, content);
-    }
-
-
-    // 2. Xác thực OTP và Đổi mật khẩu
-    public void verifyOtpAndResetPassword(String email, String otp, String newPassword) {
-        // Tìm user trước
-        KhachHang user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email không hợp lệ"));
-
-
-        // Tìm token trong DB dựa trên User (thay vì tìm theo token)
-        PasswordResetToken resetToken = tokenRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Bạn chưa yêu cầu gửi mã xác thực!"));
-
-
-        // Kiểm tra khớp mã OTP
-        if (!resetToken.getToken().equals(otp)) {
-            throw new RuntimeException("Mã xác thực không đúng!");
+        if (type == ResetAccountType.KHACH_HANG) {
+            KhachHang kh = khachHangRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Email khách hàng không tồn tại"));
+            accountId = kh.getId();
+            fullName = kh.getTenKhachHang();
+        } else {
+            NhanVien nv = nhanVienRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Email nhân viên không tồn tại"));
+            accountId = nv.getId();
+            fullName = nv.getHoTen();
         }
 
 
-        // Kiểm tra hết hạn
-        if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Mã xác thực đã hết hạn!");
-        }
+        tokenRepository.findByAccountTypeAndAccountId(type, accountId)
+                .ifPresent(tokenRepository::delete);
 
 
-        // Đổi mật khẩu
-        user.setMatKhau(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
+        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
 
 
-        // Xóa token
-        tokenRepository.delete(resetToken);
+        PasswordResetToken token = PasswordResetToken.builder()
+                .token(otp)
+                .accountType(type)
+                .accountId(accountId)
+                .expiryDate(LocalDateTime.now().plusMinutes(30))
+                .build();
+
+
+        tokenRepository.save(token);
+
+
+        emailService.sendSimpleMessage(
+                email,
+                "Mã xác thực đổi mật khẩu - ChocoStyle",
+                "Xin chào " + fullName + ",\n\nMã OTP của bạn là: " + otp
+        );
     }
+
+
+
+
+    // =========================
+    // 2. VERIFY OTP + ĐỔI MK
+    // =========================
+    public void verifyOtpAndResetPassword(
+            String email,
+            String otp,
+            String newPassword,
+            ResetAccountType type
+    ) {
+
+
+        Integer accountId;
+
+
+        if (type == ResetAccountType.KHACH_HANG) {
+            KhachHang kh = khachHangRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Email khách hàng không hợp lệ"));
+            accountId = kh.getId();
+
+
+            PasswordResetToken token = tokenRepository
+                    .findByAccountTypeAndAccountId(type, accountId)
+                    .orElseThrow(() -> new RuntimeException("Bạn chưa yêu cầu mã OTP"));
+
+
+            if (!token.getToken().equals(otp)) {
+                throw new RuntimeException("Mã OTP không đúng");
+            }
+
+
+            if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+                throw new RuntimeException("Mã OTP đã hết hạn");
+            }
+
+
+            kh.setMatKhau(passwordEncoder.encode(newPassword));
+            khachHangRepository.save(kh);
+            tokenRepository.delete(token);
+
+
+        } else {
+            NhanVien nv = nhanVienRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Email nhân viên không hợp lệ"));
+            accountId = nv.getId();
+
+
+            PasswordResetToken token = tokenRepository
+                    .findByAccountTypeAndAccountId(type, accountId)
+                    .orElseThrow(() -> new RuntimeException("Bạn chưa yêu cầu mã OTP"));
+
+
+            if (!token.getToken().equals(otp)) {
+                throw new RuntimeException("Mã OTP không đúng");
+            }
+
+
+            if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+                throw new RuntimeException("Mã OTP đã hết hạn");
+            }
+
+
+            nv.setMatKhau(passwordEncoder.encode(newPassword));
+            nhanVienRepository.save(nv);
+            tokenRepository.delete(token);
+        }
+    }
+
+
+
+
+
+
 }
 

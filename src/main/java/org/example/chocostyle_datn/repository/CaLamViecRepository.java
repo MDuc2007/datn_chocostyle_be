@@ -11,7 +11,7 @@ import java.util.List;
 
 @Repository
 public interface CaLamViecRepository extends JpaRepository<CaLamViec, Integer> {
-    // Tìm kiếm ca theo mã hoặc tên để phục vụ search ở frontend
-    List<CaLamViec> findByTenCaContainingOrMaCaContaining(String ten, String ma);
+    boolean existsByTenCaAndIdCaNot(String tenCa, Integer idCa); // Check trùng tên khi update
+    boolean existsByTenCa(String tenCa); // Check trùng tên khi create
 }
 

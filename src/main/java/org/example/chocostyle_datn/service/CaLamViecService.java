@@ -37,8 +37,10 @@ public class CaLamViecService {
         ca.setMaCa(generateNextMaCa());
         ca.setTrangThai(1); // Mặc định hoạt động
         ca.setNgayTao(LocalDateTime.now());
-
-
+        // Check trùng tên
+        if (repo.existsByTenCa(ca.getTenCa())) {
+            throw new RuntimeException("Tên ca làm việc '" + ca.getTenCa() + "' đã tồn tại trong hệ thống!");
+        }
         // Kiểm tra logic giờ giấc
         if (ca.getGioBatDau().isAfter(ca.getGioKetThuc())) {
             throw new RuntimeException("Giờ bắt đầu không thể sau giờ kết thúc");
@@ -59,8 +61,10 @@ public class CaLamViecService {
         ca.setGioKetThuc(caDetails.getGioKetThuc());
         ca.setTrangThai(caDetails.getTrangThai());
         ca.setNgayCapNhat(LocalDateTime.now());
-
-
+        // Check trùng tên
+        if (repo.existsByTenCaAndIdCaNot(caDetails.getTenCa(), id)) {
+            throw new RuntimeException("Tên ca làm việc '" + ca.getTenCa() + "' đã tồn tại trong hệ thống!");
+        }
         if (ca.getGioBatDau().isAfter(ca.getGioKetThuc())) {
             throw new RuntimeException("Giờ bắt đầu không thể sau giờ kết thúc");
         }

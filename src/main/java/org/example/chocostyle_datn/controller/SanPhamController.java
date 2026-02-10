@@ -9,6 +9,7 @@ import org.example.chocostyle_datn.service.SanPhamExcelService;
 import org.example.chocostyle_datn.service.SanPhamService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -65,8 +66,16 @@ public class SanPhamController {
                 status,
                 idChatLieu,
                 idXuatXu,
-                PageRequest.of(page, size)
+                PageRequest.of(
+                        page,
+                        size,
+                        Sort.by(
+                                Sort.Order.desc("ngayTao"),
+                                Sort.Order.desc("id")
+                        )
+                )
         );
+
         return ResponseEntity.ok(result);
     }
 

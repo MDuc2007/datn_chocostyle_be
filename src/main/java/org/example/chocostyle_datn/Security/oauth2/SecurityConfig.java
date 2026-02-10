@@ -1,9 +1,11 @@
 package org.example.chocostyle_datn.Security.oauth2;
 
+
 import org.example.chocostyle_datn.service.CustomOAuth2UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -24,8 +26,12 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 
+
+
 import java.util.Arrays;
 import java.util.List;
+
+
 
 
 @Configuration
@@ -33,16 +39,24 @@ import java.util.List;
 public class SecurityConfig {
 
 
+
+
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+
 
 
     @Autowired
     private CustomOAuth2UserService customOAuth2UserService;
 
 
+
+
     @Autowired
     private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+
+
 
 
     @Bean
@@ -52,17 +66,26 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
 
+
+
                 // CẤU HÌNH QUYỀN TRUY CẬP
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // ⭐⭐⭐ THÊM DÒNG NÀY
                         .requestMatchers("/api/auth/**", "/oauth2/**").permitAll()
                         .requestMatchers("/images/**", "/css/**", "/js/**", "/error").permitAll()
+
+
                         .anyRequest().authenticated()
                 )
+
+
 
 
                 // Tắt Form Login mặc định
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
+
+
 
 
                 // =======================================================================
@@ -75,10 +98,14 @@ public class SecurityConfig {
                 // =======================================================================
 
 
+
+
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                 )
+
+
 
 
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -86,8 +113,12 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
 
+
+
         return http.build();
     }
+
+
 
 
     // ... (Giữ nguyên các Bean khác bên dưới)
@@ -97,10 +128,14 @@ public class SecurityConfig {
     }
 
 
+
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
+
+
 
 
     @Bean
@@ -111,12 +146,16 @@ public class SecurityConfig {
     }
 
 
+
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+
+
+        configuration.setAllowedOriginPatterns(List.of("*")); // ⭐ QUAN TRỌNG
+        configuration.setAllowedMethods(List.of("*"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
 
@@ -124,5 +163,6 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-}
 
+
+}
