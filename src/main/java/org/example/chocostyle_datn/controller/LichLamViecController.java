@@ -65,12 +65,40 @@ public class LichLamViecController {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
-
-
+    // POST: Tạo hàng loạt (Cho tính năng lặp lại)
+    @PostMapping("/batch")
+    public ResponseEntity<?> createBatch(@RequestBody List<LichLamViecRequest> requests) {
+        try {
+            return ResponseEntity.ok(service.createBatchSchedule(requests));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        }
+    }
+    // PUT: Cập nhật theo chuỗi
+    @PutMapping("/series/{maLapLai}")
+    public ResponseEntity<?> updateSeries(@PathVariable String maLapLai, @RequestBody LichLamViecRequest request) {
+        try {
+            service.updateScheduleSeries(maLapLai, request);
+            return ResponseEntity.ok("Đã cập nhật chuỗi lịch thành công");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        }
+    }
+    @DeleteMapping("/series/{maLapLai}")
+    public ResponseEntity<?> deleteSeries(@PathVariable String maLapLai) {
+        try {
+            service.deleteScheduleSeries(maLapLai);
+            return ResponseEntity.ok("Đã xóa chuỗi lịch thành công (chỉ áp dụng lịch chưa diễn ra)");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        }
+    }
     // Wrapper class để trả về JSON lỗi đẹp hơn (Optional)
     static class ErrorResponse {
         public String message;
         public ErrorResponse(String message) { this.message = message; }
     }
 }
+
+
 

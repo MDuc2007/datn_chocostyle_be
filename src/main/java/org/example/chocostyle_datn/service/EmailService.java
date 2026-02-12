@@ -213,6 +213,47 @@ public class EmailService {
         message.setText(text);
         mailSender.send(message);
     }
+    public void sendAccountInfo(String toEmail, String username, String password) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject("[ChocoStyle] Thông báo khởi tạo tài khoản thành công");
+
+
+            // Sử dụng String.format để dễ nhìn và dễ sửa nội dung sau này
+            String content = String.format(
+                    "Xin chào,\n\n" +
+                            "Chào mừng bạn đến với ChocoStyle! Tài khoản của bạn đã được khởi tạo thành công trên hệ thống.\n\n" +
+                            "--------------------------------------------------\n" +
+                            "THÔNG TIN ĐĂNG NHẬP CỦA BẠN:\n" +
+                            "📧 Email/Tài khoản: %s\n" +
+                            "🔑 Mật khẩu:       %s\n" +
+                            "--------------------------------------------------\n\n" +
+                            "⚠️ LƯU Ý BẢO MẬT:\n" +
+                            "Vui lòng đăng nhập và thay đổi mật khẩu ngay trong lần truy cập đầu tiên để bảo vệ tài khoản.\n\n" +
+                            "Nếu cần hỗ trợ, vui lòng liên hệ với chúng tôi.\n\n" +
+                            "Trân trọng,\n" +
+                            "Đội ngũ ChocoStyle",
+                    username,  // Tham số thứ 1 (%s đầu tiên)
+                    password   // Tham số thứ 2 (%s thứ hai)
+            );
+
+
+            message.setText(content);
+
+
+            mailSender.send(message);
+            System.out.println("Gửi mail thành công đến: " + toEmail);
+
+
+        } catch (Exception e) {
+            // Log lỗi để biết nếu mail không gửi được (quan trọng)
+            System.err.println("Lỗi khi gửi email: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
 
 
 
