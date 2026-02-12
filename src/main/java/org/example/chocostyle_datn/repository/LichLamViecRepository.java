@@ -36,7 +36,9 @@ public interface LichLamViecRepository extends JpaRepository<LichLamViec, Intege
     // . Lấy lịch theo khoảng ngày (Phục vụ Filter trong Service)
     // Spring Data JPA sẽ tự động tạo query dựa trên tên hàm này
     List<LichLamViec> findByNgayLamViecBetweenOrderByNgayLamViecDesc(LocalDate from, LocalDate to);
-
-
+    // Tìm các lịch cùng mã lặp lại mà ngày >= hôm nay (để xóa hàng loạt)
+    List<LichLamViec> findByMaLapLaiAndNgayLamViecGreaterThanEqual(String maLapLai, LocalDate today);
 }
+
+
 

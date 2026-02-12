@@ -10,6 +10,7 @@ import org.example.chocostyle_datn.service.ChiTietSanPhamService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,7 +40,6 @@ public class ChiTietSanPhamController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "8") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size);
 
         return ResponseEntity.ok(
                 service.getAll(
@@ -50,7 +50,14 @@ public class ChiTietSanPhamController {
                         trangThai,
                         minPrice,
                         maxPrice,
-                        pageable
+                        PageRequest.of(
+                                page,
+                                size,
+                                Sort.by(
+                                        Sort.Order.desc("ngayTao"),
+                                        Sort.Order.desc("id")
+                                )
+                        )
                 )
         );
     }
@@ -101,7 +108,7 @@ public class ChiTietSanPhamController {
             HttpServletResponse response
     ) {
         try {
-            List<ChiTietSanPham> data = service.getDataExport(ids,productId);
+            List<ChiTietSanPham> data = service.getDataExport(ids, productId);
 
             response.setContentType(
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

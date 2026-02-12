@@ -52,5 +52,9 @@ public class LichLamViec {
     // 1: Dự kiến (Chưa làm), 2: Đã chấm công, 0: Hủy/Nghỉ
     @Column(name = "trang_thai")
     private Integer trangThai;
+
+
+    @Column(name = "ma_lap_lai")
+    private String maLapLai;
 }
 

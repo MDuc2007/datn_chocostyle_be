@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
 import static org.example.chocostyle_datn.util.TextNormalizeUtil.normalize;
 
 import java.time.LocalDate;
@@ -93,6 +94,7 @@ public class SanPhamService {
 
 
     public SanPhamResponse update(Integer id, SanPhamRequest request) {
+
         SanPham sp = sanPhamRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
 
@@ -105,15 +107,8 @@ public class SanPhamService {
             throw new DuplicateException("Tên sản phẩm đã tồn tại");
         }
 
-        sp.setIdChatLieu(
-                chatLieuRepo.findById(request.getIdChatLieu())
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy chất liệu"))
-        );
-        sp.setIdXuatXu(
-                xuatXuRepo.findById(request.getIdXuatXu())
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy xuất xứ"))
-        );
-
+        sp.setIdChatLieu(chatLieuRepo.findById(request.getIdChatLieu()).orElseThrow());
+        sp.setIdXuatXu(xuatXuRepo.findById(request.getIdXuatXu()).orElseThrow());
 
         sp.setTenSp(request.getTenSp());
         sp.setMoTa(request.getMoTa());
@@ -121,24 +116,92 @@ public class SanPhamService {
         sp.setNguoiCapNhat(request.getNguoiCapNhat());
         sp.setHinhAnh(request.getHinhAnh());
 
+        sanPhamRepo.save(sp);
 
-        List<ChiTietSanPham> oldCt = chiTietRepo.findByIdSanPham(sp);
+        updateBienThe(sp, request);
 
-        for (ChiTietSanPham ct : oldCt) {
-            hinhAnhRepo.deleteByChiTietSanPham_Id(ct.getId());
+        return toResponse(sp);
+    }
+
+    private void updateBienThe(SanPham sp, SanPhamRequest request) {
+
+        List<ChiTietSanPham> oldList = chiTietRepo.findByIdSanPham(sp);
+
+        // 🔹 Tạm thời disable tất cả
+        for (ChiTietSanPham ct : oldList) {
+            ct.setTrangThai(0);
         }
 
-        chiTietRepo.deleteByIdSanPham(sp);
-
         String maxMa = chiTietRepo.findMaxMa();
+        int index = 1;
 
-        chiTietRepo.deleteByIdSanPham(sp);
+        if (maxMa != null) {
+            index = Integer.parseInt(maxMa.replace("CTSP", "")) + 1;
+        }
 
-        sanPhamRepo.save(sp);
-        saveBienThe(sp, request, maxMa);
-        return toResponse(sp);
+        for (BienTheRequest mauReq : request.getBienTheList()) {
+            for (KichCoRequest sizeReq : mauReq.getSizeList()) {
 
+                // 🔎 tìm biến thể đã tồn tại
+                ChiTietSanPham existing = oldList.stream()
+                        .filter(ct ->
+                                ct.getIdMauSac().getId().equals(mauReq.getMauSacId()) &&
+                                        ct.getIdKichCo().getId().equals(sizeReq.getIdKichCo())
+                        )
+                        .findFirst()
+                        .orElse(null);
+
+                if (existing != null) {
+
+                    // ✅ UPDATE
+                    existing.setSoLuongTon(sizeReq.getSoLuongTon());
+                    existing.setGiaNhap(sizeReq.getGiaNhap());
+                    existing.setGiaBan(sizeReq.getGiaBan());
+                    existing.setTrangThai(sizeReq.getSoLuongTon() > 0 ? 1 : 0);
+                    existing.setNgayCapNhat(LocalDate.now());
+                    existing.setNguoiCapNhat(request.getNguoiCapNhat());
+
+                    // cập nhật ảnh
+                    hinhAnhRepo.deleteByChiTietSanPham_Id(existing.getId());
+                    saveImages(existing, mauReq.getHinhAnhUrls());
+
+                } else {
+
+                    // ✅ INSERT MỚI
+                    ChiTietSanPham ct = new ChiTietSanPham();
+
+                    ct.setIdSanPham(sp);
+                    ct.setIdMauSac(mauSacRepo.findById(mauReq.getMauSacId()).orElseThrow());
+                    ct.setIdKichCo(kichCoRepo.findById(sizeReq.getIdKichCo()).orElseThrow());
+                    ct.setIdLoaiAo(loaiAoRepo.findById(request.getIdLoaiAo()).orElseThrow());
+                    ct.setIdPhongCachMac(phongCachMacRepo.findById(request.getIdPhongCachMac()).orElseThrow());
+                    ct.setIdKieuDang(kieuDangRepo.findById(request.getIdKieuDang()).orElseThrow());
+
+                    ct.setMaChiTietSanPham("CTSP" + String.format("%03d", index++));
+
+                    ct.setSoLuongTon(sizeReq.getSoLuongTon());
+                    ct.setGiaNhap(sizeReq.getGiaNhap());
+                    ct.setGiaBan(sizeReq.getGiaBan());
+                    ct.setTrangThai(sizeReq.getSoLuongTon() > 0 ? 1 : 0);
+
+                    ct.setNgayTao(LocalDate.now());
+                    ct.setNguoiTao(request.getNguoiCapNhat());
+
+                    String qrContent = ct.getMaChiTietSanPham();
+                    ct.setQrCode(qrContent);
+
+                    String qrUrl = qrCodeService.generateAndUploadQr(qrContent, qrContent);
+                    ct.setQrImage(qrUrl);
+
+                    ChiTietSanPham saved = chiTietRepo.save(ct);
+                    saveImages(saved, mauReq.getHinhAnhUrls());
+                }
+            }
+        }
+
+        chiTietRepo.saveAll(oldList);
     }
+
 
     public void delete(Integer id) {
         sanPhamRepo.deleteById(id);

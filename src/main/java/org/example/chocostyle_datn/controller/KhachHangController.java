@@ -236,6 +236,16 @@ public class KhachHangController {
         return ResponseEntity.ok(khachHangService.getDetailById(id));
     }
 
+    @GetMapping("/email/{email}")
+    public ResponseEntity<KhachHangDetailResponse> getByEmail(
+            @PathVariable String email
+    ) {
+        return ResponseEntity.ok(
+                khachHangService.getDetailByEmail(email)
+        );
+    }
+
+
 
     // 3. THÊM MỚI
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

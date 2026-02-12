@@ -37,6 +37,10 @@ public class KhachHangService {
 
 
     @Autowired
+    private EmailService emailService;
+
+
+    @Autowired
     private DiaChiRepository diaChiRepository;
 
 
@@ -59,63 +63,23 @@ public class KhachHangService {
             List<DiaChi> listDiaChi = diaChiRepository.findByKhachHangId(kh.getId());
 
 
-            String diaChiChinh = listDiaChi.stream()
-                    .filter(DiaChi::getMacDinh)
-                    .map(dc -> dc.getDiaChiCuThe() + ", " + dc.getPhuong() + ", " + dc.getQuan() + ", " + dc.getThanhPho())
-                    .findFirst()
-                    .orElse("Chưa có địa chỉ mặc định");
+            String diaChiChinh = listDiaChi.stream().filter(DiaChi::getMacDinh).map(dc -> dc.getDiaChiCuThe() + ", " + dc.getPhuong() + ", " + dc.getQuan() + ", " + dc.getThanhPho()).findFirst().orElse("Chưa có địa chỉ mặc định");
 
 
-            return KhachHangResponse.builder()
-                    .id(kh.getId())
-                    .maKhachHang(kh.getMaKh())
-                    .tenKhachHang(kh.getTenKhachHang())
-                    .email(kh.getEmail())
-                    .soDienThoai(kh.getSoDienThoai())
-                    .ngaySinh(kh.getNgaySinh())
-                    .diaChiChinh(diaChiChinh)
-                    .trangThai(kh.getTrangThai())
-                    .avatar(processAvatarUrl(kh.getAvatar()))
-                    .build();
+            return KhachHangResponse.builder().id(kh.getId()).maKhachHang(kh.getMaKh()).tenKhachHang(kh.getTenKhachHang()).email(kh.getEmail()).soDienThoai(kh.getSoDienThoai()).ngaySinh(kh.getNgaySinh()).diaChiChinh(diaChiChinh).trangThai(kh.getTrangThai()).avatar(processAvatarUrl(kh.getAvatar())).build();
         });
     }
 
 
     // 2. LẤY CHI TIẾT
     public KhachHangDetailResponse getDetailById(Integer id) {
-        KhachHang kh = khachHangRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng ID: " + id));
+        KhachHang kh = khachHangRepository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng ID: " + id));
 
 
         List<DiaChi> listDiaChiEntities = diaChiRepository.findByKhachHangId(id);
 
 
-        return KhachHangDetailResponse.builder()
-                .id(kh.getId())
-                .avatar(processAvatarUrl(kh.getAvatar()))
-                .maKhachHang(kh.getMaKh())
-                .tenKhachHang(kh.getTenKhachHang())
-                .tenTaiKhoan(kh.getTenTaiKhoan())
-                .soDienThoai(kh.getSoDienThoai())
-                .email(kh.getEmail())
-                .diaChiTongQuat(null)
-                .gioiTinh(kh.getGioiTinh())
-                .ngaySinh(kh.getNgaySinh())
-                .matKhau(kh.getMatKhau())
-                .trangThai(kh.getTrangThai())
-                .ngayTao(kh.getNgayTao())
-                .ngayCapNhat(kh.getNgayCapNhat())
-                .listDiaChi(listDiaChiEntities.stream()
-                        .map(dc -> KhachHangDetailResponse.DiaChiDetailResponse.builder()
-                                .id(dc.getId())
-                                .thanhPho(dc.getThanhPho())
-                                .quan(dc.getQuan())
-                                .phuong(dc.getPhuong())
-                                .diaChiCuThe(dc.getDiaChiCuThe())
-                                .macDinh(dc.getMacDinh())
-                                .build())
-                        .collect(Collectors.toList()))
-                .build();
+        return KhachHangDetailResponse.builder().id(kh.getId()).avatar(processAvatarUrl(kh.getAvatar())).maKhachHang(kh.getMaKh()).tenKhachHang(kh.getTenKhachHang()).tenTaiKhoan(kh.getTenTaiKhoan()).soDienThoai(kh.getSoDienThoai()).email(kh.getEmail()).diaChiTongQuat(null).gioiTinh(kh.getGioiTinh()).ngaySinh(kh.getNgaySinh()).matKhau(kh.getMatKhau()).trangThai(kh.getTrangThai()).ngayTao(kh.getNgayTao()).ngayCapNhat(kh.getNgayCapNhat()).listDiaChi(listDiaChiEntities.stream().map(dc -> KhachHangDetailResponse.DiaChiDetailResponse.builder().id(dc.getId()).thanhPho(dc.getThanhPho()).quan(dc.getQuan()).phuong(dc.getPhuong()).diaChiCuThe(dc.getDiaChiCuThe()).macDinh(dc.getMacDinh()).build()).collect(Collectors.toList())).build();
     }
 
 
@@ -123,11 +87,7 @@ public class KhachHangService {
     @Transactional
     public KhachHang addKhachHang(KhachHangRequest request, MultipartFile file) {
         // Trong hàm addKhachHang, sửa dòng đầu tiên thành:
-        validateUniqueFields(
-                request.getSoDienThoai(),
-                request.getEmail(),
-                request.getTenTaiKhoan(),
-                null // thêm mới
+        validateUniqueFields(request.getSoDienThoai(), request.getEmail(), request.getTenTaiKhoan(), null // thêm mới
         );
 
 
@@ -164,6 +124,11 @@ public class KhachHangService {
         saveAddresses(request.getListDiaChi(), savedKh);
 
 
+        emailService.sendAccountInfo(savedKh.getEmail(), savedKh.getEmail(),   // login bằng email
+                rawPassword           // gửi mật khẩu gốc
+        );
+
+
         return savedKh;
     }
 
@@ -171,16 +136,11 @@ public class KhachHangService {
     // 4. CẬP NHẬT
     @Transactional
     public KhachHang updateKhachHang(Integer id, KhachHangRequest request, MultipartFile file) {
-        validateUniqueFields(
-                request.getSoDienThoai(),
-                request.getEmail(),
-                request.getTenTaiKhoan(),
-                id // loại trừ chính nó
+        validateUniqueFields(request.getSoDienThoai(), request.getEmail(), request.getTenTaiKhoan(), id // loại trừ chính nó
         );
 
 
-        KhachHang kh = khachHangRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Khách hàng không tồn tại"));
+        KhachHang kh = khachHangRepository.findById(id).orElseThrow(() -> new RuntimeException("Khách hàng không tồn tại"));
 
 
         kh.setTenKhachHang(request.getTenKhachHang());
@@ -213,8 +173,7 @@ public class KhachHangService {
     // 5. ĐỔI TRẠNG THÁI
     @Transactional
     public void toggleStatus(Integer id) {
-        KhachHang kh = khachHangRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+        KhachHang kh = khachHangRepository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
         kh.setTrangThai(kh.getTrangThai() == 1 ? 0 : 1);
         khachHangRepository.save(kh);
     }
@@ -299,15 +258,11 @@ public class KhachHangService {
     }
 
 
-
-
     private void validateUniqueFields(String sdt, String email, String tenTaiKhoan, Integer currentId) {
 
 
         if (sdt != null && !sdt.isBlank()) {
-            boolean exists = (currentId == null)
-                    ? khachHangRepository.existsBySoDienThoai(sdt)
-                    : khachHangRepository.existsBySoDienThoaiAndIdNot(sdt, currentId);
+            boolean exists = (currentId == null) ? khachHangRepository.existsBySoDienThoai(sdt) : khachHangRepository.existsBySoDienThoaiAndIdNot(sdt, currentId);
 
 
             if (exists) {
@@ -317,9 +272,7 @@ public class KhachHangService {
 
 
         if (email != null && !email.isBlank()) {
-            boolean exists = (currentId == null)
-                    ? khachHangRepository.existsByEmail(email)
-                    : khachHangRepository.existsByEmailAndIdNot(email, currentId);
+            boolean exists = (currentId == null) ? khachHangRepository.existsByEmail(email) : khachHangRepository.existsByEmailAndIdNot(email, currentId);
 
 
             if (exists) {
@@ -329,9 +282,7 @@ public class KhachHangService {
 
 
         if (tenTaiKhoan != null && !tenTaiKhoan.isBlank()) {
-            boolean exists = (currentId == null)
-                    ? khachHangRepository.existsByTenTaiKhoan(tenTaiKhoan)
-                    : khachHangRepository.existsByTenTaiKhoanAndIdNot(tenTaiKhoan, currentId);
+            boolean exists = (currentId == null) ? khachHangRepository.existsByTenTaiKhoan(tenTaiKhoan) : khachHangRepository.existsByTenTaiKhoanAndIdNot(tenTaiKhoan, currentId);
 
 
             if (exists) {
@@ -340,13 +291,9 @@ public class KhachHangService {
         }
     }
 
-
-
-
     private String saveAvatar(MultipartFile file) {
         try {
-            String originalName = file.getOriginalFilename() != null ?
-                    file.getOriginalFilename().replaceAll("\\s+", "_") : "avatar.png";
+            String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename().replaceAll("\\s+", "_") : "avatar.png";
             String fileName = UUID.randomUUID() + "_" + originalName;
             Path uploadPath = Paths.get("uploads");
             if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
@@ -358,6 +305,18 @@ public class KhachHangService {
     }
 
 
+    public KhachHangDetailResponse getDetailByEmail(String email) {
+
+        KhachHang kh = khachHangRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng với email: " + email));
+
+        List<DiaChi> listDiaChiEntities = diaChiRepository.findByKhachHangId(kh.getId());
+
+        return KhachHangDetailResponse.builder().id(kh.getId()).avatar(processAvatarUrl(kh.getAvatar())).maKhachHang(kh.getMaKh()).tenKhachHang(kh.getTenKhachHang()).tenTaiKhoan(kh.getTenTaiKhoan()).soDienThoai(kh.getSoDienThoai()).email(kh.getEmail()).diaChiTongQuat(null).gioiTinh(kh.getGioiTinh()).ngaySinh(kh.getNgaySinh()).matKhau(null) // ❗ KHÔNG trả mật khẩu
+                .trangThai(kh.getTrangThai()).ngayTao(kh.getNgayTao()).ngayCapNhat(kh.getNgayCapNhat()).listDiaChi(listDiaChiEntities.stream().map(dc -> KhachHangDetailResponse.DiaChiDetailResponse.builder().id(dc.getId()).thanhPho(dc.getThanhPho()).quan(dc.getQuan()).phuong(dc.getPhuong()).diaChiCuThe(dc.getDiaChiCuThe()).macDinh(dc.getMacDinh()).build()).collect(Collectors.toList())).build();
+    }
+
 
 }
+
+
 
