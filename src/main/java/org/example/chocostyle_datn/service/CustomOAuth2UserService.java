@@ -66,7 +66,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             khachHang = new KhachHang();
             khachHang.setEmail(email);
             khachHang.setTenKhachHang(name);
-            khachHang.setTenTaiKhoan(email); // Lấy email làm username luôn
             khachHang.setAvatar(avatar);
             khachHang.setAuthProvider(provider);
             khachHang.setProviderId(id);
@@ -83,6 +82,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         return oAuth2User;
     }
 }
+
+
+
+
 
 
 

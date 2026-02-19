@@ -1,6 +1,8 @@
 package org.example.chocostyle_datn.controller;
 
 
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import org.example.chocostyle_datn.Security.oauth2.JwtTokenProvider;
 import org.example.chocostyle_datn.entity.*;
 import org.example.chocostyle_datn.model.Request.LoginRequest;
@@ -68,7 +70,7 @@ public class AuthController {
 
 
         KhachHang kh = khachHangRepository
-                .findByEmail(loginRequest.getUsernameOrEmail())
+                .findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email khách hàng không tồn tại"));
 
 
@@ -109,7 +111,7 @@ public class AuthController {
 
 
         NhanVien nv = nhanVienRepository
-                .findByEmail(loginRequest.getUsernameOrEmail())
+                .findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email nhân viên không tồn tại"));
 
 
@@ -151,13 +153,38 @@ public class AuthController {
     // ==========================================================
     // REGISTER (CHỈ KHÁCH HÀNG)
     // ==========================================================
+
+
+
+
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody RegisterRequest signUpRequest) {
+    @Transactional
+    public ResponseEntity<?> registerUser(
+            @RequestBody RegisterRequest signUpRequest
+    )
+    {
 
 
-        if (khachHangRepository.existsByTenTaiKhoan(signUpRequest.getTenTaiKhoan())) {
+        // ==============================
+        // 1️⃣ Validate dữ liệu đầu vào
+        // ==============================
+
+
+        if (signUpRequest.getEmail() == null || signUpRequest.getEmail().isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(createMessage("Tên tài khoản đã tồn tại!"));
+                    .body(createMessage("Email không được để trống!"));
+        }
+
+
+        if (signUpRequest.getSoDienThoai() == null || signUpRequest.getSoDienThoai().isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(createMessage("Số điện thoại không được để trống!"));
+        }
+
+
+        if (signUpRequest.getMatKhau() == null || signUpRequest.getMatKhau().isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(createMessage("Mật khẩu không được để trống!"));
         }
 
 
@@ -167,23 +194,46 @@ public class AuthController {
         }
 
 
+        if (khachHangRepository.existsBySoDienThoai(signUpRequest.getSoDienThoai())) {
+            return ResponseEntity.badRequest()
+                    .body(createMessage("Số điện thoại đã được sử dụng!"));
+        }
+
+
+        // ==============================
+        // 2️⃣ Tạo khách hàng
+        // ==============================
+
+
         KhachHang khachHang = new KhachHang();
         khachHang.setTenKhachHang(signUpRequest.getHoTen());
-        khachHang.setTenTaiKhoan(signUpRequest.getTenTaiKhoan());
         khachHang.setEmail(signUpRequest.getEmail());
-        khachHang.setMatKhau(passwordEncoder.encode(signUpRequest.getMatKhau()));
+        khachHang.setSoDienThoai(signUpRequest.getSoDienThoai());
+        khachHang.setMatKhau(
+                passwordEncoder.encode(signUpRequest.getMatKhau())
+        );
+
+
         khachHang.setVaiTro("KHACH_HANG");
         khachHang.setTrangThai(1);
         khachHang.setAuthProvider(AuthenticationProvider.LOCAL);
         khachHang.setNgayTao(LocalDate.now());
-        khachHang.setMaKh("KH" + System.currentTimeMillis() % 100000);
 
 
+        // 🔥 TẠO MÃ TRƯỚC
+        long nextId = khachHangRepository.count() + 1;
+        String maKh = String.format("KH%02d", nextId);
+        khachHang.setMaKh(maKh);
+
+
+// SAVE 1 LẦN DUY NHẤT
         khachHangRepository.save(khachHang);
 
 
         return ResponseEntity.ok(createMessage("Đăng ký thành công!"));
     }
+
+
 
 
     // ==========================================================

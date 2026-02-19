@@ -3,13 +3,11 @@ package org.example.chocostyle_datn.Security.oauth2;
 
 import org.example.chocostyle_datn.service.KhachHangUserDetailsService;
 import org.example.chocostyle_datn.service.NhanVienUserDetailsService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -23,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 
 
 import java.util.List;
@@ -33,20 +32,23 @@ import java.util.List;
 public class SecurityConfig {
 
 
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final KhachHangUserDetailsService khachHangUserDetailsService;
+    private final NhanVienUserDetailsService nhanVienUserDetailsService;
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
 
-    @Autowired
-    private KhachHangUserDetailsService khachHangUserDetailsService;
-
-
-    @Autowired
-    private NhanVienUserDetailsService nhanVienUserDetailsService;
-
-
-    @Autowired
-    private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            KhachHangUserDetailsService khachHangUserDetailsService,
+            NhanVienUserDetailsService nhanVienUserDetailsService,
+            OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler
+    ) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.khachHangUserDetailsService = khachHangUserDetailsService;
+        this.nhanVienUserDetailsService = nhanVienUserDetailsService;
+        this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
+    }
 
 
     // =====================================================
@@ -58,34 +60,26 @@ public class SecurityConfig {
     }
 
 
-    // =====================================================
-    // AUTH PROVIDER KHÁCH HÀNG
-    // =====================================================
-    @Bean
-    public DaoAuthenticationProvider khachHangAuthenticationProvider() {
-        DaoAuthenticationProvider provider =
-                new DaoAuthenticationProvider(khachHangUserDetailsService);
-
-
-        provider.setPasswordEncoder(passwordEncoder());
-        return provider;
-    }
-
-
-
-
-    // =====================================================
-    // AUTH PROVIDER NHÂN VIÊN
-    // =====================================================
     @Bean
     public DaoAuthenticationProvider nhanVienAuthenticationProvider() {
         DaoAuthenticationProvider provider =
                 new DaoAuthenticationProvider(nhanVienUserDetailsService);
-
-
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
+
+
+    @Bean
+    public DaoAuthenticationProvider khachHangAuthenticationProvider() {
+        DaoAuthenticationProvider provider =
+                new DaoAuthenticationProvider(khachHangUserDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
+
+
+
+
 
 
 
@@ -114,48 +108,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
 
-                .authorizeHttpRequests(auth -> auth
-
-
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-
-                        // ============================
-                        // KHÁCH HÀNG
-                        // ============================
-                        .requestMatchers(
-                                "/api/auth/login/customer",
-                                "/api/auth/register",
-                                "/api/auth/forgot-password",
-                                "/api/auth/reset-password"
-                        ).permitAll()
-
-
-
-
-
-
-                        // ============================
-                        // NHÂN VIÊN
-                        // ============================
-                        .requestMatchers(
-                                "/api/auth/login/staff",
-                                "/api/auth/forgot-password",
-                                "/api/auth/reset-password"
-                        ).permitAll()
-
-
-                        // OAuth2
-                        .requestMatchers("/oauth2/**").permitAll()
-
-
-                        // Các API còn lại cần login
-                        .anyRequest().authenticated()
+                .sessionManagement(sess ->
+                        sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
-
-                .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable)
 
 
                 .exceptionHandling(e -> e
@@ -164,22 +119,59 @@ public class SecurityConfig {
                 )
 
 
-                .oauth2Login(oauth2 -> oauth2
-                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                .authorizeHttpRequests(auth -> auth
+
+
+                        // Preflight
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+
+                        // Public files
+                        .requestMatchers("/uploads/**").permitAll()
+
+
+                        // ============================
+                        // PUBLIC AUTH API
+                        // ============================
+                        .requestMatchers(
+                                "/api/auth/login/customer",
+                                "/api/auth/login/staff",
+                                "/api/auth/register",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password",
+                                "/oauth2/**",
+                                "/error"
+                        ).permitAll()
+
+
+                        // ============================
+                        // ROLE BASED ACCESS
+                        // ============================
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/staff/**").hasRole("NHAN_VIEN")
+                        .requestMatchers("/api/customer/**").hasRole("KHACH_HANG")
+
+
+                        // Other requests
+                        .anyRequest().authenticated()
                 )
 
 
-                .sessionManagement(sess ->
-                        sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+
+
+                .oauth2Login(oauth2 ->
+                        oauth2.successHandler(oAuth2AuthenticationSuccessHandler)
                 )
 
 
-                // Đăng ký 2 provider
+                // Register providers
                 .authenticationProvider(khachHangAuthenticationProvider())
                 .authenticationProvider(nhanVienAuthenticationProvider())
 
 
-                // Thêm JWT filter
+                // JWT filter
                 .addFilterBefore(jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class);
 
@@ -198,7 +190,14 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
 
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedOriginPatterns(
+                List.of(
+                        "http://localhost:3000",
+                        "http://localhost:5173"
+                )
+        );
+
+
         configuration.setAllowedMethods(List.of("*"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
