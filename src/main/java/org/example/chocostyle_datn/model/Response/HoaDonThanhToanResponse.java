@@ -1,8 +1,8 @@
 package org.example.chocostyle_datn.model.Response;
 
-
 import lombok.*;
 import java.math.BigDecimal;
+
 
 @Getter
 @Setter
@@ -12,8 +12,13 @@ import java.math.BigDecimal;
 public class HoaDonThanhToanResponse {
     private String phuongThuc;
     private BigDecimal soTien;
-    private String thoiGian;
     private Integer trangThai;
-    //tesst
+    private String thoiGian;
+    private String maGiaoDich;
+    private String ghiChu;
 
+
+    // --- BẠN ĐANG THIẾU DÒNG NÀY ---
+    private Integer loaiGiaoDich;
 }
+

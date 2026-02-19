@@ -19,51 +19,54 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
 
 
     // =========================================================================
-    // PHẦN 1: DÀNH CHO AUTHENTICATION (QUAN TRỌNG NHẤT)
+    // PHẦN 1: AUTHENTICATION (Đăng nhập bằng Email)
     // =========================================================================
 
 
     /**
-     * Phương thức này giải quyết vấn đề đăng nhập bằng cả Username hoặc Email.
-     * Nó nhận vào 1 chuỗi (input) và kiểm tra xem chuỗi đó có trùng với tenTaiKhoan
-     * HOẶC trùng với email trong database không.
+     * Tìm kiếm user theo Email (Dùng cho cả Login thường và OAuth2)
+     * Vì quy định login bằng email nên hàm này là quan trọng nhất.
      */
-    @Query("SELECT k FROM KhachHang k WHERE k.tenTaiKhoan = :input OR k.email = :input")
-    Optional<KhachHang> findByTenTaiKhoanOrEmail(@Param("input") String input);
-
-
-    // Tìm user để đăng nhập thường (Giữ lại nếu cần dùng riêng lẻ)
-    Optional<KhachHang> findByTenTaiKhoan(String tenTaiKhoan);
-
-
-    // Tìm user để đăng nhập Google/Facebook
     Optional<KhachHang> findByEmail(String email);
 
 
-    // Check trùng
-    boolean existsByTenTaiKhoan(String tenTaiKhoan);
+    // --- CHECK TRÙNG DỮ LIỆU ---
+
+
+    // Check trùng SĐT
     boolean existsBySoDienThoai(String soDienThoai);
+
+
+    // Check trùng Email
     boolean existsByEmail(String email);
+
+
+    // Check trùng Mã KH
     boolean existsByMaKh(String maKh);
 
 
+    // --- CHECK TRÙNG KHI UPDATE (Trừ ID hiện tại ra) ---
     boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Integer id);
     boolean existsByEmailAndIdNot(String email, Integer id);
-    boolean existsByTenTaiKhoanAndIdNot(String tenTaiKhoan, Integer id);
+
+
+    // (Đã XÓA các hàm liên quan đến TenTaiKhoan tại đây)
+
+
     // =========================================================================
     // PHẦN 2: TÌM KIẾM & LỌC (ADMIN)
     // =========================================================================
 
 
     @Query("""
-       SELECT kh FROM KhachHang kh
-       WHERE ( :keyword IS NULL OR :keyword = ''
-               OR kh.tenKhachHang LIKE %:keyword%
-               OR kh.soDienThoai LIKE %:keyword%
-               OR kh.email LIKE %:keyword%
-               OR kh.maKh LIKE %:keyword% )
-       AND ( :status IS NULL OR kh.trangThai = :status )
-   """)
+      SELECT kh FROM KhachHang kh
+      WHERE ( :keyword IS NULL OR :keyword = ''
+              OR kh.tenKhachHang LIKE %:keyword%
+              OR kh.soDienThoai LIKE %:keyword%
+              OR kh.email LIKE %:keyword%
+              OR kh.maKh LIKE %:keyword% )
+      AND ( :status IS NULL OR kh.trangThai = :status )
+  """)
     Page<KhachHang> searchKhachHang(
             @Param("keyword") String keyword,
             @Param("status") Integer status,
@@ -76,17 +79,17 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
 
 
     @Query("""
-   SELECT kh FROM KhachHang kh
-   WHERE (:keyword IS NULL OR
-          kh.tenKhachHang LIKE %:keyword% OR
-          kh.soDienThoai LIKE %:keyword% OR
-          kh.email LIKE %:keyword%)
-     AND (:status IS NULL OR kh.trangThai = :status)
-   ORDER BY kh.ngayTao DESC
+  SELECT kh FROM KhachHang kh
+  WHERE (:keyword IS NULL OR
+         kh.tenKhachHang LIKE %:keyword% OR
+         kh.soDienThoai LIKE %:keyword% OR
+         kh.email LIKE %:keyword%)
+    AND (:status IS NULL OR kh.trangThai = :status)
+  ORDER BY kh.ngayTao DESC
 """)
     List<KhachHang> searchKhachHangForExport(
             @Param("keyword") String keyword,
             @Param("status") Integer status
     );
-
 }
+
