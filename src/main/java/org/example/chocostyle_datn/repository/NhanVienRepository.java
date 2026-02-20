@@ -1,6 +1,8 @@
 package org.example.chocostyle_datn.repository;
 
 import org.example.chocostyle_datn.entity.NhanVien;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -31,4 +33,13 @@ public interface NhanVienRepository extends JpaRepository<NhanVien,Integer> {
     boolean existsByEmailAndIdNot(String email, Integer id);
     boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Integer id);
 
+    @Query("SELECT n FROM NhanVien n WHERE " +
+            "(:keyword IS NULL OR :keyword = '' OR " +
+            "n.hoTen LIKE %:keyword% OR n.maNv LIKE %:keyword% OR n.email LIKE %:keyword% OR n.soDienThoai LIKE %:keyword%) " +
+            "AND (:trangThai IS NULL OR n.trangThai = :trangThai)")
+    Page<NhanVien> searchNhanVien(
+            @Param("keyword") String keyword,
+            @Param("trangThai") Integer trangThai,
+            Pageable pageable
+    );
 }

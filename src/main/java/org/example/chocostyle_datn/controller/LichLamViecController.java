@@ -5,6 +5,7 @@ import org.example.chocostyle_datn.entity.LichLamViec;
 import org.example.chocostyle_datn.model.Request.LichLamViecRequest;
 import org.example.chocostyle_datn.service.LichLamViecService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -97,6 +98,18 @@ public class LichLamViecController {
     static class ErrorResponse {
         public String message;
         public ErrorResponse(String message) { this.message = message; }
+    }
+    // THÊM API TÌM KIẾM
+    @GetMapping("/search")
+    public ResponseEntity<Page<LichLamViec>> search(
+            @RequestParam(required = false, defaultValue = "") String keyword,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(required = false) Integer trangThai,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size) {
+
+        return ResponseEntity.ok(service.searchLichLamViec(keyword, fromDate, toDate, trangThai, page, size));
     }
 }
 

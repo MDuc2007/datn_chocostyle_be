@@ -2,6 +2,8 @@ package org.example.chocostyle_datn.repository;
 
 
 import org.example.chocostyle_datn.entity.LichLamViec;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -38,6 +40,23 @@ public interface LichLamViecRepository extends JpaRepository<LichLamViec, Intege
     List<LichLamViec> findByNgayLamViecBetweenOrderByNgayLamViecDesc(LocalDate from, LocalDate to);
     // Tìm các lịch cùng mã lặp lại mà ngày >= hôm nay (để xóa hàng loạt)
     List<LichLamViec> findByMaLapLaiAndNgayLamViecGreaterThanEqual(String maLapLai, LocalDate today);
+    // Thêm vào interface LichLamViecRepository
+    @Query("SELECT l FROM LichLamViec l WHERE l.caLamViec.idCa = :idCa AND l.ngayLamViec = :ngay")
+    List<LichLamViec> findByCaAndNgay(@Param("idCa") Integer idCa, @Param("ngay") LocalDate ngay);
+
+    // THÊM HÀM SEARCH PHÂN TRANG
+    @Query("SELECT l FROM LichLamViec l WHERE " +
+            "(:keyword IS NULL OR :keyword = '' OR l.nhanVien.hoTen LIKE %:keyword% OR l.nhanVien.maNv LIKE %:keyword%) AND " +
+            "(l.ngayLamViec >= :fromDate) AND " +
+            "(l.ngayLamViec <= :toDate) AND " +
+            "(:trangThai IS NULL OR l.trangThai = :trangThai)")
+    Page<LichLamViec> searchLichLamViec(
+            @Param("keyword") String keyword,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            @Param("trangThai") Integer trangThai,
+            Pageable pageable
+    );
 }
 
 

@@ -5,6 +5,7 @@ import org.example.chocostyle_datn.model.Request.NhanVienRequest;
 import org.example.chocostyle_datn.model.Response.NhanVienResponse;
 import org.example.chocostyle_datn.service.NhanVienService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,6 +52,16 @@ public class NhanVienController {
     static class ErrorResponse {
         public String message;
         public ErrorResponse(String message) { this.message = message; }
+    }
+    @GetMapping("/search")
+    public ResponseEntity<Page<NhanVienResponse>> search(
+            @RequestParam(required = false, defaultValue = "") String keyword,
+            @RequestParam(required = false) Integer trangThai,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size) {
+
+        Page<NhanVienResponse> result = service.searchNhanVien(keyword, trangThai, page, size);
+        return ResponseEntity.ok(result);
     }
 }
 
