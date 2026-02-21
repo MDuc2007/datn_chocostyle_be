@@ -12,6 +12,7 @@ import java.time.LocalDate;
 
 @Repository
 public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
+
     @Query("""
                SELECT MAX(h.ngayThanhToan)
                FROM HoaDon h
@@ -26,15 +27,13 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
             "AND (:loaiDon IS NULL OR h.loaiDon = :loaiDon) " +
             "AND (:trangThai IS NULL OR h.trangThai = :trangThai) " +
 
-
             // --- SỬA LỖI NGÀY THÁNG ---
             // Dùng CAST(... AS date) để SQL chỉ so sánh ngày, bỏ qua giờ phút giây
             "AND (:startDate IS NULL OR CAST(h.ngayTao AS date) >= :startDate) " +
             "AND (:endDate IS NULL OR CAST(h.ngayTao AS date) <= :endDate) " +
 
-
-            // --- SẮP XẾP CŨ NHẤT LÊN ĐẦU (Theo yêu cầu của bạn) ---
-            "ORDER BY h.ngayTao ASC, h.id ASC")
+            // --- ĐÃ SỬA: SẮP XẾP THEO TRẠNG THÁI (0->5), SAU ĐÓ ĐƠN MỚI NHẤT LÊN ĐẦU ---
+            "ORDER BY h.trangThai ASC, h.ngayTao DESC")
     Page<HoaDon> findAllByFilter(@Param("keyword") String keyword,
                                  @Param("loaiDon") Integer loaiDon,
                                  @Param("trangThai") Integer trangThai,

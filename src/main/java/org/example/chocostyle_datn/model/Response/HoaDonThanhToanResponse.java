@@ -12,8 +12,11 @@ import java.math.BigDecimal;
 public class HoaDonThanhToanResponse {
     private String phuongThuc;
     private BigDecimal soTien;
-    private String thoiGian;
     private Integer trangThai;
-    //tesst
+    private String thoiGian;
+    private String maGiaoDich;
+    private String ghiChu;
 
+    // --- BẠN ĐANG THIẾU DÒNG NÀY ---
+    private Integer loaiGiaoDich;
 }
