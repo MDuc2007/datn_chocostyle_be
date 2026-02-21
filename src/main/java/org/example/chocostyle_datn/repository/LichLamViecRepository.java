@@ -40,6 +40,14 @@ public interface LichLamViecRepository extends JpaRepository<LichLamViec, Intege
     List<LichLamViec> findByNgayLamViecBetweenOrderByNgayLamViecDesc(LocalDate from, LocalDate to);
     // Tìm các lịch cùng mã lặp lại mà ngày >= hôm nay (để xóa hàng loạt)
     List<LichLamViec> findByMaLapLaiAndNgayLamViecGreaterThanEqual(String maLapLai, LocalDate today);
+
+    @Query("SELECT l FROM LichLamViec l " +
+            "WHERE l.nhanVien.id = :idNv " +
+            "AND l.ngayLamViec = :ngay " +
+            "AND l.trangThai = 1")
+    List<LichLamViec> checkCaHomNay(@Param("idNv") Integer idNv,
+                                    @Param("ngay") LocalDate ngay);
+
     // Thêm vào interface LichLamViecRepository
     @Query("SELECT l FROM LichLamViec l WHERE l.caLamViec.idCa = :idCa AND l.ngayLamViec = :ngay")
     List<LichLamViec> findByCaAndNgay(@Param("idCa") Integer idCa, @Param("ngay") LocalDate ngay);

@@ -3,6 +3,7 @@ package org.example.chocostyle_datn.controller;
 
 import org.example.chocostyle_datn.entity.LichLamViec;
 import org.example.chocostyle_datn.model.Request.LichLamViecRequest;
+import org.example.chocostyle_datn.repository.LichLamViecRepository;
 import org.example.chocostyle_datn.service.LichLamViecService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -98,6 +99,29 @@ public class LichLamViecController {
     static class ErrorResponse {
         public String message;
         public ErrorResponse(String message) { this.message = message; }
+    }
+
+
+
+        private final LichLamViecRepository lichLamViecRepository;
+
+        public LichLamViecController(LichLamViecRepository lichLamViecRepository) {
+            this.lichLamViecRepository = lichLamViecRepository;
+        }
+
+    @GetMapping("/check-ca-hom-nay/{idNv}")
+    public ResponseEntity<?> checkCa(@PathVariable Integer idNv){
+
+        LocalDate today = LocalDate.now();
+
+        List<LichLamViec> lich =
+                lichLamViecRepository.checkCaHomNay(idNv, today);
+
+        if(!lich.isEmpty()){
+            return ResponseEntity.ok(lich.get(0));
+        }
+
+        return ResponseEntity.noContent().build();
     }
     // THÊM API TÌM KIẾM
     @GetMapping("/search")

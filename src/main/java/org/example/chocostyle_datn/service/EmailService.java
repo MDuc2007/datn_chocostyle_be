@@ -292,7 +292,7 @@ public class EmailService {
                             "Nếu cần hỗ trợ, vui lòng liên hệ với chúng tôi.\n\n" +
                             "Trân trọng,\n" +
                             "Đội ngũ ChocoStyle",
-                    username,  // Tham số thứ 1 (%s đầu tiên)
+                    toEmail,  // Tham số thứ 1 (%s đầu tiên)
                     password   // Tham số thứ 2 (%s thứ hai)
             );
 
