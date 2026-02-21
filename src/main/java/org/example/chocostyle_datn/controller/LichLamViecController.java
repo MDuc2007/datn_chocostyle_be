@@ -111,6 +111,23 @@ public class LichLamViecController {
 
         return ResponseEntity.ok(service.searchLichLamViec(keyword, fromDate, toDate, trangThai, page, size));
     }
+    // API: Lấy tất cả lịch của 1 nhân viên
+    @GetMapping("/my-schedule/{idNv}")
+    public ResponseEntity<List<LichLamViec>> getMyAllSchedules(@PathVariable Integer idNv) {
+        return ResponseEntity.ok(service.getMySchedules(idNv));
+    }
+
+    // API: Lấy lịch phân trang của 1 nhân viên
+    @GetMapping("/my-schedule/{idNv}/search")
+    public ResponseEntity<Page<LichLamViec>> searchMySchedules(
+            @PathVariable Integer idNv,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(required = false) Integer trangThai,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size) {
+        return ResponseEntity.ok(service.searchMySchedules(idNv, fromDate, toDate, trangThai, page, size));
+    }
 }
 
 

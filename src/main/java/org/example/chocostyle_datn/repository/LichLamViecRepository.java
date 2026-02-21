@@ -57,6 +57,22 @@ public interface LichLamViecRepository extends JpaRepository<LichLamViec, Intege
             @Param("trangThai") Integer trangThai,
             Pageable pageable
     );
+    // Lấy tất cả lịch của 1 nhân viên (dùng cho Calendar view)
+    List<LichLamViec> findByNhanVien_Id(Integer idNv);
+
+    // Lấy lịch có phân trang của 1 nhân viên (dùng cho Table view)
+    @Query("SELECT l FROM LichLamViec l WHERE " +
+            "(l.nhanVien.id = :idNv) AND " +
+            "(l.ngayLamViec >= :fromDate) AND " +
+            "(l.ngayLamViec <= :toDate) AND " +
+            "(:trangThai IS NULL OR l.trangThai = :trangThai)")
+    Page<LichLamViec> searchMySchedules(
+            @Param("idNv") Integer idNv,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            @Param("trangThai") Integer trangThai,
+            Pageable pageable
+    );
 }
 
 

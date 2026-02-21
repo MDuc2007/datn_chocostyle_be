@@ -1,6 +1,5 @@
 package org.example.chocostyle_datn.service;
 
-
 import org.example.chocostyle_datn.entity.NhanVien;
 import org.example.chocostyle_datn.model.Request.NhanVienRequest;
 import org.example.chocostyle_datn.model.Response.NhanVienResponse;
@@ -10,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 
@@ -32,6 +32,8 @@ public class NhanVienService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     // 1. LẤY TẤT CẢ (Sắp xếp giảm dần theo ID -> Người mới nhất lên đầu)
     public List<NhanVienResponse> getAllNhanVien() {
@@ -41,14 +43,12 @@ public class NhanVienService {
                 .collect(Collectors.toList());
     }
 
-
     // 2. LẤY CHI TIẾT
     public NhanVienResponse getNhanVienById(Integer id) {
         NhanVien nv = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên: " + id));
         return mapToResponse(nv);
     }
-
 
     // --- 3. THÊM MỚI (CÓ VALIDATE) ---
     public NhanVienResponse createNhanVien(NhanVienRequest request) {
@@ -70,7 +70,8 @@ public class NhanVienService {
         nv.setVaiTro("Nhân viên");
         nv.setNgayVaoLam(LocalDate.now());
         nv.setMaNv(generateNextMaNv(request.getHoTen()));
-        nv.setMatKhau(generateRandomPassword(8));
+        String plainPassword = generateRandomPassword(8);
+        nv.setMatKhau(passwordEncoder.encode(plainPassword));
         nv.setTrangThai(1);
 
 
@@ -80,7 +81,7 @@ public class NhanVienService {
         // Gửi email (Async hoặc Try-catch để không chặn luồng chính)
         try {
             if (savedNv.getEmail() != null) {
-                emailService.sendAccountInfo(savedNv.getEmail(), savedNv.getHoTen(), savedNv.getMaNv(), savedNv.getMatKhau());
+                emailService.sendAccountInfo(savedNv.getEmail(), savedNv.getHoTen(), savedNv.getMaNv(), plainPassword);
             }
         } catch (Exception e) {
             System.err.println("Lỗi gửi mail: " + e.getMessage());
@@ -90,14 +91,10 @@ public class NhanVienService {
         return mapToResponse(savedNv);
     }
 
-
-
-
     // --- 4. CẬP NHẬT (CÓ VALIDATE TRỪ CHÍNH NÓ) ---
     public NhanVienResponse updateNhanVien(Integer id, NhanVienRequest request) {
         NhanVien nv = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên: " + id));
-
 
         // 1. Validate trùng lặp (trừ bản ghi hiện tại)
         if (repo.existsByEmailAndIdNot(request.getEmail(), id)) {
@@ -113,10 +110,8 @@ public class NhanVienService {
         mapRequestToEntity(request, nv);
         if (request.getTrangThai() != null) nv.setTrangThai(request.getTrangThai());
 
-
         return mapToResponse(repo.save(nv));
     }
-
 
     // --- LOGIC MAP DỮ LIỆU & GHÉP ĐỊA CHỈ (QUAN TRỌNG) ---
     private void mapRequestToEntity(NhanVienRequest req, NhanVien nv) {
@@ -134,7 +129,6 @@ public class NhanVienService {
 
         // 2. Lưu các trường địa chỉ thành phần
         if (req.getDiaChiCuThe() != null) nv.setDiaChiCuThe(req.getDiaChiCuThe());
-
 
         // Lưu ID (để bind Combobox)
         if (req.getTinhThanhId() != null) nv.setTinhThanhId(req.getTinhThanhId());
@@ -168,7 +162,6 @@ public class NhanVienService {
 
         nv.setDiaChi(full.toString());
     }
-
 
     // --- MAP RESPONSE ---
     private NhanVienResponse mapToResponse(NhanVien nv) {
@@ -234,7 +227,7 @@ public class NhanVienService {
             // Format lại thành 3 chữ số (VD: 6 -> 006)
             return prefix + String.format("%03d", number);
         } catch (Exception e) {
-            // Phòng trường hợp lỗi format, trả về ngẫu nhiên để không crash
+// Phòng trường hợp lỗi format, trả về ngẫu nhiên để không crash
             return prefix + System.currentTimeMillis();
         }
     }
@@ -291,6 +284,7 @@ public class NhanVienService {
         }
         return sb.toString();
     }
+
     // Thêm hàm search phân trang
     public Page<NhanVienResponse> searchNhanVien(String keyword, Integer trangThai, int page, int size) {
         // Sắp xếp giảm dần theo id (mới nhất lên đầu)
@@ -302,4 +296,3 @@ public class NhanVienService {
         return nhanVienPage.map(this::mapToResponse);
     }
 }
-

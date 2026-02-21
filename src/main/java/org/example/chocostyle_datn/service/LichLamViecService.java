@@ -204,4 +204,16 @@ public class LichLamViecService {
 
         return lichRepo.searchLichLamViec(keyword, start, end, trangThai, pageable);
     }
+    // Lấy tất cả lịch của TÔI
+    public List<LichLamViec> getMySchedules(Integer idNv) {
+        return lichRepo.findByNhanVien_Id(idNv);
+    }
+
+    // Lấy lịch của TÔI (Có phân trang)
+    public Page<LichLamViec> searchMySchedules(Integer idNv, LocalDate fromDate, LocalDate toDate, Integer trangThai, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "ngayLamViec"));
+        LocalDate start = (fromDate != null) ? fromDate : LocalDate.of(2000, 1, 1);
+        LocalDate end = (toDate != null) ? toDate : LocalDate.of(2100, 12, 31);
+        return lichRepo.searchMySchedules(idNv, start, end, trangThai, pageable);
+    }
 }
