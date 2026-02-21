@@ -89,6 +89,8 @@ public class KhachHang {
     @Column(name = "tong_chi_tieu")
     private BigDecimal tongChiTieu = BigDecimal.ZERO;
 
+    @Column(name = "dia_chi")
+    private String diaChi;
 
     // --- OAUTH2 ---
     @Enumerated(EnumType.STRING)

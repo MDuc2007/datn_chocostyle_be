@@ -1,5 +1,9 @@
 package org.example.chocostyle_datn.Security.oauth2;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,79 +41,63 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // =========================================================
-        // 🔥 BẮT BUỘC CÓ ĐOẠN NÀY ĐỂ FIX LỖI VĂNG RA TRANG ĐĂNG NHẬP
-        // Bỏ qua kiểm tra Token đối với các request HTTP OPTIONS (CORS Preflight)
-        // =========================================================
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            response.setStatus(HttpServletResponse.SC_OK);
-            return;
-        }
-
-
-
         String requestURI = request.getRequestURI();
+        // Bỏ qua filter cho các API công khai dạng tài nguyên
         if (requestURI.startsWith("/uploads/")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-
         try {
-
             String jwt = getJwtFromRequest(request);
 
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-
-                // 🔥 LẤY USERNAME (KHÔNG DÙNG EMAIL NỮA)
-                String username = tokenProvider.getUsernameFromJWT(jwt);
-                String role = tokenProvider.getRoleFromJWT(jwt);
+            if (StringUtils.hasText(jwt)) {
+                // 🔥 CHỈ PARSE TOKEN 1 LẦN DUY NHẤT
+                Claims claims = tokenProvider.getClaimsFromJWT(jwt);
+                String username = claims.getSubject();
+                String role = claims.get("role", String.class);
 
                 UserDetails userDetails = null;
 
-                // 🔥 LOAD ĐÚNG SERVICE THEO ROLE
                 if ("ROLE_KHACH_HANG".equals(role)) {
                     userDetails = khachHangUserDetailsService.loadUserByUsername(username);
-                }
-                else if ("ROLE_STAFF".equals(role) || "ROLE_ADMIN".equals(role)) {
+                } else if ("ROLE_STAFF".equals(role) || "ROLE_ADMIN".equals(role)) {
                     userDetails = nhanVienUserDetailsService.loadUserByUsername(username);
                 }
 
-                if (userDetails != null &&
-                        SecurityContextHolder.getContext().getAuthentication() == null) {
-
+                if (userDetails != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
                                     userDetails,
                                     null,
                                     userDetails.getAuthorities()
                             );
-
-                    authentication.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request)
-                    );
-
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
+        } catch (ExpiredJwtException ex) {
+            // 🔥 TRẢ LỖI 401 TRỰC TIẾP CHO FRONTEND KHI TOKEN HẾT HẠN
+            log.warn("Token đã hết hạn cho request: {}", requestURI);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"error\": \"TokenExpired\", \"message\": \"Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!\"}");
+            return; // Ngắt luồng, không đi sâu vào controller nữa
 
+        } catch (MalformedJwtException | UnsupportedJwtException | IllegalArgumentException ex) {
+            log.error("Token không hợp lệ", ex);
         } catch (Exception ex) {
-            log.error("Không thể xác thực người dùng", ex);
+            log.error("Lỗi xác thực hệ thống", ex);
         }
 
         filterChain.doFilter(request, response);
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {
-
         String bearerToken = request.getHeader("Authorization");
-
-        if (StringUtils.hasText(bearerToken) &&
-                bearerToken.startsWith("Bearer ")) {
-
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
-
         return null;
     }
 }
