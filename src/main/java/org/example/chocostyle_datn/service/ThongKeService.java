@@ -37,11 +37,11 @@ public class ThongKeService {
         LocalDate endDate = req.getEndDate();
 
 
-        // Mặc định: Lấy ngày đầu tháng đến ngày hiện tại nếu null
+        // Mặc định: Lấy ngày hiện tại (Hôm nay) nếu null
         if (startDate == null || endDate == null) {
             LocalDate now = LocalDate.now();
-            startDate = now.with(TemporalAdjusters.firstDayOfMonth()); // Ngày 1
-            endDate = now.with(TemporalAdjusters.lastDayOfMonth());    // Ngày cuối tháng
+            startDate = now; // Gán là hôm nay
+            endDate = now;   // Gán là hôm nay
         }
 
 

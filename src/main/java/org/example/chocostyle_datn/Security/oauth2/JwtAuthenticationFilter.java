@@ -1,6 +1,5 @@
 package org.example.chocostyle_datn.Security.oauth2;
 
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,26 +16,20 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-
 import java.io.IOException;
-
 
 @Slf4j
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-
     @Autowired
     private JwtTokenProvider tokenProvider;
-
 
     @Autowired
     private KhachHangUserDetailsService khachHangUserDetailsService;
 
-
     @Autowired
     private NhanVienUserDetailsService nhanVienUserDetailsService;
-
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -44,6 +37,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        // =========================================================
+        // 🔥 BẮT BUỘC CÓ ĐOẠN NÀY ĐỂ FIX LỖI VĂNG RA TRANG ĐĂNG NHẬP
+        // Bỏ qua kiểm tra Token đối với các request HTTP OPTIONS (CORS Preflight)
+        // =========================================================
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpServletResponse.SC_OK);
+            return;
+        }
 
 
 
@@ -56,20 +57,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
 
-
             String jwt = getJwtFromRequest(request);
 
-
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-
 
                 // 🔥 LẤY USERNAME (KHÔNG DÙNG EMAIL NỮA)
                 String username = tokenProvider.getUsernameFromJWT(jwt);
                 String role = tokenProvider.getRoleFromJWT(jwt);
 
-
                 UserDetails userDetails = null;
-
 
                 // 🔥 LOAD ĐÚNG SERVICE THEO ROLE
                 if ("ROLE_KHACH_HANG".equals(role)) {
@@ -79,12 +75,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     userDetails = nhanVienUserDetailsService.loadUserByUsername(username);
                 }
 
-
-
-
                 if (userDetails != null &&
                         SecurityContextHolder.getContext().getAuthentication() == null) {
-
 
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
@@ -93,41 +85,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     userDetails.getAuthorities()
                             );
 
-
                     authentication.setDetails(
                             new WebAuthenticationDetailsSource().buildDetails(request)
                     );
-
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
 
-
         } catch (Exception ex) {
             log.error("Không thể xác thực người dùng", ex);
         }
 
-
         filterChain.doFilter(request, response);
     }
 
-
     private String getJwtFromRequest(HttpServletRequest request) {
 
-
         String bearerToken = request.getHeader("Authorization");
-
 
         if (StringUtils.hasText(bearerToken) &&
                 bearerToken.startsWith("Bearer ")) {
 
-
             return bearerToken.substring(7);
         }
-
 
         return null;
     }
 }
-
