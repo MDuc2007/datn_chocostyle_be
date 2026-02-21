@@ -19,7 +19,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 
 import java.io.ByteArrayOutputStream;
@@ -40,6 +39,23 @@ public class KhachHangController {
     private KhachHangService khachHangService;
 
 
+    // =========================================================================
+    // 1. API CHECK TRÙNG (QUAN TRỌNG CHO FORM NHẬP)
+    // =========================================================================
+    @GetMapping("/check-unique")
+    public ResponseEntity<?> checkUnique(
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String sdt
+    ) {
+        // API này Frontend gọi để clear lỗi khi user đang nhập liệu
+        // Logic check trùng thực sự nằm trong hàm add/update của Service
+        return ResponseEntity.ok(new HashMap<>());
+    }
+
+
+    // =========================================================================
+    // 2. XUẤT EXCEL
+    // =========================================================================
     @GetMapping("/export-excel")
     public ResponseEntity<byte[]> exportExcel(
             @RequestParam(required = false) String keyword,
@@ -54,16 +70,10 @@ public class KhachHangController {
         Sheet sheet = workbook.createSheet("Danh sách khách hàng");
 
 
-        // ================= STYLE =================
-
-
+        // --- STYLES ---
         DataFormat dataFormat = workbook.createDataFormat();
-
-
         CellStyle vndStyle = workbook.createCellStyle();
-        vndStyle.setDataFormat(
-                dataFormat.getFormat("#,##0 [$₫-vi-VN]")
-        );
+        vndStyle.setDataFormat(dataFormat.getFormat("#,##0 [$₫-vi-VN]"));
         vndStyle.setBorderTop(BorderStyle.THIN);
         vndStyle.setBorderBottom(BorderStyle.THIN);
         vndStyle.setBorderLeft(BorderStyle.THIN);
@@ -71,29 +81,8 @@ public class KhachHangController {
         vndStyle.setAlignment(HorizontalAlignment.RIGHT);
 
 
-        Font titleFont = workbook.createFont();
-        titleFont.setBold(true);
-        titleFont.setFontHeightInPoints((short) 16);
-
-
-        CellStyle titleStyle = workbook.createCellStyle();
-        titleStyle.setFont(titleFont);
-        titleStyle.setAlignment(HorizontalAlignment.CENTER);
-
-
-        Font italicFont = workbook.createFont();
-        italicFont.setItalic(true);
-
-
-        CellStyle dateStyle = workbook.createCellStyle();
-        dateStyle.setFont(italicFont);
-        dateStyle.setAlignment(HorizontalAlignment.CENTER);
-
-
         Font headerFont = workbook.createFont();
         headerFont.setBold(true);
-
-
         CellStyle headerStyle = workbook.createCellStyle();
         headerStyle.setFont(headerFont);
         headerStyle.setAlignment(HorizontalAlignment.CENTER);
@@ -110,23 +99,31 @@ public class KhachHangController {
         dataStyle.setBorderRight(BorderStyle.THIN);
 
 
-        // ================= TITLE =================
+        // --- TITLE ---
         Row titleRow = sheet.createRow(0);
         Cell titleCell = titleRow.createCell(0);
         titleCell.setCellValue("DANH SÁCH KHÁCH HÀNG");
+        CellStyle titleStyle = workbook.createCellStyle();
+        Font titleFont = workbook.createFont();
+        titleFont.setBold(true);
+        titleFont.setFontHeightInPoints((short) 16);
+        titleStyle.setFont(titleFont);
+        titleStyle.setAlignment(HorizontalAlignment.CENTER);
         titleCell.setCellStyle(titleStyle);
         sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 10));
 
 
-        // ================= DATE =================
+        // --- DATE ---
         Row dateRow = sheet.createRow(1);
         Cell dateCell = dateRow.createCell(0);
         dateCell.setCellValue("Xuất file excel vào: " + LocalDate.now());
+        CellStyle dateStyle = workbook.createCellStyle();
+        dateStyle.setAlignment(HorizontalAlignment.CENTER);
         dateCell.setCellStyle(dateStyle);
         sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 10));
 
 
-        // ================= HEADER =================
+        // --- HEADERS ---
         String[] headers = {
                 "STT", "Mã KH", "Tên khách hàng", "SĐT", "Email",
                 "Giới tính", "Ngày sinh", "Trạng thái",
@@ -142,7 +139,7 @@ public class KhachHangController {
         }
 
 
-        // ================= DATA =================
+        // --- DATA ---
         int rowIndex = 4;
         int stt = 1;
 
@@ -166,6 +163,8 @@ public class KhachHangController {
                     kh.getTrangThai() == 1 ? "Hoạt động" : "Ngưng"
             );
             row.createCell(8).setCellValue(kh.getSoLuongDonHang());
+
+
             Cell moneyCell = row.createCell(9);
             moneyCell.setCellValue(
                     kh.getTongChiTieu() == null ? 0 : kh.getTongChiTieu().doubleValue()
@@ -177,15 +176,12 @@ public class KhachHangController {
 
 
             for (int i = 0; i < headers.length; i++) {
-                if (i == 9) continue; // bỏ qua cột tiền
+                if (i == 9) continue;
                 row.getCell(i).setCellStyle(dataStyle);
             }
-
-
         }
 
 
-        // ================= AUTO SIZE =================
         for (int i = 0; i < headers.length; i++) {
             sheet.autoSizeColumn(i);
         }
@@ -203,9 +199,7 @@ public class KhachHangController {
                         .build()
         );
         headersHttp.setContentType(
-                MediaType.parseMediaType(
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+                MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         );
 
 
@@ -213,8 +207,9 @@ public class KhachHangController {
     }
 
 
-
-
+    // =========================================================================
+    // 3. CRUD API (ĐÃ SỬA CATCH EXCEPTION CHO SERVICE MỚI)
+    // =========================================================================
 
 
     // 1. LẤY DANH SÁCH + PHÂN TRANG
@@ -236,16 +231,6 @@ public class KhachHangController {
         return ResponseEntity.ok(khachHangService.getDetailById(id));
     }
 
-    @GetMapping("/email/{email}")
-    public ResponseEntity<KhachHangDetailResponse> getByEmail(
-            @PathVariable String email
-    ) {
-        return ResponseEntity.ok(
-                khachHangService.getDetailByEmail(email)
-        );
-    }
-
-
 
     // 3. THÊM MỚI
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -261,17 +246,15 @@ public class KhachHangController {
 
         try {
             khachHangService.addKhachHang(req, avatarFile);
+            // Thông báo rõ ràng về việc gửi mail
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body("Thêm khách hàng thành công");
-        } catch (ResponseStatusException e) {
-            // BẮT LỖI CHECK TRÙNG (409)
-            return ResponseEntity
-                    .status(e.getStatusCode())
-                    .body(e.getReason());
+                    .body("Thêm khách hàng thành công! Mật khẩu đã được gửi về email.");
+        } catch (RuntimeException e) {
+            // QUAN TRỌNG: Catch lỗi trùng Email/SĐT từ Service
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi hệ thống: " + e.getMessage());
         }
     }
 
@@ -291,16 +274,13 @@ public class KhachHangController {
 
         try {
             khachHangService.updateKhachHang(id, req, avatarFile);
-            return ResponseEntity.ok("Cập nhật khách hàng thành công");
-        } catch (ResponseStatusException e) {
-            // BẮT LỖI CHECK TRÙNG (409)
-            return ResponseEntity
-                    .status(e.getStatusCode())
-                    .body(e.getReason());
+            return ResponseEntity.ok("Cập nhật thông tin thành công");
+        } catch (RuntimeException e) {
+            // QUAN TRỌNG: Catch lỗi trùng Email/SĐT khi sửa
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi hệ thống: " + e.getMessage());
         }
     }
 
@@ -312,8 +292,7 @@ public class KhachHangController {
             khachHangService.toggleStatus(id);
             return ResponseEntity.ok("Đã cập nhật trạng thái thành công");
         } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(e.getMessage());
         }
     }

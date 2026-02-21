@@ -1,5 +1,6 @@
 package org.example.chocostyle_datn.Security.oauth2;
 
+
 import org.example.chocostyle_datn.service.KhachHangUserDetailsService;
 import org.example.chocostyle_datn.service.NhanVienUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,23 +24,30 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+
 import java.util.List;
+
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
 
     @Autowired
     private KhachHangUserDetailsService khachHangUserDetailsService;
 
+
     @Autowired
     private NhanVienUserDetailsService nhanVienUserDetailsService;
 
+
     @Autowired
     private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+
 
     // =====================================================
     // PASSWORD ENCODER
@@ -49,6 +57,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+
     // =====================================================
     // AUTH PROVIDER KHÁCH HÀNG
     // =====================================================
@@ -57,9 +66,13 @@ public class SecurityConfig {
         DaoAuthenticationProvider provider =
                 new DaoAuthenticationProvider(khachHangUserDetailsService);
 
+
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
+
+
+
 
     // =====================================================
     // AUTH PROVIDER NHÂN VIÊN
@@ -69,9 +82,13 @@ public class SecurityConfig {
         DaoAuthenticationProvider provider =
                 new DaoAuthenticationProvider(nhanVienUserDetailsService);
 
+
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
+
+
+
 
     // =====================================================
     // AUTHENTICATION MANAGER
@@ -82,27 +99,26 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
 
+
     // =====================================================
     // SECURITY FILTER CHAIN
     // =====================================================
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
 
+
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
 
                 .authorizeHttpRequests(auth -> auth
 
+
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // ============================
-                        // THÊM MỚI: MỞ QUYỀN API HÓA ĐƠN & BÁN HÀNG TẠI QUẦY
-                        // ============================
-                        .requestMatchers(HttpMethod.POST, "/api/hoa-don/tai-quay/tao-moi").permitAll()
-                        .requestMatchers(HttpMethod.PUT, "/api/hoa-don/tai-quay/xac-nhan/**").permitAll()
-                        .requestMatchers("/api/hoa-don/**").permitAll() // Mở tạm toàn bộ nhánh hóa đơn để code POS không bị lỗi văng ra login
 
                         // ============================
                         // KHÁCH HÀNG
@@ -114,6 +130,11 @@ public class SecurityConfig {
                                 "/api/auth/reset-password"
                         ).permitAll()
 
+
+
+
+
+
                         // ============================
                         // NHÂN VIÊN
                         // ============================
@@ -123,39 +144,49 @@ public class SecurityConfig {
                                 "/api/auth/reset-password"
                         ).permitAll()
 
+
                         // OAuth2
                         .requestMatchers("/oauth2/**").permitAll()
+
 
                         // Các API còn lại cần login
                         .anyRequest().authenticated()
                 )
 
+
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
+
 
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )
 
+
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                 )
+
 
                 .sessionManagement(sess ->
                         sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
+
                 // Đăng ký 2 provider
                 .authenticationProvider(khachHangAuthenticationProvider())
                 .authenticationProvider(nhanVienAuthenticationProvider())
+
 
                 // Thêm JWT filter
                 .addFilterBefore(jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class);
 
+
         return http.build();
     }
+
 
     // =====================================================
     // CORS CONFIG
@@ -163,18 +194,24 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
+
         CorsConfiguration configuration = new CorsConfiguration();
+
 
         configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(List.of("*"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
+
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
 
+
         source.registerCorsConfiguration("/**", configuration);
+
 
         return source;
     }
 }
+

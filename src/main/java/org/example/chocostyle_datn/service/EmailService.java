@@ -1,6 +1,8 @@
 package org.example.chocostyle_datn.service;
 
 
+
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.example.chocostyle_datn.entity.KhachHang;
@@ -13,11 +15,17 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 
+
+
 import java.time.format.DateTimeFormatter;
+
+
 
 
 @Service
 public class EmailService {
+
+
 
 
     @Autowired
@@ -28,24 +36,28 @@ public class EmailService {
         String subject = "Chào mừng bạn đến với ChocoStyle — Thông tin đăng nhập";
 
 
+
+
         // Nội dung HTML (Giống mẫu bạn gửi)
         String htmlContent = String.format("""
-           <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px;">
-               <h2 style="color: #444;">Xin chào %s,</h2>
-               <p>Chào mừng bạn đã gia nhập đội ngũ <b>ChocoStyle</b>. Dưới đây là thông tin đăng nhập của bạn:</p>
-               <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; list-style-type: none;">
-                   <li style="margin-bottom: 10px;">
-                       <strong>📛 Tên đăng nhập:</strong> <span style="color: #63391F;">%s</span>
-                   </li>
-                   <li>
-                       <strong>🔑 Mật khẩu:</strong> <span style="color: #63391F;">%s</span>
-                   </li>
-               </ul>
-               <p>Vui lòng đổi mật khẩu sau khi đăng nhập lần đầu để bảo mật tài khoản.</p>
-               <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-               <p>Trân trọng,<br><b>ChocoStyle Team</b></p>
-           </div>
-           """, hoTen, username, password);
+          <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px;">
+              <h2 style="color: #444;">Xin chào %s,</h2>
+              <p>Chào mừng bạn đã gia nhập đội ngũ <b>ChocoStyle</b>. Dưới đây là thông tin đăng nhập của bạn:</p>
+              <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; list-style-type: none;">
+                  <li style="margin-bottom: 10px;">
+                      <strong>📛 Email đăng nhập:</strong> <span style="color: #63391F;">%s</span>
+                  </li>
+                  <li>
+                      <strong>🔑 Mật khẩu:</strong> <span style="color: #63391F;">%s</span>
+                  </li>
+              </ul>
+              <p>Vui lòng đổi mật khẩu sau khi đăng nhập lần đầu để bảo mật tài khoản.</p>
+              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+              <p>Trân trọng,<br><b>ChocoStyle Team</b></p>
+          </div>
+          """, hoTen, username, password);
+
+
 
 
         try {
@@ -53,19 +65,27 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
 
+
+
             helper.setTo(toEmail);
             helper.setSubject(subject);
             helper.setText(htmlContent, true); // true = gửi dưới dạng HTML
+
+
 
 
             mailSender.send(message);
             System.out.println("Gửi mail thành công cho: " + toEmail);
 
 
+
+
         } catch (MessagingException e) {
             System.err.println("Lỗi gửi mail: " + e.getMessage());
         }
     }
+
+
 
 
     @Async
@@ -79,6 +99,8 @@ public class EmailService {
     }
 
 
+
+
     @Async
     public void sendVoucherUpdatedEmail(KhachHang kh, PhieuGiamGia pgg) {
         sendVoucherMail(
@@ -90,6 +112,8 @@ public class EmailService {
     }
 
 
+
+
     private void sendVoucherMail(
             KhachHang kh,
             PhieuGiamGia pgg,
@@ -98,7 +122,11 @@ public class EmailService {
     ) {
 
 
+
+
         if (kh.getEmail() == null || kh.getEmail().isBlank()) return;
+
+
 
 
         try {
@@ -106,21 +134,31 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
 
+
+
             helper.setTo(kh.getEmail());
             helper.setSubject(subject);
+
+
 
 
             String html = buildHtmlContent(kh, pgg, introText);
             helper.setText(html, true);
 
 
+
+
             mailSender.send(message);
+
+
 
 
         } catch (MessagingException e) {
             e.printStackTrace();
         }
     }
+
+
 
 
     private String buildHtmlContent(
@@ -130,57 +168,69 @@ public class EmailService {
     ) {
 
 
+
+
         DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
 
+
+
         return """
-           <div style="font-family: Arial, sans-serif; background:#f5f5f5; padding:30px">
-             <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; overflow:hidden">
-              
-               <div style="background:#5a2d0c; color:white; padding:16px; text-align:center; font-size:20px; font-weight:bold">
-                 🎁 Ưu Đãi Đặc Biệt Dành Cho Bạn
-               </div>
+          <div style="font-family: Arial, sans-serif; background:#f5f5f5; padding:30px">
+            <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; overflow:hidden">
+            
+              <div style="background:#5a2d0c; color:white; padding:16px; text-align:center; font-size:20px; font-weight:bold">
+                🎁 Ưu Đãi Đặc Biệt Dành Cho Bạn
+              </div>
 
 
-               <div style="padding:20px; color:#333">
-                 <p>Xin chào <b>%s</b>,</p>
 
 
-                 <p>%s</p>
+              <div style="padding:20px; color:#333">
+                <p>Xin chào <b>%s</b>,</p>
 
 
-                 <table style="width:100%%; border-collapse:collapse; margin-top:15px">
-                   <tr style="background:#f5f5f5">
-                     <td style="padding:10px; width:40%%">Mã Voucher</td>
-                     <td style="padding:10px; font-weight:bold; color:#ff7a00">%s</td>
-                   </tr>
-                   <tr>
-                     <td style="padding:10px">Giá trị giảm</td>
-                     <td style="padding:10px">%s</td>
-                   </tr>
-                   <tr style="background:#f5f5f5">
-                     <td style="padding:10px">Giảm tối đa</td>
-                     <td style="padding:10px">%s</td>
-                   </tr>
-                   <tr>
-                     <td style="padding:10px">Thời gian áp dụng</td>
-                     <td style="padding:10px">Từ %s Đến %s</td>
-                   </tr>
-                   <tr style="background:#f5f5f5">
-                     <td style="padding:10px">Điều kiện</td>
-                     <td style="padding:10px">Đơn hàng từ %s</td>
-                   </tr>
-                 </table>
 
 
-                 <p style="margin-top:20px">
-                   Chúc bạn mua sắm vui vẻ! <br/>
-                   <b>ChocoStyle</b>
-                 </p>
-               </div>
-             </div>
-           </div>
-           """.formatted(
+                <p>%s</p>
+
+
+
+
+                <table style="width:100%%; border-collapse:collapse; margin-top:15px">
+                  <tr style="background:#f5f5f5">
+                    <td style="padding:10px; width:40%%">Mã Voucher</td>
+                    <td style="padding:10px; font-weight:bold; color:#ff7a00">%s</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px">Giá trị giảm</td>
+                    <td style="padding:10px">%s</td>
+                  </tr>
+                  <tr style="background:#f5f5f5">
+                    <td style="padding:10px">Giảm tối đa</td>
+                    <td style="padding:10px">%s</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px">Thời gian áp dụng</td>
+                    <td style="padding:10px">Từ %s Đến %s</td>
+                  </tr>
+                  <tr style="background:#f5f5f5">
+                    <td style="padding:10px">Điều kiện</td>
+                    <td style="padding:10px">Đơn hàng từ %s</td>
+                  </tr>
+                </table>
+
+
+
+
+                <p style="margin-top:20px">
+                  Chúc bạn mua sắm vui vẻ! <br/>
+                  <b>ChocoStyle</b>
+                </p>
+              </div>
+            </div>
+          </div>
+          """.formatted(
                 kh.getTenKhachHang(),
                 introText,
                 pgg.getMaPgg(),
@@ -193,6 +243,8 @@ public class EmailService {
     }
 
 
+
+
     private String formatGiaTri(PhieuGiamGia pgg) {
         if ("PERCENT".equals(pgg.getLoaiGiam())) {
             return pgg.getGiaTri() + "%";
@@ -201,9 +253,13 @@ public class EmailService {
     }
 
 
+
+
     private String formatMoney(Object value) {
         return value + " VND";
     }
+
+
 
 
     public void sendSimpleMessage(String to, String subject, String text) {
@@ -213,6 +269,8 @@ public class EmailService {
         message.setText(text);
         mailSender.send(message);
     }
+
+
     public void sendAccountInfo(String toEmail, String username, String password) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
@@ -253,10 +311,4 @@ public class EmailService {
         }
     }
 
-
-
-
-
-
 }
-

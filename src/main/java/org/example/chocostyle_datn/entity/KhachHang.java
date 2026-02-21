@@ -29,8 +29,8 @@ public class KhachHang {
 
 
     @Size(max = 50)
-    @Column(name = "ma_kh", unique = true)
-    private String maKh;
+    @Column(name = "ma_kh", unique = true, nullable = false)
+    private String maKh; // Backend tự sinh
 
 
     @Size(max = 255)
@@ -39,25 +39,16 @@ public class KhachHang {
     private String tenKhachHang;
 
 
-    @Size(max = 100)
-    @Column(name = "ten_tai_khoan", length = 100)
-    private String tenTaiKhoan;
 
 
     @Size(max = 20)
-    @Column(name = "so_dien_thoai", length = 20)
+    @Column(name = "so_dien_thoai", length = 20, nullable = false)
     private String soDienThoai;
 
 
     @Size(max = 100)
-    @Column(name = "email", length = 100)
-    private String email;
-
-
-    @Nationalized
-    @Lob
-    @Column(name = "dia_chi")
-    private String diaChi;
+    @Column(name = "email", length = 100, nullable = false)
+    private String email; // Bắt buộc có để nhận mật khẩu
 
 
     @Column(name = "gioi_tinh")
@@ -70,7 +61,7 @@ public class KhachHang {
 
     @Size(max = 255)
     @Column(name = "mat_khau")
-    private String matKhau;
+    private String matKhau; // Backend tự random
 
 
     @NotNull
@@ -91,21 +82,15 @@ public class KhachHang {
     private String avatar;
 
 
-    // --- ✅ ĐÃ THÊM LẠI 2 TRƯỜNG NÀY ---
-
-
     @Column(name = "so_luong_don_hang")
-    private Integer soLuongDonHang = 0; // Mặc định là 0 để tránh null
+    private Integer soLuongDonHang = 0;
 
 
     @Column(name = "tong_chi_tieu")
-    private BigDecimal tongChiTieu = BigDecimal.ZERO; // Mặc định là 0
+    private BigDecimal tongChiTieu = BigDecimal.ZERO;
 
 
-    // --- HẾT PHẦN THÊM MỚI ---
-
-
-    // --- THÊM MỚI CHO OAUTH2 ---
+    // --- OAUTH2 ---
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider")
     private AuthenticationProvider authProvider;
@@ -115,6 +100,7 @@ public class KhachHang {
     private String providerId;
 
 
+    // Quan hệ 1-N với bảng Địa chỉ
     @OneToMany(mappedBy = "khachHang", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<DiaChi> listDiaChiObj = new ArrayList<>();
 
@@ -128,9 +114,9 @@ public class KhachHang {
         this.ngayTao = LocalDate.now();
         if (this.trangThai == null) this.trangThai = 1;
         if (this.authProvider == null) this.authProvider = AuthenticationProvider.LOCAL;
+        if (this.vaiTro == null) this.vaiTro = "USER"; // Mặc định role USER
 
 
-        // Kiểm tra an toàn: Nếu null thì set về 0
         if (this.soLuongDonHang == null) this.soLuongDonHang = 0;
         if (this.tongChiTieu == null) this.tongChiTieu = BigDecimal.ZERO;
     }
@@ -141,3 +127,4 @@ public class KhachHang {
         this.ngayCapNhat = LocalDate.now();
     }
 }
+

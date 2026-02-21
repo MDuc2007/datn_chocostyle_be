@@ -30,7 +30,7 @@ public class KhachHangUserDetailsService implements UserDetailsService {
 
 
         KhachHang kh = khachHangRepository
-                .findByTenTaiKhoanOrEmail(usernameOrEmail)
+                .findByEmail(usernameOrEmail)
                 .orElseThrow(() ->
                         new UsernameNotFoundException("Không tìm thấy khách hàng"));
 
@@ -45,12 +45,12 @@ public class KhachHangUserDetailsService implements UserDetailsService {
 
         String role = "ROLE_USER";
         if (kh.getVaiTro() != null) {
-            role = "ROLE_" + kh.getVaiTro().toUpperCase();
+            role = kh.getVaiTro().toUpperCase();
         }
 
 
         return new User(
-                kh.getTenTaiKhoan(),   // luôn dùng username chuẩn
+                kh.getEmail(),
                 password,
                 Collections.singletonList(new SimpleGrantedAuthority(role))
         );
@@ -58,4 +58,6 @@ public class KhachHangUserDetailsService implements UserDetailsService {
 
     }
 }
+
+
 

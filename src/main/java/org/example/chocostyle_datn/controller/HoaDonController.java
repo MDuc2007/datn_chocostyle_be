@@ -1,8 +1,7 @@
 package org.example.chocostyle_datn.controller;
 
-import org.example.chocostyle_datn.entity.HoaDon;
+
 import org.example.chocostyle_datn.model.Request.CreateOrderRequest;
-import org.example.chocostyle_datn.model.Request.RefundRequest; // Nhớ import DTO này
 import org.example.chocostyle_datn.model.Request.SearchHoaDonRequest;
 import org.example.chocostyle_datn.model.Request.UpdateTrangThaiRequest;
 import org.example.chocostyle_datn.model.Response.HoaDonDetailResponse;
@@ -15,34 +14,45 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/hoa-don")
+//@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 public class HoaDonController {
 
     @Autowired
     private HoaDonService hoaDonService;
 
-    // API 1: Lấy danh sách
+    /**
+     * API 1: Lấy danh sách hóa đơn (Có lọc + Phân trang)
+     * URL: GET /api/hoa-don?page=0&size=10&keyword=HD01&trangThai=1
+     */
     @GetMapping
     public ResponseEntity<Page<HoaDonResponse>> getAll(
+            // Spring tự động map các tham số trên URL (?keyword=...&trangThai=...) vào object này
             SearchHoaDonRequest searchRequest,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "8") int size
     ) {
+        // Tạo đối tượng Pageable (Mặc định sắp xếp ngày tạo mới nhất nếu Repository chưa sort)
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(hoaDonService.getAll(searchRequest, pageable));
     }
 
-    // API 2: Xem chi tiết
+    /**
+     * API 2: Xem chi tiết hóa đơn
+     * URL: GET /api/hoa-don/{id}
+     */
     @GetMapping("/{id}")
     public ResponseEntity<HoaDonDetailResponse> getDetail(@PathVariable Integer id) {
         return ResponseEntity.ok(hoaDonService.getDetail(id));
     }
 
-    // API 3: Cập nhật trạng thái
+    /**
+     * API 3: Cập nhật trạng thái hóa đơn (Xác nhận, Giao hàng, Hủy...)
+     * URL: PUT /api/hoa-don/{id}/trang-thai
+     * Body (JSON): { "trangThaiMoi": 2, "ghiChu": "Giao cho shipper" }
+     */
     @PutMapping("/{id}/trang-thai")
     public ResponseEntity<?> updateStatus(
             @PathVariable Integer id,
@@ -52,12 +62,17 @@ public class HoaDonController {
             hoaDonService.updateStatus(id, request);
             return ResponseEntity.ok("Cập nhật trạng thái thành công!");
         } catch (RuntimeException e) {
+            // Trả về lỗi 400 nếu có ngoại lệ (Ví dụ: Hóa đơn đã hủy mà cố tình update)
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    // API 4: Tạo hóa đơn mới
-    @PostMapping
+    /**
+     * API 4: TẠO HÓA ĐƠN MỚI (Dùng cho cả Bán hàng tại quầy & Online)
+     * URL: POST /api/hoa-don
+     * Body: JSON chứa thông tin khách, nhân viên, list sản phẩm
+     */
+    @PostMapping // Không cần thêm path phụ, gọi thẳng vào /api/hoa-don
     public ResponseEntity<?> taoHoaDon(@RequestBody CreateOrderRequest request) {
         try {
             Integer idHoaDon = hoaDonService.taoHoaDonMoi(request);
@@ -66,59 +81,6 @@ public class HoaDonController {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
-        }
-    }
-
-    // API 5: XÁC NHẬN HOÀN TIỀN (MỚI THÊM)
-    // URL: POST /api/hoa-don/hoan-tien
-    @PostMapping("/hoan-tien")
-    public ResponseEntity<?> xacNhanHoanTien(@RequestBody RefundRequest request) {
-        try {
-            hoaDonService.hoanTien(request);
-            return ResponseEntity.ok("Hoàn tiền thành công!");
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Lỗi: " + e.getMessage());
-        }
-    }
-
-    // API 6: Tạo tab hóa đơn rỗng (Bán hàng tại quầy)
-    // URL: POST /api/hoa-don/tai-quay/tao-moi?idNhanVien=1
-    @PostMapping("/tai-quay/tao-moi")
-    public ResponseEntity<?> taoDonChoTaiQuay(@RequestParam Integer idNhanVien) {
-        try {
-            HoaDon hdMoi = hoaDonService.taoHoaDonChoTaiQuay(idNhanVien);
-            // Trả về thẳng object để Frontend lấy id và maHoaDon gán lên UI
-            return ResponseEntity.status(201).body(hdMoi);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
-        }
-    }
-    // API Cập nhật hóa đơn nháp (Xác nhận đặt hàng tại quầy)
-    // URL: PUT /api/hoa-don/tai-quay/xac-nhan/{id}
-    @PutMapping("/tai-quay/xac-nhan/{id}")
-    public ResponseEntity<?> xacNhanDatHangTaiQuay(
-            @PathVariable Integer id,
-            @RequestBody org.example.chocostyle_datn.model.Request.CreateOrderRequest request) {
-        try {
-            hoaDonService.xacNhanDatHangTaiQuay(id, request);
-            return ResponseEntity.ok("Xác nhận đơn hàng tại quầy thành công!");
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
-        }
-    }
-    @DeleteMapping("/xoa-don-quay/{id}")
-    public ResponseEntity<?> xoaHoaDonTaiQuay(@PathVariable("id") Integer id) {
-        try {
-            hoaDonService.xoaHoaDonTaiQuay(id);
-            return ResponseEntity.ok().body(Map.of("message", "Đã xóa hóa đơn thành công"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

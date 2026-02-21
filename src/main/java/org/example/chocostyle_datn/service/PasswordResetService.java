@@ -1,6 +1,8 @@
 package org.example.chocostyle_datn.service;
 
 
+
+
 import org.example.chocostyle_datn.entity.*;
 import org.example.chocostyle_datn.repository.NhanVienRepository;
 import org.example.chocostyle_datn.repository.PasswordResetTokenRepository;
@@ -10,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 
+
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.Random;
@@ -17,24 +21,36 @@ import java.util.Random;
 public class PasswordResetService {
 
 
+
+
     @Autowired
     private KhachHangRepository khachHangRepository;
+
+
 
 
     @Autowired
     private NhanVienRepository nhanVienRepository;
 
 
+
+
     @Autowired
     private PasswordResetTokenRepository tokenRepository;
+
+
 
 
     @Autowired
     private EmailService emailService;
 
 
+
+
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+
 
 
     // =========================
@@ -43,8 +59,12 @@ public class PasswordResetService {
     public void sendOtp(String email, ResetAccountType type) {
 
 
+
+
         Integer accountId;
         String fullName;
+
+
 
 
         if (type == ResetAccountType.KHACH_HANG) {
@@ -60,11 +80,17 @@ public class PasswordResetService {
         }
 
 
+
+
         tokenRepository.findByAccountTypeAndAccountId(type, accountId)
                 .ifPresent(tokenRepository::delete);
 
 
+
+
         String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+
+
 
 
         PasswordResetToken token = PasswordResetToken.builder()
@@ -75,7 +101,11 @@ public class PasswordResetService {
                 .build();
 
 
+
+
         tokenRepository.save(token);
+
+
 
 
         emailService.sendSimpleMessage(
@@ -84,6 +114,12 @@ public class PasswordResetService {
                 "Xin chào " + fullName + ",\n\nMã OTP của bạn là: " + otp
         );
     }
+
+
+
+
+
+
 
 
 
@@ -99,7 +135,11 @@ public class PasswordResetService {
     ) {
 
 
+
+
         Integer accountId;
+
+
 
 
         if (type == ResetAccountType.KHACH_HANG) {
@@ -108,9 +148,13 @@ public class PasswordResetService {
             accountId = kh.getId();
 
 
+
+
             PasswordResetToken token = tokenRepository
                     .findByAccountTypeAndAccountId(type, accountId)
                     .orElseThrow(() -> new RuntimeException("Bạn chưa yêu cầu mã OTP"));
+
+
 
 
             if (!token.getToken().equals(otp)) {
@@ -118,14 +162,20 @@ public class PasswordResetService {
             }
 
 
+
+
             if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
                 throw new RuntimeException("Mã OTP đã hết hạn");
             }
 
 
+
+
             kh.setMatKhau(passwordEncoder.encode(newPassword));
             khachHangRepository.save(kh);
             tokenRepository.delete(token);
+
+
 
 
         } else {
@@ -134,9 +184,13 @@ public class PasswordResetService {
             accountId = nv.getId();
 
 
+
+
             PasswordResetToken token = tokenRepository
                     .findByAccountTypeAndAccountId(type, accountId)
                     .orElseThrow(() -> new RuntimeException("Bạn chưa yêu cầu mã OTP"));
+
+
 
 
             if (!token.getToken().equals(otp)) {
@@ -144,9 +198,13 @@ public class PasswordResetService {
             }
 
 
+
+
             if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
                 throw new RuntimeException("Mã OTP đã hết hạn");
             }
+
+
 
 
             nv.setMatKhau(passwordEncoder.encode(newPassword));
@@ -154,11 +212,4 @@ public class PasswordResetService {
             tokenRepository.delete(token);
         }
     }
-
-
-
-
-
-
 }
-

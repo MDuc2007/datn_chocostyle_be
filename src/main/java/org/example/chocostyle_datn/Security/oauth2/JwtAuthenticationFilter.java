@@ -46,6 +46,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+
+
+        String requestURI = request.getRequestURI();
+        if (requestURI.startsWith("/uploads/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+
         try {
 
             String jwt = getJwtFromRequest(request);
