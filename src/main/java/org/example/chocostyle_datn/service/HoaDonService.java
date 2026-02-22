@@ -246,7 +246,14 @@ public class HoaDonService {
                 hd.setIdKhachHang(kh);
                 hd.setTenKhachHang(kh.getTenKhachHang());
                 hd.setSoDienThoai(kh.getSoDienThoai());
-                hd.setDiaChiKhachHang(kh.getDiaChi());
+                String diaChiMacDinh = kh.getListDiaChiObj().stream()
+                        .filter(dc -> dc.getMacDinh() != null && dc.getMacDinh()) // Tìm địa chỉ có macDinh = true
+                        .map(dc -> dc.getDiaChiCuThe() + ", " + dc.getPhuong() + ", " + dc.getQuan() + ", " + dc.getThanhPho())
+                        .findFirst()
+                        .orElse("Chưa có địa chỉ mặc định"); // Trường hợp khách chưa có địa chỉ nào
+
+
+                hd.setDiaChiKhachHang(diaChiMacDinh);
             }
         } else {
             hd.setTenKhachHang("Khách lẻ");
@@ -321,16 +328,20 @@ public class HoaDonService {
                     .orElseThrow(() -> new RuntimeException("Mã giảm giá không tồn tại!"));
 
             LocalDate today = LocalDate.now();
-            if (voucher.getTrangThai() == null || voucher.getTrangThai() != 1) throw new RuntimeException("Mã giảm giá hiện không hoạt động!");
-            if (today.isBefore(voucher.getNgayBatDau())) throw new RuntimeException("Mã giảm giá chưa đến thời gian sử dụng!");
+            if (voucher.getTrangThai() == null || voucher.getTrangThai() != 1)
+                throw new RuntimeException("Mã giảm giá hiện không hoạt động!");
+            if (today.isBefore(voucher.getNgayBatDau()))
+                throw new RuntimeException("Mã giảm giá chưa đến thời gian sử dụng!");
             if (today.isAfter(voucher.getNgayKetThuc())) throw new RuntimeException("Mã giảm giá đã hết hạn!");
-            if (voucher.getSoLuong() <= voucher.getSoLuongDaDung()) throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng!");
+            if (voucher.getSoLuong() <= voucher.getSoLuongDaDung())
+                throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng!");
             if (voucher.getDieuKienDonHang() != null && req.getTongTienHang().compareTo(voucher.getDieuKienDonHang()) < 0) {
                 throw new RuntimeException("Đơn hàng chưa đủ điều kiện áp dụng (Tối thiểu: " + voucher.getDieuKienDonHang() + ")");
             }
 
             if ("PERSONAL".equalsIgnoreCase(voucher.getKieuApDung())) {
-                if (req.getIdKhachHang() == null) throw new RuntimeException("Voucher này chỉ áp dụng cho khách hàng cụ thể!");
+                if (req.getIdKhachHang() == null)
+                    throw new RuntimeException("Voucher này chỉ áp dụng cho khách hàng cụ thể!");
                 PhieuGiamGiaKhachHang pggKh = pggKhRepository.findByPhieuGiamGiaIdAndKhachHangId(voucher.getId(), req.getIdKhachHang());
                 if (pggKh == null) throw new RuntimeException("Khách hàng không được cấp voucher này!");
                 if (pggKh.getDaSuDung()) throw new RuntimeException("Voucher này đã được sử dụng!");
@@ -366,7 +377,14 @@ public class HoaDonService {
                 hd.setIdKhachHang(kh);
                 hd.setTenKhachHang(kh.getTenKhachHang());
                 hd.setSoDienThoai(kh.getSoDienThoai());
-                hd.setDiaChiKhachHang(kh.getDiaChi());
+                String diaChiMacDinh = kh.getListDiaChiObj().stream()
+                        .filter(dc -> dc.getMacDinh() != null && dc.getMacDinh()) // Tìm địa chỉ có macDinh = true
+                        .map(dc -> dc.getDiaChiCuThe() + ", " + dc.getPhuong() + ", " + dc.getQuan() + ", " + dc.getThanhPho())
+                        .findFirst()
+                        .orElse("Chưa có địa chỉ mặc định"); // Trường hợp khách chưa có địa chỉ nào
+
+
+                hd.setDiaChiKhachHang(diaChiMacDinh);
             }
         } else {
             hd.setTenKhachHang("Khách lẻ");
@@ -443,12 +461,18 @@ public class HoaDonService {
 
     private String getActionName(Integer status) {
         switch (status) {
-            case 1: return "Xác nhận đơn hàng";
-            case 2: return "Đã giao cho vận chuyển";
-            case 3: return "Đang giao hàng";
-            case 4: return "Giao hàng thành công";
-            case 5: return "Đã hủy đơn hàng";
-            default: return "Cập nhật trạng thái";
+            case 1:
+                return "Xác nhận đơn hàng";
+            case 2:
+                return "Đã giao cho vận chuyển";
+            case 3:
+                return "Đang giao hàng";
+            case 4:
+                return "Giao hàng thành công";
+            case 5:
+                return "Đã hủy đơn hàng";
+            default:
+                return "Cập nhật trạng thái";
         }
     }
 
