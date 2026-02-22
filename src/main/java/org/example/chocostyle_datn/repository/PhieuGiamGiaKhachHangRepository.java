@@ -9,4 +9,10 @@ import java.util.List;
 @Repository
 public interface PhieuGiamGiaKhachHangRepository extends JpaRepository<PhieuGiamGiaKhachHang, Integer> {
     List<PhieuGiamGiaKhachHang> findByPhieuGiamGiaId(Integer phieuGiamGiaId);
+    Boolean existsByPhieuGiamGiaIdAndKhachHangIdAndDaSuDungFalse(
+            Integer pggId,
+            Integer khId
+    );
+
+    PhieuGiamGiaKhachHang findByPhieuGiamGiaIdAndKhachHangId(Integer id, Integer idKhachHang);
 }

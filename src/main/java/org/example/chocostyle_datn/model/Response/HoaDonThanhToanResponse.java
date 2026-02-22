@@ -1,24 +1,24 @@
 package org.example.chocostyle_datn.model.Response;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 
-
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
+@Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class HoaDonThanhToanResponse {
     private String phuongThuc;
     private BigDecimal soTien;
     private Integer trangThai;
     private String thoiGian;
+
+    // THÊM 3 TRƯỜNG MỚI NÀY ĐỂ HẾT LỖI
+    private Integer loaiGiaoDich;
     private String maGiaoDich;
     private String ghiChu;
-
-
-    // --- BẠN ĐANG THIẾU DÒNG NÀY ---
-    private Integer loaiGiaoDich;
 }
-
