@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
 
     Optional<ChamCong> findByNhanVien_IdAndNgay(Integer idNv, LocalDate ngay);
+
+
 }

@@ -67,7 +67,8 @@ public class ChamCongService {
         return chamCongRepository.save(chamCong);
     }
 
-    public ChamCong checkOut(Integer idNv) {
+    // Sửa lại hàm checkOut để nhận thêm tiền
+    public ChamCong checkOut(Integer idNv, Double tienMat, Double tienChuyenKhoan) {
 
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
@@ -82,9 +83,28 @@ public class ChamCongService {
             throw new RuntimeException("Bạn đã check-out rồi!");
         }
 
-        // 3️⃣ Cập nhật giờ ra
+        // 3️⃣ Lấy ca làm hôm nay
+        List<LichLamViec> lich =
+                lichLamViecRepository.checkCaHomNay(idNv, today);
+
+        if (lich.isEmpty()) {
+            throw new RuntimeException("Không tìm thấy ca làm hôm nay!");
+        }
+
+        LichLamViec ca = lich.get(0);
+
+        // 4️⃣ CHẶN CHECK-OUT SỚM
+        if (now.isBefore(ca.getCaLamViec().getGioKetThuc())) {
+            throw new RuntimeException("Chưa đến giờ kết thúc ca!");
+        }
+
+        // 5️⃣ Cập nhật giờ ra và số tiền kết toán
         chamCong.setGioCheckOut(now);
         chamCong.setTrangThai(3);
+
+        // 👉 THÊM 2 DÒNG NÀY ĐỂ LƯU TIỀN (Lưu ý: Tên hàm set phụ thuộc vào tên biến trong Entity của bạn)
+        chamCong.setTienMatCuoiCa(tienMat);
+        chamCong.setTienChuyenKhoanCuoiCa(tienChuyenKhoan);
 
         return chamCongRepository.save(chamCong);
     }
