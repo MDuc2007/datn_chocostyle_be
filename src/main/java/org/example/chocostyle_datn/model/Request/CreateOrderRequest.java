@@ -9,7 +9,7 @@ import java.util.List;
 @Setter
 public class CreateOrderRequest {
     private Integer idKhachHang;
-    private Integer idNhanVien;
+//    private Integer idNhanVien;
     private Integer loaiDon; // 0: Online, 1: Tại quầy
     private String ghiChu;
     private BigDecimal tongTienHang;   // Tổng tiền chưa giảm
