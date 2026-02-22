@@ -144,6 +144,7 @@ public class AuthController {
         Map<String, Object> response = new HashMap<>();
 
         response.put("id", nv.getId());
+        response.put("tenNhanVien", nv.getHoTen());
         response.put("accessToken", jwt);
         response.put("tokenType", "Bearer");
         response.put("username", nv.getEmail());
