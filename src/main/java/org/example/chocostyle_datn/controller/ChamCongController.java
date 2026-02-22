@@ -13,6 +13,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/cham-cong")
+@CrossOrigin("*")
 public class ChamCongController {
 
     private final ChamCongService service;
@@ -60,5 +61,17 @@ public class ChamCongController {
 
         return cc.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+    // API LẤY DANH SÁCH GIAO CA KẾT TOÁN
+    @GetMapping("/giao-ca")
+    public ResponseEntity<?> getDanhSachGiaoCa(
+            @RequestParam(required = false, defaultValue = "") String keyword,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate) {
+        try {
+            return ResponseEntity.ok(service.getDanhSachGiaoCa(keyword, fromDate, toDate));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

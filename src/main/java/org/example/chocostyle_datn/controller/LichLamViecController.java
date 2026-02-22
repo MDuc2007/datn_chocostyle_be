@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 
@@ -109,20 +110,20 @@ public class LichLamViecController {
             this.lichLamViecRepository = lichLamViecRepository;
         }
 
-    @GetMapping("/check-ca-hom-nay/{idNv}")
-    public ResponseEntity<?> checkCa(@PathVariable Integer idNv){
-
-        LocalDate today = LocalDate.now();
-
-        List<LichLamViec> lich =
-                lichLamViecRepository.checkCaHomNay(idNv, today);
-
-        if(!lich.isEmpty()){
-            return ResponseEntity.ok(lich.get(0));
-        }
-
-        return ResponseEntity.noContent().build();
-    }
+//    @GetMapping("/check-ca-hom-nay/{idNv}")
+//    public ResponseEntity<?> checkCa(@PathVariable Integer idNv){
+//
+//        LocalDate today = LocalDate.now();
+//
+//        List<LichLamViec> lich =
+//                lichLamViecRepository.checkCaHomNay(idNv, today);
+//
+//        if(!lich.isEmpty()){
+//            return ResponseEntity.ok(lich.get(0));
+//        }
+//
+//        return ResponseEntity.noContent().build();
+//    }
     // THÊM API TÌM KIẾM
     @GetMapping("/search")
     public ResponseEntity<Page<LichLamViec>> search(
@@ -151,6 +152,27 @@ public class LichLamViecController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "8") int size) {
         return ResponseEntity.ok(service.searchMySchedules(idNv, fromDate, toDate, trangThai, page, size));
+    }
+    @GetMapping("/check-ca-hom-nay/{idNv}")
+    public ResponseEntity<?> checkCaHomNay(@PathVariable Integer idNv) {
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+
+        List<LichLamViec> lichs = lichLamViecRepository.checkCaHomNay(idNv, today);
+
+        // Lặp qua các lịch hôm nay để tìm ca có khoảng thời gian hợp lệ
+        for (LichLamViec l : lichs) {
+            LocalTime start = l.getCaLamViec().getGioBatDau();
+            LocalTime end = l.getCaLamViec().getGioKetThuc();
+
+            // Logic: Cho phép mở ca sớm 30 phút và chặn nếu đã qua giờ kết thúc
+            if (now.isAfter(start.minusMinutes(30)) && now.isBefore(end)) {
+                return ResponseEntity.ok(l); // Trả về thông tin ca hợp lệ
+            }
+        }
+
+        // Nếu không có ca nào khớp thời gian
+        return ResponseEntity.badRequest().body("Hôm nay bạn không có lịch phân công, hoặc hiện tại không nằm trong thời gian ca làm.");
     }
 }
 

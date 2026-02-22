@@ -44,7 +44,7 @@ public interface LichLamViecRepository extends JpaRepository<LichLamViec, Intege
     @Query("SELECT l FROM LichLamViec l " +
             "WHERE l.nhanVien.id = :idNv " +
             "AND l.ngayLamViec = :ngay " +
-            "AND l.trangThai = 1")
+            "AND l.trangThai = 2")
     List<LichLamViec> checkCaHomNay(@Param("idNv") Integer idNv,
                                     @Param("ngay") LocalDate ngay);
 
@@ -81,6 +81,9 @@ public interface LichLamViecRepository extends JpaRepository<LichLamViec, Intege
             @Param("trangThai") Integer trangThai,
             Pageable pageable
     );
+    // Thêm vào LichLamViecRepository.java
+    // Thêm hàm này để tìm lịch của nhân viên trong một ngày (không phân biệt trạng thái)
+    List<LichLamViec> findByNhanVien_IdAndNgayLamViec(Integer idNv, LocalDate ngayLamViec);
 }
 
 
