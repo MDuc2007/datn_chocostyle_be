@@ -51,16 +51,31 @@ public class ChamCongService {
             throw new RuntimeException("Hôm nay bạn không có ca làm!");
         }
 
-        // 2️⃣ Kiểm tra đã check-in chưa
+        LichLamViec ca = lich.get(0);
+
+        LocalTime gioBatDau = ca.getCaLamViec().getGioBatDau();
+        LocalTime gioKetThuc = ca.getCaLamViec().getGioKetThuc();
+
+        // 2️⃣ CHẶN CHECK-IN SỚM
+        if (now.isBefore(gioBatDau)) {
+            throw new RuntimeException("Chưa đến giờ vào ca!");
+        }
+
+        // 3️⃣ CHẶN CHECK-IN TRỄ SAU KHI CA ĐÃ KẾT THÚC
+        if (now.isAfter(gioKetThuc)) {
+            throw new RuntimeException("Ca làm hôm nay đã kết thúc!");
+        }
+
+        // 4️⃣ Kiểm tra đã check-in chưa
         if (daCheckIn(idNv, today)) {
             throw new RuntimeException("Bạn đã check-in rồi!");
         }
 
-        // 3️⃣ Lấy nhân viên
+        // 5️⃣ Lấy nhân viên
         NhanVien nv = nhanVienRepository.findById(idNv)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
 
-        // 4️⃣ Tạo bản ghi chấm công
+        // 6️⃣ Tạo bản ghi chấm công
         ChamCong chamCong = new ChamCong();
         chamCong.setNhanVien(nv);
         chamCong.setNgay(today);
