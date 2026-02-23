@@ -68,6 +68,7 @@ public class LichLamViecController {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
+
     // POST: Tạo hàng loạt (Cho tính năng lặp lại)
     @PostMapping("/batch")
     public ResponseEntity<?> createBatch(@RequestBody List<LichLamViecRequest> requests) {
@@ -77,6 +78,7 @@ public class LichLamViecController {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
+
     // PUT: Cập nhật theo chuỗi
     @PutMapping("/series/{maLapLai}")
     public ResponseEntity<?> updateSeries(@PathVariable String maLapLai, @RequestBody LichLamViecRequest request) {
@@ -87,6 +89,7 @@ public class LichLamViecController {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
+
     @DeleteMapping("/series/{maLapLai}")
     public ResponseEntity<?> deleteSeries(@PathVariable String maLapLai) {
         try {
@@ -96,21 +99,24 @@ public class LichLamViecController {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
     }
+
     // Wrapper class để trả về JSON lỗi đẹp hơn (Optional)
     static class ErrorResponse {
         public String message;
-        public ErrorResponse(String message) { this.message = message; }
+
+        public ErrorResponse(String message) {
+            this.message = message;
+        }
     }
 
 
+    private final LichLamViecRepository lichLamViecRepository;
 
-        private final LichLamViecRepository lichLamViecRepository;
+    public LichLamViecController(LichLamViecRepository lichLamViecRepository) {
+        this.lichLamViecRepository = lichLamViecRepository;
+    }
 
-        public LichLamViecController(LichLamViecRepository lichLamViecRepository) {
-            this.lichLamViecRepository = lichLamViecRepository;
-        }
-
-//    @GetMapping("/check-ca-hom-nay/{idNv}")
+    //    @GetMapping("/check-ca-hom-nay/{idNv}")
 //    public ResponseEntity<?> checkCa(@PathVariable Integer idNv){
 //
 //        LocalDate today = LocalDate.now();
@@ -136,6 +142,7 @@ public class LichLamViecController {
 
         return ResponseEntity.ok(service.searchLichLamViec(keyword, fromDate, toDate, trangThai, page, size));
     }
+
     // API: Lấy tất cả lịch của 1 nhân viên
     @GetMapping("/my-schedule/{idNv}")
     public ResponseEntity<List<LichLamViec>> getMyAllSchedules(@PathVariable Integer idNv) {
@@ -153,25 +160,36 @@ public class LichLamViecController {
             @RequestParam(defaultValue = "8") int size) {
         return ResponseEntity.ok(service.searchMySchedules(idNv, fromDate, toDate, trangThai, page, size));
     }
+
     @GetMapping("/check-ca-hom-nay/{idNv}")
     public ResponseEntity<?> checkCaHomNay(@PathVariable Integer idNv) {
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
 
-        List<LichLamViec> lichs = lichLamViecRepository.checkCaHomNay(idNv, today);
+        // Lấy TẤT CẢ các lịch của nhân viên trong ngày hôm nay
+        // (Sử dụng hàm findByNhanVien_IdAndNgayLamViec mà chúng ta đã thêm ở bước trước)
+        List<LichLamViec> lichs = lichLamViecRepository.findByNhanVien_IdAndNgayLamViec(idNv, today);
 
-        // Lặp qua các lịch hôm nay để tìm ca có khoảng thời gian hợp lệ
         for (LichLamViec l : lichs) {
-            LocalTime start = l.getCaLamViec().getGioBatDau();
-            LocalTime end = l.getCaLamViec().getGioKetThuc();
+            // TRƯỜNG HỢP 1: Ca đang làm (Trạng thái = 3)
+            // Ưu tiên trả về ngay lập tức để nhân viên có thể Kết toán (Dù có quá giờ kết thúc ca)
+            if (l.getTrangThai() == 3) {
+                return ResponseEntity.ok(l);
+            }
 
-            // Logic: Cho phép mở ca sớm 30 phút và chặn nếu đã qua giờ kết thúc
-            if (now.isAfter(start.minusMinutes(30)) && now.isBefore(end)) {
-                return ResponseEntity.ok(l); // Trả về thông tin ca hợp lệ
+            // TRƯỜNG HỢP 2: Ca chưa làm (Trạng thái = 2)
+            // Chỉ hiển thị Modal nếu hiện tại nằm trong khung giờ (Cho phép mở sớm 30 phút)
+            if (l.getTrangThai() == 2) {
+                LocalTime start = l.getCaLamViec().getGioBatDau();
+                LocalTime end = l.getCaLamViec().getGioKetThuc();
+
+                if (now.isAfter(start.minusMinutes(30)) && now.isBefore(end)) {
+                    return ResponseEntity.ok(l);
+                }
             }
         }
 
-        // Nếu không có ca nào khớp thời gian
+        // Nếu không có lịch nào khớp (hoặc đã đóng ca xong hết rồi)
         return ResponseEntity.badRequest().body("Hôm nay bạn không có lịch phân công, hoặc hiện tại không nằm trong thời gian ca làm.");
     }
 }

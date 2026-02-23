@@ -26,20 +26,20 @@ public class NhanVienUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
 
-
         NhanVien nv = nhanVienRepository
                 .findByEmail(email)
                 .orElseThrow(() ->
                         new UsernameNotFoundException("Không tìm thấy nhân viên"));
 
-
         if (nv.getTrangThai() != null && nv.getTrangThai() == 0) {
             throw new UsernameNotFoundException("Tài khoản nhân viên bị khóa!");
         }
 
+        String role = "ROLE_STAFF";
 
-        String role = "ROLE_" + nv.getVaiTro().toUpperCase();
-
+        if ("ADMIN".equalsIgnoreCase(nv.getVaiTro())) {
+            role = "ROLE_ADMIN";
+        }
 
         return new User(
                 nv.getEmail(),
