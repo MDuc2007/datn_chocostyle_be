@@ -26,14 +26,12 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
             "(:keyword IS NULL OR :keyword = '' OR h.maHoaDon LIKE %:keyword% OR h.tenKhachHang LIKE %:keyword% OR h.soDienThoai LIKE %:keyword%) " +
             "AND (:loaiDon IS NULL OR h.loaiDon = :loaiDon) " +
             "AND (:trangThai IS NULL OR h.trangThai = :trangThai) " +
-
-            // --- SỬA LỖI NGÀY THÁNG ---
-            // Dùng CAST(... AS date) để SQL chỉ so sánh ngày, bỏ qua giờ phút giây
             "AND (:startDate IS NULL OR CAST(h.ngayTao AS date) >= :startDate) " +
             "AND (:endDate IS NULL OR CAST(h.ngayTao AS date) <= :endDate) " +
 
-            // --- ĐÃ SỬA: SẮP XẾP THEO TRẠNG THÁI (0->5), SAU ĐÓ ĐƠN MỚI NHẤT LÊN ĐẦU ---
-            "ORDER BY h.trangThai ASC, h.ngayTao DESC")
+            // --- SỬA Ở ĐÂY: Đổi DESC thành ASC ---
+            // Ý nghĩa: Ưu tiên gom theo Trạng thái trước, sau đó đơn CŨ xếp trên, đơn MỚI đẩy xuống dưới cùng
+            "ORDER BY h.trangThai ASC, h.ngayTao ASC")
     Page<HoaDon> findAllByFilter(@Param("keyword") String keyword,
                                  @Param("loaiDon") Integer loaiDon,
                                  @Param("trangThai") Integer trangThai,
