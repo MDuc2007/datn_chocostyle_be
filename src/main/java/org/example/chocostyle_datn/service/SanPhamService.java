@@ -157,7 +157,7 @@ public class SanPhamService {
                     existing.setSoLuongTon(sizeReq.getSoLuongTon());
                     existing.setGiaNhap(sizeReq.getGiaNhap());
                     existing.setGiaBan(sizeReq.getGiaBan());
-                    existing.setTrangThai(sizeReq.getSoLuongTon() > 0 ? 1 : 0);
+                    autoUpdateTrangThaiBienThe(existing);
                     existing.setNgayCapNhat(LocalDate.now());
                     existing.setNguoiCapNhat(request.getNguoiCapNhat());
 
@@ -182,8 +182,7 @@ public class SanPhamService {
                     ct.setSoLuongTon(sizeReq.getSoLuongTon());
                     ct.setGiaNhap(sizeReq.getGiaNhap());
                     ct.setGiaBan(sizeReq.getGiaBan());
-                    ct.setTrangThai(sizeReq.getSoLuongTon() > 0 ? 1 : 0);
-
+                    autoUpdateTrangThaiBienThe(ct);
                     ct.setNgayTao(LocalDate.now());
                     ct.setNguoiTao(request.getNguoiCapNhat());
 
@@ -200,6 +199,7 @@ public class SanPhamService {
         }
 
         chiTietRepo.saveAll(oldList);
+        autoUpdateTrangThaiSanPham(sp);
     }
 
 
@@ -231,8 +231,7 @@ public class SanPhamService {
                 ct.setSoLuongTon(sizeReq.getSoLuongTon());
                 ct.setGiaNhap(sizeReq.getGiaNhap());
                 ct.setGiaBan(sizeReq.getGiaBan());
-                ct.setTrangThai(sizeReq.getSoLuongTon() > 0 ? 1 : 0);
-
+                autoUpdateTrangThaiBienThe(ct);
                 ct.setNgayTao(LocalDate.now());
                 ct.setNguoiTao(
                         request.getNguoiTao() != null
@@ -354,19 +353,29 @@ public class SanPhamService {
 
         ct.setSoLuongTon(soLuongMoi);
 
-        // ⚠️ CHỈ đổi trạng thái nếu KHÔNG phải ngừng bán
-        if (ct.getTrangThai() != 2) {
-            if (soLuongMoi > 0) {
-                ct.setTrangThai(1); // đang bán
-            } else {
-                ct.setTrangThai(0); // hết hàng
-            }
-        }
+        autoUpdateTrangThaiBienThe(ct);
 
         ct.setNgayCapNhat(LocalDate.now());
         ct.setNguoiCapNhat(nguoiCapNhat);
 
         chiTietRepo.save(ct);
+
+        // 🔥🔥🔥 QUAN TRỌNG: UPDATE TRẠNG THÁI SẢN PHẨM CHA
+        SanPham sp = ct.getIdSanPham();
+
+        List<ChiTietSanPham> ctList = chiTietRepo.findByIdSanPham(sp);
+
+        int totalQuantity = ctList.stream()
+                .mapToInt(c -> c.getSoLuongTon() == null ? 0 : c.getSoLuongTon())
+                .sum();
+
+        if (totalQuantity == 0) {
+            sp.setTrangThai(0); // Hết hàng
+        } else if (sp.getTrangThai() != 2) {
+            sp.setTrangThai(1); // Đang bán
+        }
+
+        sanPhamRepo.save(sp);
     }
 
     // 🛍️ Danh sách sản phẩm
@@ -395,6 +404,18 @@ public class SanPhamService {
         dto.setMaSp(sp.getMaSp());
         dto.setTenSp(sp.getTenSp());
         dto.setMoTa(sp.getMoTa());
+        int totalQuantity = chiTietRepo.findByIdSanPham(sp).stream()
+                .mapToInt(ct -> ct.getSoLuongTon() == null ? 0 : ct.getSoLuongTon())
+                .sum();
+
+        if (sp.getTrangThai() != 2) { // không đụng nếu đang ngừng bán
+            if (totalQuantity == 0) {
+                sp.setTrangThai(0);
+            } else {
+                sp.setTrangThai(1);
+            }
+        }
+
         dto.setTrangThai(sp.getTrangThai());
         dto.setNgayTao(sp.getNgayTao());
         dto.setNguoiTao(sp.getNguoiTao());
@@ -476,6 +497,33 @@ public class SanPhamService {
         }
 
         return dto;
+    }
+
+    private void autoUpdateTrangThaiBienThe(ChiTietSanPham ct) {
+        if (ct.getTrangThai() == 2) return; // Nếu đang ngừng bán thì không động vào
+
+        if (ct.getSoLuongTon() == null || ct.getSoLuongTon() <= 0) {
+            ct.setTrangThai(0); // Hết hàng
+        } else {
+            ct.setTrangThai(1); // Đang bán
+        }
+    }
+
+    private void autoUpdateTrangThaiSanPham(SanPham sp) {
+
+        List<ChiTietSanPham> ctList = chiTietRepo.findByIdSanPham(sp);
+
+        int totalQuantity = ctList.stream()
+                .mapToInt(ct -> ct.getSoLuongTon() == null ? 0 : ct.getSoLuongTon())
+                .sum();
+
+        if (totalQuantity == 0) {
+            sp.setTrangThai(0); // Hết hàng
+        } else if (sp.getTrangThai() != 2) {
+            sp.setTrangThai(1); // Đang bán (nếu không bị ngừng bán)
+        }
+
+        sanPhamRepo.save(sp);
     }
 }
 

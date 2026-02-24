@@ -113,7 +113,6 @@ public class HoaDonService {
                         .soTien(tt.getSoTien())
                         .trangThai(tt.getTrangThai())
                         .thoiGian(tt.getThoiGianThanhToan() != null ? tt.getThoiGianThanhToan().toString() : "")
-                        // Gán thêm loại giao dịch để FE biết hoàn tiền hay thu tiền
                         .loaiGiaoDich(tt.getLoaiGiaoDich())
                         .ghiChu(tt.getGhiChu())
                         .maGiaoDich(tt.getMaGiaoDich())
@@ -138,6 +137,7 @@ public class HoaDonService {
                 ChiTietSanPham sp = ct.getIdSpct();
                 if (sp != null) {
                     sp.setSoLuongTon(sp.getSoLuongTon() + ct.getSoLuong());
+                    autoUpdateTrangThai(sp);
                     spctRepo.save(sp);
                 }
             }
@@ -219,7 +219,7 @@ public class HoaDonService {
         BigDecimal tienGiam = BigDecimal.ZERO;
         if (req.getMaVoucher() != null && !req.getMaVoucher().trim().isEmpty()) {
 
-            // 🔥 Dùng findFirstByMaPggOrderByTrangThaiDesc để lấy cái duy nhất và ưu tiên đang hoạt động
+            // Dùng findFirstBy... để lấy 1 mã ưu tiên đang hoạt động
             PhieuGiamGia voucher = pggRepo.findFirstByMaPggOrderByTrangThaiDesc(req.getMaVoucher())
                     .orElseThrow(() -> new RuntimeException("Mã giảm giá không tồn tại!"));
 
@@ -266,16 +266,30 @@ public class HoaDonService {
         hoaDonRepo.save(hd);
 
         // ===============================================================
-        // MỚI THÊM TỪ TRƯỚC: GHI LẠI LỊCH SỬ THANH TOÁN
+        // LƯU LỊCH SỬ THANH TOÁN (ĐÃ FIX TÌM ĐÚNG PHƯƠNG THỨC TT)
         // ===============================================================
-        Integer ptttId = 1; // 1 = Tiền mặt (Mặc định)
-        if (req.getGhiChu() != null && req.getGhiChu().toLowerCase().contains("chuyển khoản")) {
-            ptttId = 2; // 2 = Chuyển khoản
+        List<PhuongThucThanhToan> listPttt = ptttRepo.findAll();
+        PhuongThucThanhToan pttt = null;
+
+        boolean isChuyenKhoan = req.getGhiChu() != null && req.getGhiChu().toLowerCase().contains("chuyển khoản");
+
+        if (isChuyenKhoan) {
+            pttt = listPttt.stream()
+                    .filter(p -> p.getTenPttt().toLowerCase().contains("chuyển khoản") || p.getTenPttt().toLowerCase().contains("ngân hàng") || p.getTenPttt().toLowerCase().contains("vnpay"))
+                    .findFirst()
+                    .orElse(null);
+        } else {
+            pttt = listPttt.stream()
+                    .filter(p -> p.getTenPttt().toLowerCase().contains("tiền mặt") || p.getTenPttt().toLowerCase().contains("cod"))
+                    .findFirst()
+                    .orElse(null);
         }
 
-        PhuongThucThanhToan pttt = ptttRepo.findById(ptttId).orElse(null);
         if (pttt == null) {
-            pttt = ptttRepo.findById(1).orElseThrow(() -> new RuntimeException("Không tìm thấy Phương thức thanh toán!"));
+            if (listPttt.isEmpty()) {
+                throw new RuntimeException("Lỗi: Bảng phuong_thuc_thanh_toan đang trống!");
+            }
+            pttt = listPttt.get(0);
         }
 
         ThanhToan thanhToan = new ThanhToan();
@@ -284,7 +298,7 @@ public class HoaDonService {
         thanhToan.setSoTien(tongCuoiCung);
 
         try {
-            thanhToan.setLoaiGiaoDich(1);
+            thanhToan.setLoaiGiaoDich(1); // 1 = Thanh toán
         } catch (Exception e) {}
 
         thanhToan.setTrangThai(1);
@@ -313,6 +327,7 @@ public class HoaDonService {
                 }
 
                 sp.setSoLuongTon(sp.getSoLuongTon() - item.getSoLuong());
+                autoUpdateTrangThai(sp);
                 spctRepo.save(sp);
 
                 HoaDonChiTiet hdct = new HoaDonChiTiet();
@@ -332,7 +347,7 @@ public class HoaDonService {
     // 6. LUỒNG ONLINE: TẠO HÓA ĐƠN MỚI TỪ ĐẦU
     // =================================================================
     @Transactional
-    public Integer taoHoaDonMoi(CreateOrderRequest req) {
+    public Integer taoHoaDonMoi(org.example.chocostyle_datn.model.Request.CreateOrderRequest req) {
         HoaDon hd = new HoaDon();
         hd.setMaHoaDon(generateMaHoaDon());
         hd.setNgayTao(LocalDateTime.now());
@@ -346,7 +361,7 @@ public class HoaDonService {
         BigDecimal tienGiam = BigDecimal.ZERO;
         if (req.getMaVoucher() != null && !req.getMaVoucher().trim().isEmpty()) {
 
-            // 🔥 Dùng findFirstByMaPggOrderByTrangThaiDesc để fix sập giống luồng Tại Quầy
+            // Dùng findFirstBy... để fix sập giống luồng Tại Quầy
             PhieuGiamGia voucher = pggRepo.findFirstByMaPggOrderByTrangThaiDesc(req.getMaVoucher())
                     .orElseThrow(() -> new RuntimeException("Mã giảm giá không tồn tại!"));
 
@@ -417,6 +432,7 @@ public class HoaDonService {
                 }
 
                 sp.setSoLuongTon(sp.getSoLuongTon() - item.getSoLuong());
+                autoUpdateTrangThai(sp);
                 spctRepo.save(sp);
 
                 HoaDonChiTiet hdct = new HoaDonChiTiet();
@@ -442,14 +458,23 @@ public class HoaDonService {
         HoaDon hd = hoaDonRepo.findById(req.getIdHoaDon())
                 .orElseThrow(() -> new RuntimeException("Hóa đơn không tồn tại"));
 
-        PhuongThucThanhToan pttt = ptttRepo.findById(1)
-                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy phương thức thanh toán (ID=1)"));
+        // --- ĐOẠN ĐÃ SỬA: Tìm phương thức Tiền mặt thay vì fix ID=1 ---
+        List<PhuongThucThanhToan> listPttt = ptttRepo.findAll();
+        PhuongThucThanhToan pttt = listPttt.stream()
+                .filter(p -> p.getTenPttt().toLowerCase().contains("tiền mặt") || p.getTenPttt().toLowerCase().contains("cod"))
+                .findFirst()
+                .orElse(!listPttt.isEmpty() ? listPttt.get(0) : null);
+
+        if (pttt == null) {
+            throw new RuntimeException("Lỗi: Không tìm thấy phương thức thanh toán trong Database!");
+        }
+        // -------------------------------------------------------------
 
         ThanhToan refund = new ThanhToan();
         refund.setIdHoaDon(hd);
         refund.setIdPttt(pttt);
         refund.setSoTien(req.getSoTien());
-        refund.setLoaiGiaoDich(2);
+        refund.setLoaiGiaoDich(2); // 2 = Hoàn tiền
         refund.setTrangThai(1);
         refund.setThoiGianThanhToan(LocalDateTime.now());
         refund.setGhiChu(req.getGhiChu());
@@ -545,6 +570,13 @@ public class HoaDonService {
             return String.format("HD%03d", nextNumber);
         } catch (Exception e) {
             return "HD" + System.currentTimeMillis();
+        }
+    }
+    private void autoUpdateTrangThai(ChiTietSanPham sp) {
+        if (sp.getSoLuongTon() == null || sp.getSoLuongTon() <= 0) {
+            sp.setTrangThai(0); // Hết hàng
+        } else {
+            sp.setTrangThai(1); // Đang bán
         }
     }
 }

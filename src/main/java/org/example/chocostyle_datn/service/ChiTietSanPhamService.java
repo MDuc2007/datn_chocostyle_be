@@ -78,9 +78,9 @@ public class ChiTietSanPhamService {
 //        );
 
         ctsp.setSoLuongTon(data.getSoLuongTon());
+        autoUpdateTrangThai(ctsp);
         ctsp.setGiaNhap(data.getGiaNhap());
         ctsp.setGiaBan(data.getGiaBan());
-        ctsp.setTrangThai(1);
 
         ctsp.setNgayTao(LocalDate.now());
         ctsp.setNguoiTao(data.getNguoiCapNhat());
@@ -128,9 +128,9 @@ public class ChiTietSanPhamService {
 //        );
 
         ctsp.setSoLuongTon(data.getSoLuongTon());
+        autoUpdateTrangThai(ctsp);
         ctsp.setGiaNhap(data.getGiaNhap());
         ctsp.setGiaBan(data.getGiaBan());
-        ctsp.setTrangThai(data.getTrangThai());
 
         ctsp.setNgayCapNhat(LocalDate.now());
         ctsp.setNguoiCapNhat(data.getNguoiCapNhat());
@@ -186,15 +186,21 @@ public class ChiTietSanPhamService {
             String nguoiCapNhat
     ) {
 
+        ChiTietSanPham sp = chiTietSanPhamRepository.findById(sanPhamId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+
+        if (sp.getSoLuongTon() == 0) {
+            throw new IllegalArgumentException("Sản phẩm đã hết hàng, không thể thay đổi trạng thái");
+        }
+
         if (trangThai != 1 && trangThai != 2) {
             throw new IllegalArgumentException("Trạng thái không hợp lệ");
         }
 
-        ChiTietSanPham sp = chiTietSanPhamRepository.findById(sanPhamId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
         sp.setTrangThai(trangThai);
         sp.setNgayCapNhat(LocalDate.now());
         sp.setNguoiCapNhat(nguoiCapNhat);
+
         chiTietSanPhamRepository.save(sp);
     }
 
@@ -214,6 +220,14 @@ public class ChiTietSanPhamService {
         return repository.findAll();
     }
 
+
+    private void autoUpdateTrangThai(ChiTietSanPham ctsp) {
+        if (ctsp.getSoLuongTon() == null || ctsp.getSoLuongTon() <= 0) {
+            ctsp.setTrangThai(0); // Hết hàng
+        } else {
+            ctsp.setTrangThai(1); // Đang bán
+        }
+    }
 
 
     /* ================= MAP RESPONSE ================= */
