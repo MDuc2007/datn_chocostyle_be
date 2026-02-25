@@ -1,5 +1,6 @@
 package org.example.chocostyle_datn.controller;
 
+
 import org.example.chocostyle_datn.entity.HoaDon;
 import org.example.chocostyle_datn.model.Request.CreateOrderRequest;
 import org.example.chocostyle_datn.model.Request.RefundRequest;
@@ -15,13 +16,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
 @RestController
 @RequestMapping("/api/hoa-don")
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 public class HoaDonController {
 
+
     @Autowired
     private HoaDonService hoaDonService;
+
 
     // API 1: Lấy danh sách
     @GetMapping
@@ -34,11 +38,13 @@ public class HoaDonController {
         return ResponseEntity.ok(hoaDonService.getAll(searchRequest, pageable));
     }
 
+
     // API 2: Xem chi tiết
     @GetMapping("/{id}")
     public ResponseEntity<HoaDonDetailResponse> getDetail(@PathVariable Integer id) {
         return ResponseEntity.ok(hoaDonService.getDetail(id));
     }
+
 
     // API 3: Cập nhật trạng thái
     @PutMapping("/{id}/trang-thai")
@@ -54,6 +60,7 @@ public class HoaDonController {
         }
     }
 
+
     // API 4: Tạo hóa đơn mới (Dành cho Online)
     @PostMapping
     public ResponseEntity<?> taoHoaDon(@RequestBody CreateOrderRequest request) {
@@ -66,6 +73,7 @@ public class HoaDonController {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
+
 
     // API 5: Xác nhận hoàn tiền
     @PostMapping("/hoan-tien")
@@ -80,19 +88,21 @@ public class HoaDonController {
         }
     }
 
-    // API 6: Tạo tab hóa đơn rỗng (Bán hàng tại quầy)
-    @PostMapping("/tai-quay/tao-moi")
-    public ResponseEntity<?> taoDonChoTaiQuay(@RequestParam Integer idNhanVien) {
-        try {
-            HoaDon hdMoi = hoaDonService.taoHoaDonChoTaiQuay(idNhanVien);
-            // Trả về thẳng object để Frontend lấy id và maHoaDon gán lên UI
-            return ResponseEntity.status(201).body(hdMoi);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
-        }
-    }
+
+//    // API 6: Tạo tab hóa đơn rỗng (Bán hàng tại quầy)
+//    @PostMapping("/tai-quay/tao-moi")
+//    public ResponseEntity<?> taoDonChoTaiQuay(@RequestParam Integer idNhanVien) {
+//        try {
+//            HoaDon hdMoi = hoaDonService.taoHoaDonChoTaiQuay(idNhanVien);
+//            // Trả về thẳng object để Frontend lấy id và maHoaDon gán lên UI
+//            return ResponseEntity.status(201).body(hdMoi);
+//        } catch (RuntimeException e) {
+//            return ResponseEntity.badRequest().body(e.getMessage());
+//        } catch (Exception e) {
+//            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+//        }
+//    }
+
 
     // API 7: Cập nhật hóa đơn nháp (Xác nhận đặt hàng tại quầy)
     @PutMapping("/tai-quay/xac-nhan/{id}")
@@ -109,6 +119,7 @@ public class HoaDonController {
         }
     }
 
+
     // API 8: Xóa đơn nháp tại quầy (Khi nhân viên đóng Tab)
     @DeleteMapping("/xoa-don-quay/{id}")
     public ResponseEntity<?> xoaDonQuay(@PathVariable Integer id) {
@@ -121,4 +132,12 @@ public class HoaDonController {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
+    @PostMapping("/tai-quay/tao-moi")
+    public ResponseEntity<?> taoDonChoTaiQuay() {
+        HoaDon hdMoi = hoaDonService.taoHoaDonChoTaiQuay();
+        return ResponseEntity.status(201).body(hdMoi);
+    }
 }
+
+
+

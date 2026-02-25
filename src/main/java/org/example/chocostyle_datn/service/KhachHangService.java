@@ -227,8 +227,20 @@ public class KhachHangService {
         kh.setNgayCapNhat(LocalDate.now());
 
 
-        if (file != null && !file.isEmpty()) kh.setAvatar(saveAvatar(file));
+        if (file != null && !file.isEmpty()) {
+            String oldAvatar = kh.getAvatar();
+            kh.setAvatar(saveAvatar(file));
 
+            // Xóa file ảnh cũ (nếu có và không phải là đường dẫn HTTP)
+            if (oldAvatar != null && !oldAvatar.isEmpty() && !oldAvatar.startsWith("http")) {
+                try {
+                    Path oldFilePath = Paths.get("uploads").resolve(oldAvatar);
+                    Files.deleteIfExists(oldFilePath);
+                } catch (IOException e) {
+                    System.err.println("Không thể xóa ảnh cũ: " + e.getMessage());
+                }
+            }
+        }
 
         if (request.getListDiaChi() != null) {
             diaChiRepository.deleteByKhachHangId(id);
