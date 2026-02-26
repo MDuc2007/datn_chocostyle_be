@@ -92,6 +92,5 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
             @Param("keyword") String keyword,
             @Param("status") Integer status
     );
-    List<KhachHang> findByTrangThai(Integer trangThai);
 }
 
