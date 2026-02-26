@@ -170,27 +170,32 @@ public class LichLamViecController {
         // (Sử dụng hàm findByNhanVien_IdAndNgayLamViec mà chúng ta đã thêm ở bước trước)
         List<LichLamViec> lichs = lichLamViecRepository.findByNhanVien_IdAndNgayLamViec(idNv, today);
 
+        // Lặp qua các lịch hôm nay để tìm ca có khoảng thời gian hợp lệ
         for (LichLamViec l : lichs) {
-            // TRƯỜNG HỢP 1: Ca đang làm (Trạng thái = 3)
-            // Ưu tiên trả về ngay lập tức để nhân viên có thể Kết toán (Dù có quá giờ kết thúc ca)
-            if (l.getTrangThai() == 3) {
-                return ResponseEntity.ok(l);
+            LocalTime start = l.getCaLamViec().getGioBatDau();
+            LocalTime end = l.getCaLamViec().getGioKetThuc();
+            LocalTime earliestStart = start.minusMinutes(30); // Mở ca sớm 30 phút
+
+            boolean isHopLe = false;
+
+            // KIỂM TRA PHÂN BIỆT CA NGÀY VÀ CA ĐÊM
+            if (start.isBefore(end)) {
+                // 1. CA BAN NGÀY (VD: 08:00 - 17:00)
+                // Hợp lệ nếu: Hiện tại > 07:30 VÀ Hiện tại < 17:00
+                isHopLe = now.isAfter(earliestStart) && now.isBefore(end);
+            } else {
+                // 2. CA QUA ĐÊM (VD: 22:00 - 06:00 hôm sau)
+                // Hợp lệ nếu: (Hiện tại > 21:30 đến nửa đêm) HOẶC (Hiện tại < 06:00 sáng)
+                isHopLe = now.isAfter(earliestStart) || now.isBefore(end);
             }
 
-            // TRƯỜNG HỢP 2: Ca chưa làm (Trạng thái = 2)
-            // Chỉ hiển thị Modal nếu hiện tại nằm trong khung giờ (Cho phép mở sớm 30 phút)
-            if (l.getTrangThai() == 2) {
-                LocalTime start = l.getCaLamViec().getGioBatDau();
-                LocalTime end = l.getCaLamViec().getGioKetThuc();
-
-                if (now.isAfter(start.minusMinutes(30)) && now.isBefore(end)) {
-                    return ResponseEntity.ok(l);
-                }
+            if (isHopLe) {
+                return ResponseEntity.ok(l); // Trả về ca hợp lệ
             }
         }
 
         // Nếu không có lịch nào khớp (hoặc đã đóng ca xong hết rồi)
-        return ResponseEntity.badRequest().body("Hôm nay bạn không có lịch phân công, hoặc hiện tại không nằm trong thời gian ca làm.");
+        return ResponseEntity.ok().body("");
     }
 }
 

@@ -55,17 +55,21 @@ public class ChamCongService {
 
         LocalTime gioBatDau = ca.getCaLamViec().getGioBatDau();
         LocalTime gioKetThuc = ca.getCaLamViec().getGioKetThuc();
+        LocalTime gioMoCaSom = gioBatDau.minusMinutes(30); // Cho phép check-in sớm 30p
 
-        // 2️⃣ CHẶN CHECK-IN SỚM
-        if (now.isBefore(gioBatDau)) {
-            throw new RuntimeException("Chưa đến giờ vào ca!");
+        // 2️⃣ VÀ 3️⃣: KIỂM TRA GIỜ CHECK-IN CHO CẢ CA NGÀY VÀ ĐÊM
+        boolean isThoiGianHopLe = false;
+
+        if (gioBatDau.isBefore(gioKetThuc)) {
+            // Ca ban ngày
+            isThoiGianHopLe = now.isAfter(gioMoCaSom) && now.isBefore(gioKetThuc);
+        } else {
+            // Ca qua đêm
+            isThoiGianHopLe = now.isAfter(gioMoCaSom) || now.isBefore(gioKetThuc);
         }
-
-        // 3️⃣ CHẶN CHECK-IN TRỄ SAU KHI CA ĐÃ KẾT THÚC
-        if (now.isAfter(gioKetThuc)) {
-            throw new RuntimeException("Ca làm hôm nay đã kết thúc!");
+        if (!isThoiGianHopLe) {
+            throw new RuntimeException("Hiện tại không nằm trong thời gian cho phép vào ca!");
         }
-
         // 4️⃣ Kiểm tra đã check-in chưa
         if (daCheckIn(idNv, today)) {
             throw new RuntimeException("Bạn đã check-in rồi!");
