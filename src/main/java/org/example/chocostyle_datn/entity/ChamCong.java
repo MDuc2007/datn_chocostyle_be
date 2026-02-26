@@ -1,5 +1,6 @@
 package org.example.chocostyle_datn.entity;
 
+
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
@@ -20,9 +21,11 @@ public class ChamCong {
     @Column(nullable = false)
     private LocalDate ngay;
 
+    // Map chính xác với cột gio_check_in trong DB
     @Column(name = "gio_check_in")
     private LocalTime gioCheckIn;
 
+    // Map chính xác với cột gio_check_out trong DB
     @Column(name = "gio_check_out")
     private LocalTime gioCheckOut;
 
@@ -31,16 +34,9 @@ public class ChamCong {
         2 = Đi trễ
         3 = Đã check-out
     */
+    // Map chính xác với cột trang_thai trong DB
     @Column(name = "trang_thai")
     private Integer trangThai;
-
-    // 👉 THÊM 2 CỘT NÀY ĐỂ LƯU TIỀN KẾT TOÁN CUỐI CA
-    @Column(name = "tien_mat_cuoi_ca")
-    private Double tienMatCuoiCa;
-
-    @Column(name = "tien_chuyen_khoan_cuoi_ca")
-    private Double tienChuyenKhoanCuoiCa;
-
 
     // ===== Getter & Setter =====
 
@@ -90,22 +86,5 @@ public class ChamCong {
 
     public void setTrangThai(Integer trangThai) {
         this.trangThai = trangThai;
-    }
-
-    // 👉 THÊM GETTER & SETTER CHO 2 BIẾN TIỀN
-    public Double getTienMatCuoiCa() {
-        return tienMatCuoiCa;
-    }
-
-    public void setTienMatCuoiCa(Double tienMatCuoiCa) {
-        this.tienMatCuoiCa = tienMatCuoiCa;
-    }
-
-    public Double getTienChuyenKhoanCuoiCa() {
-        return tienChuyenKhoanCuoiCa;
-    }
-
-    public void setTienChuyenKhoanCuoiCa(Double tienChuyenKhoanCuoiCa) {
-        this.tienChuyenKhoanCuoiCa = tienChuyenKhoanCuoiCa;
     }
 }

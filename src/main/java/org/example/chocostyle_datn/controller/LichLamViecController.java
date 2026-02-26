@@ -192,7 +192,31 @@ public class LichLamViecController {
         // Nếu không có lịch nào khớp (hoặc đã đóng ca xong hết rồi)
         return ResponseEntity.badRequest().body("Hôm nay bạn không có lịch phân công, hoặc hiện tại không nằm trong thời gian ca làm.");
     }
-}
+
+
+
+        private final LichLamViecRepository lichLamViecRepository;
+
+        public LichLamViecController(LichLamViecRepository lichLamViecRepository) {
+            this.lichLamViecRepository = lichLamViecRepository;
+        }
+
+    @GetMapping("/check-ca-hom-nay/{idNv}")
+    public ResponseEntity<?> checkCa(@PathVariable Integer idNv){
+
+        LocalDate today = LocalDate.now();
+
+        List<LichLamViec> lich =
+                lichLamViecRepository.checkCaHomNay(idNv, today);
+
+        if(!lich.isEmpty()){
+            return ResponseEntity.ok(lich.get(0));
+        }
+
+        return ResponseEntity.noContent().build();
+    }
+    }
+
 
 
 
