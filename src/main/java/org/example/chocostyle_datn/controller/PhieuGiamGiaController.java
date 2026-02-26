@@ -80,4 +80,11 @@ public class PhieuGiamGiaController {
         return ResponseEntity.ok(phieuGiamGiaService.filterPGG(loaiGiam,kieuApDung, trangThai, fromDate, toDate)
         );
     }
+
+    @GetMapping("/pos")
+    public List<PhieuGiamGiaResponse> getVoucherForPos(
+            @RequestParam(required = false) Integer idKhachHang
+    ) {
+        return phieuGiamGiaService.getVoucherForCustomer(idKhachHang);
+    }
 }

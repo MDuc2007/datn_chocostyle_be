@@ -106,26 +106,25 @@ public class PhieuGiamGiaService {
     }
 
 
-    @Scheduled(cron = "0 0 0 * * ?")
-    public void autoUpdateTrangThai() {
-        LocalDate today = LocalDate.now();
-
-
-        List<PhieuGiamGia> list = phieuGiamGiaRepository.findAll();
-
-
-        for (PhieuGiamGia pgg : list) {
-
-
-            if (today.isAfter(pgg.getNgayKetThuc())) {
-                if (pgg.getTrangThai() != 0) {
-                    pgg.setTrangThai(0);
-                    phieuGiamGiaRepository.save(pgg);
-                }
-            }
-        }
-    }
-
+//    @Scheduled(cron = "0 0 0 * * ?")
+//    public void autoUpdateTrangThai() {
+//        LocalDate today = LocalDate.now();
+//
+//
+//        List<PhieuGiamGia> list = phieuGiamGiaRepository.findAll();
+//
+//
+//        for (PhieuGiamGia pgg : list) {
+//
+//
+//            if (today.isAfter(pgg.getNgayKetThuc())) {
+//                if (pgg.getTrangThai() != 0) {
+//                    pgg.setTrangThai(0);
+//                    phieuGiamGiaRepository.save(pgg);
+//                }
+//            }
+//        }
+//    }
 
     public PhieuGiamGiaResponse toggleTrangThai(Integer id) {
         PhieuGiamGia pgg = phieuGiamGiaRepository.findById(id)
@@ -204,6 +203,12 @@ public class PhieuGiamGiaService {
             }
         }
 
+        if ("ALL".equals(req.getKieuApDung())) {
+            List<KhachHang> customers = khachHangRepository.findByTrangThai(1);
+            for (KhachHang cus : customers) {
+                emailService.sendVoucherCreatedEmail(cus, pgg);
+            }
+        }
 
         return toResponse(pgg);
     }
@@ -213,7 +218,6 @@ public class PhieuGiamGiaService {
         return phieuGiamGiaRepository
                 .existsByTenPggIgnoreCaseAndIdNot(tenPgg.trim(), id);
     }
-
 
     public PhieuGiamGiaResponse updatePGG(Integer id, PhieuGiamGiaRequest req) {
         validateRequest(req);
@@ -335,9 +339,10 @@ public class PhieuGiamGiaService {
 
         }
 
-
         if ("ALL".equals(req.getKieuApDung()) && contentChanged) {
-            List<KhachHang> customers = khachHangRepository.findAll();
+            List<KhachHang> customers =
+                    khachHangRepository.findByTrangThai(1);
+
             for (KhachHang kh : customers) {
                 emailService.sendVoucherUpdatedEmail(kh, pgg);
             }
@@ -420,7 +425,22 @@ public class PhieuGiamGiaService {
 
 
     private PhieuGiamGiaResponse toResponse(PhieuGiamGia pgg) {
-        return new PhieuGiamGiaResponse(pgg.getId(),
+
+        LocalDate today = LocalDate.now();
+        int trangThaiHienThi;
+
+        if (pgg.getTrangThai() == 0) {
+            trangThaiHienThi = 0; // Ngừng
+        } else if (today.isBefore(pgg.getNgayBatDau())) {
+            trangThaiHienThi = 2; // Sắp diễn ra
+        } else if (today.isAfter(pgg.getNgayKetThuc())) {
+            trangThaiHienThi = 3; // Đã kết thúc
+        } else {
+            trangThaiHienThi = 1; // Đang hoạt động
+        }
+
+        return new PhieuGiamGiaResponse(
+                pgg.getId(),
                 pgg.getMaPgg(),
                 pgg.getTenPgg(),
                 pgg.getKieuApDung(),
@@ -432,7 +452,7 @@ public class PhieuGiamGiaService {
                 pgg.getNgayKetThuc(),
                 pgg.getSoLuong(),
                 pgg.getSoLuongDaDung(),
-                pgg.getTrangThai()
+                trangThaiHienThi
         );
     }
 
@@ -445,6 +465,43 @@ public class PhieuGiamGiaService {
         return toResponse(pgg);
     }
 
+    public List<PhieuGiamGiaResponse> getVoucherForCustomer(Integer idKhachHang) {
+
+        LocalDate today = LocalDate.now();
+
+        return phieuGiamGiaRepository.findAll()
+                .stream()
+                .filter(pgg -> {
+
+                    // Chỉ lấy voucher đang hoạt động
+                    if (pgg.getTrangThai() != 1) return false;
+                    if (today.isBefore(pgg.getNgayBatDau())) return false;
+                    if (today.isAfter(pgg.getNgayKetThuc())) return false;
+
+                    // Nếu là ALL -> luôn cho phép
+                    if ("ALL".equals(pgg.getKieuApDung())) {
+                        return true;
+                    }
+
+                    // Nếu là PERSONAL
+                    if ("PERSONAL".equals(pgg.getKieuApDung())) {
+
+                        // Chưa chọn khách -> không cho dùng
+                        if (idKhachHang == null) return false;
+
+                        // Phải tồn tại bản ghi và chưa sử dụng
+                        return pggKhRepository
+                                .existsByPhieuGiamGiaIdAndKhachHangIdAndDaSuDungFalse(
+                                        pgg.getId(),
+                                        idKhachHang
+                                );
+                    }
+
+                    return false;
+                })
+                .map(this::toResponse)
+                .toList();
+    }
 
 }
 

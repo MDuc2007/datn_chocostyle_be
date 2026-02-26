@@ -80,19 +80,19 @@ public class HoaDonController {
         }
     }
 
-    // API 6: Tạo tab hóa đơn rỗng (Bán hàng tại quầy)
-    @PostMapping("/tai-quay/tao-moi")
-    public ResponseEntity<?> taoDonChoTaiQuay(@RequestParam Integer idNhanVien) {
-        try {
-            HoaDon hdMoi = hoaDonService.taoHoaDonChoTaiQuay(idNhanVien);
-            // Trả về thẳng object để Frontend lấy id và maHoaDon gán lên UI
-            return ResponseEntity.status(201).body(hdMoi);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
-        }
-    }
+//    // API 6: Tạo tab hóa đơn rỗng (Bán hàng tại quầy)
+//    @PostMapping("/tai-quay/tao-moi")
+//    public ResponseEntity<?> taoDonChoTaiQuay(@RequestParam Integer idNhanVien) {
+//        try {
+//            HoaDon hdMoi = hoaDonService.taoHoaDonChoTaiQuay(idNhanVien);
+//            // Trả về thẳng object để Frontend lấy id và maHoaDon gán lên UI
+//            return ResponseEntity.status(201).body(hdMoi);
+//        } catch (RuntimeException e) {
+//            return ResponseEntity.badRequest().body(e.getMessage());
+//        } catch (Exception e) {
+//            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+//        }
+//    }
 
     // API 7: Cập nhật hóa đơn nháp (Xác nhận đặt hàng tại quầy)
     @PutMapping("/tai-quay/xac-nhan/{id}")
@@ -120,5 +120,17 @@ public class HoaDonController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
+    }
+    @PostMapping("/tai-quay/tao-moi")
+    public ResponseEntity<?> taoDonChoTaiQuay() {
+        HoaDon hdMoi = hoaDonService.taoHoaDonChoTaiQuay();
+        return ResponseEntity.status(201).body(hdMoi);
+    }
+
+    @PutMapping("/tam-thoi-ton-kho")
+    public ResponseEntity<?> capNhatTonKhoTam(@RequestParam Integer idSpct,
+                                              @RequestParam Integer soLuongThayDoi) {
+        hoaDonService.capNhatSoLuongTamThoi(idSpct, soLuongThayDoi);
+        return ResponseEntity.ok("OK");
     }
 }
