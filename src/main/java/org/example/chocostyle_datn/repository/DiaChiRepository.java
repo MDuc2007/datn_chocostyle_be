@@ -24,4 +24,6 @@ public interface DiaChiRepository extends JpaRepository<DiaChi, Integer> {
     @Modifying
     @Transactional
     void deleteByKhachHangId(Integer khachHangId);
+
+
 }

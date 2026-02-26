@@ -1,5 +1,6 @@
 package org.example.chocostyle_datn.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore; // 👉 IMPORT THÊM DÒNG NÀY
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,7 +25,7 @@ public class DiaChi {
     @Column(name = "ten_dia_chi")
     private String tenDiaChi;
 
-    @Column(name = "dia_chi_cu_the", nullable = false) // Khớp với lỗi 'column does not allow nulls'
+    @Column(name = "dia_chi_cu_the", nullable = false)
     private String diaChiCuThe;
 
     @Column(name = "thanh_pho", nullable = false)
@@ -41,5 +42,6 @@ public class DiaChi {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_kh")
+    @JsonIgnore // 👉 THÊM ANNOTATION NÀY ĐỂ CẮT VÒNG LẶP
     private KhachHang khachHang;
 }
