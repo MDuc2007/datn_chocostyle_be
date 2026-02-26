@@ -29,8 +29,10 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
             "AND (:startDate IS NULL OR CAST(h.ngayTao AS date) >= :startDate) " +
             "AND (:endDate IS NULL OR CAST(h.ngayTao AS date) <= :endDate) " +
 
-            // --- SỬA Ở ĐÂY: Đổi DESC thành ASC ---
-            // Ý nghĩa: Ưu tiên gom theo Trạng thái trước, sau đó đơn CŨ xếp trên, đơn MỚI đẩy xuống dưới cùng
+            // --- THÊM ĐÚNG 1 DÒNG NÀY ĐỂ ẨN ĐƠN NHÁP TẠI QUẦY KHỎI DANH SÁCH ---
+            "AND NOT (h.loaiDon = 1 AND h.trangThai = 0) " +
+
+            // Dòng OrderBy bên dưới bạn giữ nguyên theo ý Leader của bạn nhé
             "ORDER BY h.trangThai ASC, h.ngayTao ASC")
     Page<HoaDon> findAllByFilter(@Param("keyword") String keyword,
                                  @Param("loaiDon") Integer loaiDon,
@@ -38,7 +40,6 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
                                  @Param("startDate") LocalDate startDate,
                                  @Param("endDate") LocalDate endDate,
                                  Pageable pageable);
-
 
     // Lấy hóa đơn có ID lớn nhất để sinh mã tự động (HD001, HD002...)
     HoaDon findTopByOrderByIdDesc();

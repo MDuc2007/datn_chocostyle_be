@@ -126,11 +126,4 @@ public class HoaDonController {
         HoaDon hdMoi = hoaDonService.taoHoaDonChoTaiQuay();
         return ResponseEntity.status(201).body(hdMoi);
     }
-
-    @PutMapping("/tam-thoi-ton-kho")
-    public ResponseEntity<?> capNhatTonKhoTam(@RequestParam Integer idSpct,
-                                              @RequestParam Integer soLuongThayDoi) {
-        hoaDonService.capNhatSoLuongTamThoi(idSpct, soLuongThayDoi);
-        return ResponseEntity.ok("OK");
-    }
 }
