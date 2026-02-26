@@ -32,4 +32,6 @@ public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia,Integ
         ORDER BY p.id DESC
     """)
     List<String> findLastMaPgg();
+
+    Optional<PhieuGiamGia> findFirstByMaPggOrderByTrangThaiDesc(String maPgg);
 }

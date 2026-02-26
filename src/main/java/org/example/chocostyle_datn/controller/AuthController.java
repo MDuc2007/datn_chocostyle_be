@@ -94,6 +94,8 @@ public class AuthController {
 
 
         Map<String, Object> response = new HashMap<>();
+
+        response.put("id", kh.getId());
         response.put("accessToken", jwt);
         response.put("tokenType", "Bearer");
         response.put("username", kh.getEmail());
@@ -140,6 +142,8 @@ public class AuthController {
 
 
         Map<String, Object> response = new HashMap<>();
+
+        response.put("id", nv.getId());
         response.put("accessToken", jwt);
         response.put("tokenType", "Bearer");
         response.put("username", nv.getEmail());

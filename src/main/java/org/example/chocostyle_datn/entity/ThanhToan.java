@@ -29,6 +29,11 @@ public class ThanhToan {
     @JoinColumn(name = "id_hoa_don", nullable = false)
     private HoaDon idHoaDon;
 
+    // --- [MỚI] Thêm trường này để hỗ trợ Hoàn Tiền ---
+    // 1: Thanh toán (Khách trả tiền), 2: Hoàn tiền (Shop trả lại)
+    @Column(name = "loai_giao_dich")
+    private Integer loaiGiaoDich;
+
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_pttt", nullable = false)
