@@ -2,6 +2,8 @@ package org.example.chocostyle_datn.repository;
 
 
 import org.example.chocostyle_datn.entity.LichLamViec;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -42,11 +44,44 @@ public interface LichLamViecRepository extends JpaRepository<LichLamViec, Intege
     @Query("SELECT l FROM LichLamViec l " +
             "WHERE l.nhanVien.id = :idNv " +
             "AND l.ngayLamViec = :ngay " +
-            "AND l.trangThai = 1")
+            "AND l.trangThai = 2")
     List<LichLamViec> checkCaHomNay(@Param("idNv") Integer idNv,
                                     @Param("ngay") LocalDate ngay);
 
+    // Thêm vào interface LichLamViecRepository
+    @Query("SELECT l FROM LichLamViec l WHERE l.caLamViec.idCa = :idCa AND l.ngayLamViec = :ngay")
+    List<LichLamViec> findByCaAndNgay(@Param("idCa") Integer idCa, @Param("ngay") LocalDate ngay);
+
+    // THÊM HÀM SEARCH PHÂN TRANG
+    @Query("SELECT l FROM LichLamViec l WHERE " +
+            "(:keyword IS NULL OR :keyword = '' OR l.nhanVien.hoTen LIKE %:keyword% OR l.nhanVien.maNv LIKE %:keyword%) AND " +
+            "(l.ngayLamViec >= :fromDate) AND " +
+            "(l.ngayLamViec <= :toDate) AND " +
+            "(:trangThai IS NULL OR l.trangThai = :trangThai)")
+    Page<LichLamViec> searchLichLamViec(
+            @Param("keyword") String keyword,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            @Param("trangThai") Integer trangThai,
+            Pageable pageable
+    );
+    // Lấy tất cả lịch của 1 nhân viên (dùng cho Calendar view)
+    List<LichLamViec> findByNhanVien_Id(Integer idNv);
+
+    // Lấy lịch có phân trang của 1 nhân viên (dùng cho Table view)
+    @Query("SELECT l FROM LichLamViec l WHERE " +
+            "(l.nhanVien.id = :idNv) AND " +
+            "(l.ngayLamViec >= :fromDate) AND " +
+            "(l.ngayLamViec <= :toDate) AND " +
+            "(:trangThai IS NULL OR l.trangThai = :trangThai)")
+    Page<LichLamViec> searchMySchedules(
+            @Param("idNv") Integer idNv,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            @Param("trangThai") Integer trangThai,
+            Pageable pageable
+    );
+    // Thêm vào LichLamViecRepository.java
+    // Thêm hàm này để tìm lịch của nhân viên trong một ngày (không phân biệt trạng thái)
+    List<LichLamViec> findByNhanVien_IdAndNgayLamViec(Integer idNv, LocalDate ngayLamViec);
 }
-
-
-
