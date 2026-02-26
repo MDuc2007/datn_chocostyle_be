@@ -317,5 +317,13 @@ public class KhachHangController {
         }
         return ResponseEntity.badRequest().body(errors);
     }
+    @GetMapping("/email/{email}")
+    public ResponseEntity<KhachHangDetailResponse> getByEmail(
+            @PathVariable String email
+    ) {
+        return ResponseEntity.ok(
+                khachHangService.getDetailByEmail(email)
+        );
+    }
 }
 

@@ -349,4 +349,36 @@ public class KhachHangService {
             throw new RuntimeException("Lỗi upload ảnh", e);
         }
     }
+
+    public KhachHangDetailResponse getDetailByEmail(String email) {
+
+        KhachHang kh = khachHangRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng với email: " + email));
+
+        List<DiaChi> listDiaChiEntities = diaChiRepository.findByKhachHangId(kh.getId());
+
+        return KhachHangDetailResponse.builder()
+                .id(kh.getId())
+                .avatar(processAvatarUrl(kh.getAvatar()))
+                .maKhachHang(kh.getMaKh())
+                .tenKhachHang(kh.getTenKhachHang())
+                .soDienThoai(kh.getSoDienThoai())
+                .email(kh.getEmail())
+                // ✅ ĐÃ FIX: Xóa dòng .diaChiTongQuat(null) vì field này đã bị xóa ở DTO
+                .gioiTinh(kh.getGioiTinh())
+                .ngaySinh(kh.getNgaySinh())
+                .trangThai(kh.getTrangThai())
+                .ngayTao(kh.getNgayTao())
+                .ngayCapNhat(kh.getNgayCapNhat())
+                .listDiaChi(listDiaChiEntities.stream()
+                        .map(dc -> KhachHangDetailResponse.DiaChiDetailResponse.builder()
+                                .id(dc.getId())
+                                .thanhPho(dc.getThanhPho())
+                                .quan(dc.getQuan())
+                                .phuong(dc.getPhuong())
+                                .diaChiCuThe(dc.getDiaChiCuThe())
+                                .macDinh(dc.getMacDinh())
+                                .build())
+                        .collect(Collectors.toList()))
+                .build();
+    }
 }
