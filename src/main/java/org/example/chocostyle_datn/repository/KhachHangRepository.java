@@ -29,6 +29,7 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
      */
     Optional<KhachHang> findByEmail(String email);
 
+    List<KhachHang> findByTrangThai(Integer trangThai);
 
     // --- CHECK TRÙNG DỮ LIỆU ---
 
