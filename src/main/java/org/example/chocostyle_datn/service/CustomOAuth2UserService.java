@@ -72,6 +72,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             khachHang.setVaiTro("USER");
             khachHang.setTrangThai(1); // Hoạt động
             khachHang.setNgayTao(LocalDate.now());
+            khachHang.setSoDienThoai("");
             khachHang.setMaKh("KH" + String.format("%05d", khachHangRepository.count() + 1));
 
 
