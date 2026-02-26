@@ -100,4 +100,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return null;
     }
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getServletPath();
+        // Bỏ qua lọc JWT cho endpoint WebSocket và API lấy hội thoại công khai
+        return path.startsWith("/ws-chocostyle") || path.startsWith("/api/conversations");
+    }
 }

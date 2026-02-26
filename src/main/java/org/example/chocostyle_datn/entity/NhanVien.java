@@ -1,6 +1,7 @@
 package org.example.chocostyle_datn.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -14,6 +15,7 @@ import org.hibernate.annotations.Nationalized;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Date;
+import java.util.List;
 
 
 @Getter
@@ -130,6 +132,9 @@ public class NhanVien {
     @Column(name = "avatar")
     private String avatar;
 
+    @OneToMany(mappedBy = "nhanVien")
+    @JsonIgnore
+    private List<Conversation> conversations;
 
     @PrePersist
     public void prePersist() {

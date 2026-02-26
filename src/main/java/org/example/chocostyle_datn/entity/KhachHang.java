@@ -1,6 +1,7 @@
 package org.example.chocostyle_datn.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore; // 👉 IMPORT THÊM DÒNG NÀY
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -30,15 +31,13 @@ public class KhachHang {
 
     @Size(max = 50)
     @Column(name = "ma_kh", unique = true, nullable = false)
-    private String maKh; // Backend tự sinh
+    private String maKh;
 
 
     @Size(max = 255)
     @Nationalized
     @Column(name = "ten_khach_hang", nullable = false)
     private String tenKhachHang;
-
-
 
 
     @Size(max = 20)
@@ -48,7 +47,7 @@ public class KhachHang {
 
     @Size(max = 100)
     @Column(name = "email", length = 100, nullable = false)
-    private String email; // Bắt buộc có để nhận mật khẩu
+    private String email;
 
 
     @Column(name = "gioi_tinh")
@@ -61,7 +60,7 @@ public class KhachHang {
 
     @Size(max = 255)
     @Column(name = "mat_khau")
-    private String matKhau; // Backend tự random
+    private String matKhau;
 
 
     @NotNull
@@ -89,8 +88,6 @@ public class KhachHang {
     @Column(name = "tong_chi_tieu")
     private BigDecimal tongChiTieu = BigDecimal.ZERO;
 
-    @Column(name = "dia_chi")
-    private String diaChi;
 
     // --- OAUTH2 ---
     @Enumerated(EnumType.STRING)
@@ -104,19 +101,23 @@ public class KhachHang {
 
     // Quan hệ 1-N với bảng Địa chỉ
     @OneToMany(mappedBy = "khachHang", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore // 👉 THÊM ANNOTATION NÀY ĐỂ CẮT VÒNG LẶP TỪ HƯỚNG NGƯỢC LẠI
     private List<DiaChi> listDiaChiObj = new ArrayList<>();
 
 
     @Column(name = "vai_tro")
     private String vaiTro;
 
+    @OneToMany(mappedBy = "khachHang")
+    @JsonIgnore
+    private List<Conversation> conversations;
 
     @PrePersist
     public void prePersist() {
         this.ngayTao = LocalDate.now();
         if (this.trangThai == null) this.trangThai = 1;
         if (this.authProvider == null) this.authProvider = AuthenticationProvider.LOCAL;
-        if (this.vaiTro == null) this.vaiTro = "USER"; // Mặc định role USER
+        if (this.vaiTro == null) this.vaiTro = "USER";
 
 
         if (this.soLuongDonHang == null) this.soLuongDonHang = 0;

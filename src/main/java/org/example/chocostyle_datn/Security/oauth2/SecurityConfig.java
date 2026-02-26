@@ -72,8 +72,6 @@ public class SecurityConfig {
     }
 
 
-
-
     // =====================================================
     // AUTH PROVIDER NHÂN VIÊN
     // =====================================================
@@ -86,8 +84,6 @@ public class SecurityConfig {
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
-
-
 
 
     // =====================================================
@@ -131,10 +127,6 @@ public class SecurityConfig {
                         ).permitAll()
 
 
-
-
-
-
                         // ============================
                         // NHÂN VIÊN
                         // ============================
@@ -147,7 +139,8 @@ public class SecurityConfig {
 
                         // OAuth2
                         .requestMatchers("/oauth2/**").permitAll()
-
+                        .requestMatchers("/ws-chocostyle/**").permitAll()
+                        .requestMatchers("/api/conversations/**").permitAll()
 
                         // Các API còn lại cần login
                         .anyRequest().authenticated()
