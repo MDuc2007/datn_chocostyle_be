@@ -38,7 +38,7 @@ public class ChamCongService {
     }
 
     // 🚀 CHECK-IN
-    public ChamCong checkIn(Integer idNv) {
+    public ChamCong checkIn(Integer idNv,Double tienMatDauCa, Double tienCkDauCa) {
 
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
@@ -85,7 +85,8 @@ public class ChamCongService {
         chamCong.setNgay(today);
         chamCong.setGioCheckIn(now);
         chamCong.setTrangThai(3);
-
+        chamCong.setTienMatDauCa(tienMatDauCa);
+        chamCong.setTienChuyenKhoanDauCa(tienCkDauCa);
         // Lưu chấm công
         ChamCong savedChamCong = chamCongRepository.save(chamCong);
 
@@ -98,7 +99,7 @@ public class ChamCongService {
     }
 
     // Sửa lại hàm checkOut để nhận thêm tiền
-    public ChamCong checkOut(Integer idNv, Double tienMat, Double tienChuyenKhoan) {
+    public ChamCong checkOut(Integer idNv, Double tienMat, Double tienChuyenKhoan, String ghiChu) {
 
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
@@ -143,7 +144,29 @@ public class ChamCongService {
         chamCong.setTrangThai(1);
         chamCong.setTienMatCuoiCa(tienMat);
         chamCong.setTienChuyenKhoanCuoiCa(tienChuyenKhoan);
+        chamCong.setGhiChu(ghiChu);
+        // 2. TÍNH DOANH THU TÁCH BIỆT (Tiền mặt & Chuyển khoản)
+        java.time.LocalDateTime startDateTime = java.time.LocalDateTime.of(chamCong.getNgay(), chamCong.getGioCheckIn());
+        java.time.LocalDateTime endDateTime = java.time.LocalDateTime.now();
 
+        Double dtTienMat = chamCongRepository.calculateDoanhThuTienMat(idNv, startDateTime, endDateTime);
+        Double dtChuyenKhoan = chamCongRepository.calculateDoanhThuChuyenKhoan(idNv, startDateTime, endDateTime);
+
+        chamCong.setDoanhThuTienMat(dtTienMat);
+        chamCong.setDoanhThuCk(dtChuyenKhoan);
+        chamCong.setTongDoanhThu(dtTienMat + dtChuyenKhoan); // Tổng doanh thu bằng 2 túi cộng lại
+
+        // 3. TÍNH CHÊNH LỆCH CHO TỪNG TÚI TIỀN
+        Double dauCaMat = chamCong.getTienMatDauCa() != null ? chamCong.getTienMatDauCa() : 0.0;
+        Double dauCaCk = chamCong.getTienChuyenKhoanDauCa() != null ? chamCong.getTienChuyenKhoanDauCa() : 0.0;
+
+        // Công thức: Chênh lệch = Thực tế nhập vào - (Đầu ca + Doanh thu)
+        Double chenhLechMat = tienMat - (dauCaMat + dtTienMat);
+        Double chenhLechCk = tienChuyenKhoan - (dauCaCk + dtChuyenKhoan);
+
+        chamCong.setChenhLechTienMat(chenhLechMat);
+        chamCong.setChenhLechCk(chenhLechCk);
+        chamCong.setTienChenhLech(chenhLechMat + chenhLechCk); // Vẫn lưu tổng chênh lệch để dễ nhìn lướt
         // Lưu chấm công
         ChamCong savedChamCong = chamCongRepository.save(chamCong);
 
@@ -187,8 +210,12 @@ public class ChamCongService {
 
             dto.setTienMat(tienMat);
             dto.setTienChuyenKhoan(tienCk);
-            dto.setTongDoanhThu(doanhThu);
-
+//            dto.setTongDoanhThu(doanhThu);
+            dto.setTienMatDauCa(Double.valueOf(row.get("tienMatDauCa").toString()));
+            dto.setTienChuyenKhoanDauCa(Double.valueOf(row.get("tienChuyenKhoanDauCa").toString()));
+            dto.setTongDoanhThu(Double.valueOf(row.get("tongDoanhThu").toString()));
+            dto.setTienChenhLech(Double.valueOf(row.get("tienChenhLech").toString()));
+            dto.setGhiChu((String) row.get("ghiChu"));
             if (dto.getTrangThai() == 3) {
                 dto.setTienChenh((tienMat + tienCk) - doanhThu);
             } else {
