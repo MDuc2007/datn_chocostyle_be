@@ -1,5 +1,6 @@
 package org.example.chocostyle_datn.controller;
 
+
 import org.example.chocostyle_datn.entity.HoaDon;
 import org.example.chocostyle_datn.model.Request.CreateOrderRequest;
 import org.example.chocostyle_datn.model.Request.RefundRequest;
@@ -15,13 +16,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
 @RestController
 @RequestMapping("/api/hoa-don")
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 public class HoaDonController {
 
+
     @Autowired
     private HoaDonService hoaDonService;
+
 
     // API 1: Lấy danh sách
     @GetMapping
@@ -34,11 +38,13 @@ public class HoaDonController {
         return ResponseEntity.ok(hoaDonService.getAll(searchRequest, pageable));
     }
 
+
     // API 2: Xem chi tiết
     @GetMapping("/{id}")
     public ResponseEntity<HoaDonDetailResponse> getDetail(@PathVariable Integer id) {
         return ResponseEntity.ok(hoaDonService.getDetail(id));
     }
+
 
     // API 3: Cập nhật trạng thái
     @PutMapping("/{id}/trang-thai")
@@ -54,6 +60,7 @@ public class HoaDonController {
         }
     }
 
+
     // API 4: Tạo hóa đơn mới (Dành cho Online)
     @PostMapping
     public ResponseEntity<?> taoHoaDon(@RequestBody CreateOrderRequest request) {
@@ -67,6 +74,7 @@ public class HoaDonController {
         }
     }
 
+
     // API 5: Xác nhận hoàn tiền
     @PostMapping("/hoan-tien")
     public ResponseEntity<?> xacNhanHoanTien(@RequestBody RefundRequest request) {
@@ -79,6 +87,7 @@ public class HoaDonController {
             return ResponseEntity.internalServerError().body("Lỗi: " + e.getMessage());
         }
     }
+
 
 //    // API 6: Tạo tab hóa đơn rỗng (Bán hàng tại quầy)
 //    @PostMapping("/tai-quay/tao-moi")
@@ -94,6 +103,7 @@ public class HoaDonController {
 //        }
 //    }
 
+
     // API 7: Cập nhật hóa đơn nháp (Xác nhận đặt hàng tại quầy)
     @PutMapping("/tai-quay/xac-nhan/{id}")
     public ResponseEntity<?> xacNhanDatHangTaiQuay(
@@ -108,6 +118,7 @@ public class HoaDonController {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
+
 
     // API 8: Xóa đơn nháp tại quầy (Khi nhân viên đóng Tab)
     @DeleteMapping("/xoa-don-quay/{id}")
@@ -126,4 +137,39 @@ public class HoaDonController {
         HoaDon hdMoi = hoaDonService.taoHoaDonChoTaiQuay();
         return ResponseEntity.status(201).body(hdMoi);
     }
+
+
+    @PutMapping("/tam-thoi-ton-kho")
+    public ResponseEntity<?> capNhatTonKhoTam(@RequestParam Integer idSpct,
+                                              @RequestParam Integer soLuongThayDoi) {
+        hoaDonService.capNhatSoLuongTamThoi(idSpct, soLuongThayDoi);
+        return ResponseEntity.ok("OK");
+    }
+
+    // API 1: Khi nhân viên chọn thêm SP vào giỏ (Thêm SP A, SP B...)
+    // POST /api/hoa-don/{idHoaDon}/them-sp-vao-gio
+    @PostMapping("/{idHoaDon}/them-sp-vao-gio")
+    public ResponseEntity<?> themSanPhamVaoGio(
+            @PathVariable Integer idHoaDon,
+            @RequestParam Integer idSpct,
+            @RequestParam Integer soLuong) {
+
+        // Gọi hàm themSanPhamVaoDonNhap (đã viết ở câu trả lời trước)
+        hoaDonService.themSanPhamVaoDonNhap(idHoaDon, idSpct, soLuong);
+        return ResponseEntity.ok("Đã thêm sản phẩm vào giỏ và ghi lịch sử!");
+    }
+
+    // API 2: Khi nhân viên đổi ý, ấn nút xóa SP A khỏi giỏ
+    // DELETE /api/hoa-don/{idHoaDon}/xoa-sp-khoi-gio/{idHdct}
+    @DeleteMapping("/{idHoaDon}/xoa-sp-khoi-gio/{idSpct}")
+    public ResponseEntity<?> xoaSanPhamKhoiGio(
+            @PathVariable Integer idHoaDon,
+            @PathVariable Integer idSpct) {
+
+        hoaDonService.xoaSanPhamKhoiDonNhap(idHoaDon, idSpct);
+        return ResponseEntity.ok("Đã bỏ sản phẩm khỏi giỏ và ghi lịch sử!");
+    }
 }
+
+
+
