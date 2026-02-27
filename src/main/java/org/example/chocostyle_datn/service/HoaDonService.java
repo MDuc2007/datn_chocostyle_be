@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 @Service
 public class HoaDonService {
 
+
     @Autowired
     private HoaDonRepository hoaDonRepo;
     @Autowired
@@ -597,6 +598,105 @@ public class HoaDonService {
 
         sp.setSoLuongTon(sp.getSoLuongTon() + soLuongThayDoi);
         spctRepo.save(sp);
+    }
+
+    @Transactional(readOnly = true)
+    public TraCuuDonHangResponse traCuuDonHang(String maDonHang) {
+
+        // 1. Tìm hóa đơn
+        HoaDon hd = hoaDonRepo.findByMaHoaDon(maDonHang)
+                .orElseThrow(() ->
+                        new RuntimeException("Không tìm thấy đơn hàng với mã: " + maDonHang));
+
+        // 2. Map thông tin hóa đơn
+        TraCuuDonHangResponse response = new TraCuuDonHangResponse();
+        response.setMaDonHang(hd.getMaHoaDon());
+        response.setNgayTao(hd.getNgayTao());
+
+        // Map trạng thái cho Vue Timeline
+        String trangThaiVue = switch (hd.getTrangThai()) {
+            case 0 -> "PENDING";
+            case 1 -> "PROCESSING";
+            case 2, 3 -> "SHIPPING";
+            case 4 -> "DELIVERED";
+            case 5 -> "CANCELLED";
+            default -> "PENDING";
+        };
+        response.setTrangThai(trangThaiVue);
+
+        // Thông tin người nhận
+        response.setNguoiNhan(hd.getTenKhachHang());
+        response.setSoDienThoai(hd.getSoDienThoai());
+        response.setDiaChi(hd.getDiaChiKhachHang());
+
+        // Tiền
+        response.setTongTienHang(hd.getTongTienGoc());
+        response.setPhiVanChuyen(
+                hd.getPhiVanChuyen() != null ? hd.getPhiVanChuyen() : BigDecimal.ZERO
+        );
+        response.setTienGiamGia(
+                hd.getSoTienGiam() != null ? hd.getSoTienGiam() : BigDecimal.ZERO
+        );
+        response.setTongTienThanhToan(hd.getTongTienThanhToan());
+
+        // 3. Phương thức thanh toán
+        String phuongThuc = "Thanh toán khi nhận hàng (COD)";
+        List<ThanhToan> thanhToans = thanhToanRepo.findByIdHoaDon_Id(hd.getId());
+        if (!thanhToans.isEmpty()
+                && thanhToans.get(0).getIdPttt() != null) {
+            phuongThuc = thanhToans.get(0).getIdPttt().getTenPttt();
+        }
+        response.setPhuongThucThanhToan(phuongThuc);
+
+        // 4. Map danh sách sản phẩm
+        List<HoaDonChiTiet> chiTiets =
+                hdctRepo.findByIdHoaDon_Id(hd.getId());
+
+        List<SanPhamTraCuuDto> sanPhamList = chiTiets.stream().map(ct -> {
+
+            SanPhamTraCuuDto dto = new SanPhamTraCuuDto();
+
+            if (ct.getIdSpct() != null && ct.getIdSpct().getIdSanPham() != null) {
+
+                dto.setTenSp(ct.getIdSpct()
+                        .getIdSanPham()
+                        .getTenSp());
+
+                dto.setHinhAnh(
+                        ct.getIdSpct().getIdSanPham().getHinhAnh() != null
+                                ? ct.getIdSpct().getIdSanPham().getHinhAnh()
+                                : ""
+                );
+
+                dto.setMauSac(
+                        ct.getIdSpct().getIdMauSac() != null
+                                ? ct.getIdSpct().getIdMauSac().getTenMauSac()
+                                : "-"
+                );
+
+                dto.setKichCo(
+                        ct.getIdSpct().getIdKichCo() != null
+                                ? ct.getIdSpct().getIdKichCo().getTenKichCo()
+                                : "-"
+                );
+
+            } else {
+                dto.setTenSp("Sản phẩm đã bị xóa");
+                dto.setHinhAnh("");
+                dto.setMauSac("-");
+                dto.setKichCo("-");
+            }
+
+            dto.setSoLuong(ct.getSoLuong());
+            dto.setGiaBan(ct.getDonGia());
+
+            return dto;
+
+        }).collect(Collectors.toList());
+
+        response.setSanPhamList(sanPhamList);
+
+        return response;
     }
 
 }

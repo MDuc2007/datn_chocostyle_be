@@ -68,39 +68,30 @@ public class AuthController {
     @PostMapping("/login/customer")
     public ResponseEntity<?> loginCustomer(@RequestBody LoginRequest loginRequest) {
 
-
         KhachHang kh = khachHangRepository
                 .findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email khách hàng không tồn tại"));
-
 
         if (kh.getTrangThai() == 0) {
             return ResponseEntity.badRequest().body(createMessage("Tài khoản bị khóa"));
         }
 
-
         if (!passwordEncoder.matches(loginRequest.getPassword(), kh.getMatKhau())) {
             return ResponseEntity.badRequest().body(createMessage("Sai mật khẩu"));
         }
 
-
         String role = "ROLE_KHACH_HANG";
-
-
-        String jwt = tokenProvider.generateToken(
-                kh.getEmail(),
-                role
-        );
-
+        String jwt = tokenProvider.generateToken(kh.getEmail(), role);
 
         Map<String, Object> response = new HashMap<>();
-
         response.put("id", kh.getId());
         response.put("accessToken", jwt);
         response.put("tokenType", "Bearer");
         response.put("username", kh.getEmail());
         response.put("role", role);
 
+        // 👉 THÊM DÒNG NÀY ĐỂ FRONTEND CÓ TÊN HIỂN THỊ NGAY LẬP TỨC:
+        response.put("tenKhachHang", kh.getTenKhachHang());
 
         return ResponseEntity.ok(response);
     }

@@ -500,12 +500,18 @@ public class SanPhamService {
     }
 
     private void autoUpdateTrangThaiBienThe(ChiTietSanPham ct) {
-        if (ct.getTrangThai() == 2) return; // Nếu đang ngừng bán thì không động vào
 
-        if (ct.getSoLuongTon() == null || ct.getSoLuongTon() <= 0) {
-            ct.setTrangThai(0); // Hết hàng
+        // Nếu đang ngừng bán thì không động vào
+        if (Integer.valueOf(2).equals(ct.getTrangThai())) {
+            return;
+        }
+
+        Integer soLuong = ct.getSoLuongTon();
+
+        if (soLuong == null || soLuong <= 0) {
+            ct.setTrangThai(0);
         } else {
-            ct.setTrangThai(1); // Đang bán
+            ct.setTrangThai(1);
         }
     }
 

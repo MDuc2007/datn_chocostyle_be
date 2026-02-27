@@ -9,7 +9,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import java.util.Optional;
 @Repository
 public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
 
@@ -42,4 +44,6 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
 
     // Lấy hóa đơn có ID lớn nhất để sinh mã tự động (HD001, HD002...)
     HoaDon findTopByOrderByIdDesc();
+
+    Optional<HoaDon> findByMaHoaDon(String maHoaDon);
 }

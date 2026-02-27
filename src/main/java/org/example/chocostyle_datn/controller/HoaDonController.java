@@ -7,6 +7,7 @@ import org.example.chocostyle_datn.model.Request.SearchHoaDonRequest;
 import org.example.chocostyle_datn.model.Request.UpdateTrangThaiRequest;
 import org.example.chocostyle_datn.model.Response.HoaDonDetailResponse;
 import org.example.chocostyle_datn.model.Response.HoaDonResponse;
+import org.example.chocostyle_datn.repository.TraCuuDonHangResponse;
 import org.example.chocostyle_datn.service.HoaDonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -132,5 +133,24 @@ public class HoaDonController {
                                               @RequestParam Integer soLuongThayDoi) {
         hoaDonService.capNhatSoLuongTamThoi(idSpct, soLuongThayDoi);
         return ResponseEntity.ok("OK");
+    }
+
+    // API 9: Tra cứu đơn hàng cho khách (KHÔNG CẦN LOGIN)
+    @GetMapping("/tra-cuu")
+    public ResponseEntity<?> traCuuDonHang(@RequestParam String maDonHang) {
+        try {
+            // Gọi Service để tìm và lấy DTO
+            TraCuuDonHangResponse response = hoaDonService.traCuuDonHang(maDonHang);
+
+            // Trả về thẳng object JSON cho Frontend
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            // Nếu không tìm thấy mã, trả về lỗi 400 Bad Request kèm thông báo
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            // Nếu có lỗi hệ thống khác, trả về 500
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+        }
     }
 }
