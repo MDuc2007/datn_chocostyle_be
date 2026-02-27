@@ -1,7 +1,11 @@
 package org.example.chocostyle_datn.model.Response;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Data
 public class GiaoCaResponse {
     private Integer id;
@@ -14,4 +18,8 @@ public class GiaoCaResponse {
     private Double tongDoanhThu;
     private Double tienChenh;
     private Integer trangThai;
+    private Double tienMatDauCa;
+    private Double tienChuyenKhoanDauCa;
+    private Double tienChenhLech;
+    private String ghiChu;
 }
