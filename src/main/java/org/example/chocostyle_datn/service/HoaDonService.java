@@ -10,6 +10,7 @@ import org.example.chocostyle_datn.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -618,4 +619,25 @@ public class HoaDonService {
         spctRepo.save(sp);
     }
 
+    // =================================================================
+// 9. AUTO XÓA HÓA ĐƠN NHÁP LÚC 00:00
+// =================================================================
+    @Scheduled(cron = "0 0 0 * * ?")
+    @Transactional
+    public void autoXoaHoaDonNhacMoiNgay() {
+
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+        List<HoaDon> hoaDonNhac = hoaDonRepo
+                .findByLoaiDonAndTrangThaiAndNgayTaoBefore(
+                        1,
+                        0,
+                        startOfToday
+                );
+
+        for (HoaDon hd : hoaDonNhac) {
+            xoaDonQuay(hd.getId());
+        }
+
+        System.out.println("Đã tự động xóa " + hoaDonNhac.size() + " hóa đơn nháp lúc 00:00");
+    }
 }
