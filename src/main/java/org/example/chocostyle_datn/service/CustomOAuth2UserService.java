@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 
@@ -33,7 +34,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         // 2. Lấy tên provider (google, facebook...)
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
-        AuthenticationProvider provider = AuthenticationProvider.valueOf(registrationId.toUpperCase());
+        AuthenticationProvider provider;
+        if ("google".equalsIgnoreCase(registrationId)) {
+            provider = AuthenticationProvider.GOOGLE;
+        } else if ("facebook".equalsIgnoreCase(registrationId)) {
+            provider = AuthenticationProvider.FACEBOOK;
+        } else {
+            throw new OAuth2AuthenticationException("Provider không được hỗ trợ");
+        }
 
 
         // 3. Xử lý lưu hoặc cập nhật vào Database
@@ -46,7 +54,21 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String name = oAuth2User.getAttribute("name");
         // Google dùng "sub" làm ID, Facebook dùng "id"
         String id = oAuth2User.getAttribute("sub") != null ? oAuth2User.getAttribute("sub") : oAuth2User.getAttribute("id");
-        String avatar = oAuth2User.getAttribute("picture");
+        String avatar = null;
+
+        if (provider == AuthenticationProvider.GOOGLE) {
+            avatar = oAuth2User.getAttribute("picture");
+        }
+
+        if (provider == AuthenticationProvider.FACEBOOK) {
+            Map<String, Object> pictureObj = oAuth2User.getAttribute("picture");
+            if (pictureObj != null) {
+                Map<String, Object> data = (Map<String, Object>) pictureObj.get("data");
+                if (data != null) {
+                    avatar = (String) data.get("url");
+                }
+            }
+        }
 
 
         // Tìm xem user này đã tồn tại trong DB chưa
