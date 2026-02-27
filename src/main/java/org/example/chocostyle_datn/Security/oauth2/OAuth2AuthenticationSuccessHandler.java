@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 
+import org.example.chocostyle_datn.entity.KhachHang;
+import org.example.chocostyle_datn.repository.KhachHangRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -23,6 +25,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     @Autowired
     private JwtTokenProvider tokenProvider;
+    @Autowired
+    private KhachHangRepository khachHangRepository;
 
 
     @Override
@@ -31,28 +35,32 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                                         Authentication authentication)
             throws IOException, ServletException {
 
-
-        // 1️⃣ Lấy email từ Google
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         String email = oAuth2User.getAttribute("email");
 
+        if (email == null) {
+            throw new RuntimeException("Không lấy được email từ OAuth2");
+        }
 
-        // 2️⃣ Vì chỉ khách hàng được login OAuth -> gán cứng role
+        // 🔥 LẤY USER TỪ DB
+        KhachHang khachHang = khachHangRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng"));
+
         String role = "ROLE_KHACH_HANG";
 
-
-        // 3️⃣ Tạo JWT
+        // 🔥 TẠO JWT
         String token = tokenProvider.generateToken(email, role);
 
-
-        // 4️⃣ Redirect về Frontend kèm token + role
+        // 🔥 TRẢ ĐỦ THÔNG TIN VỀ FRONTEND
         String targetUrl = UriComponentsBuilder
                 .fromUriString("http://localhost:5173/oauth2/redirect")
                 .queryParam("token", token)
                 .queryParam("role", role)
+                .queryParam("id", khachHang.getId())
+                .queryParam("tenKhachHang", khachHang.getTenKhachHang())
+                .queryParam("avatar", khachHang.getAvatar())
                 .build()
                 .toUriString();
-
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
