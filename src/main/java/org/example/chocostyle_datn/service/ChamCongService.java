@@ -30,11 +30,39 @@ public class ChamCongService {
         this.nhanVienRepository = nhanVienRepository;
     }
 
-    // 🔎 Kiểm tra đã check-in chưa
-    public boolean daCheckIn(Integer idNv, LocalDate ngay) {
-        return chamCongRepository
-                .findByNhanVien_IdAndNgay(idNv, ngay)
-                .isPresent();
+    // 🔎 Hàm Lấy ca thông minh (Đã chuẩn hóa theo: 1=Đóng, 2=Chờ, 3=Đang làm)
+    public ChamCong getChamCongHomNay(Integer idNv) {
+        LocalDate today = LocalDate.now();
+        List<ChamCong> list = chamCongRepository.findDanhSachChamCongHomNay(idNv, today);
+
+        // 1. NẾU CÓ PHIẾU ĐANG LÀM DỞ: Ưu tiên trả về để nhân viên tiếp tục bán hàng
+        if (list != null && !list.isEmpty()) {
+            for (ChamCong cc : list) {
+                if (cc.getGioCheckOut() == null) {
+                    return cc; // Trả về ca có trạng thái 3 (Đang làm)
+                }
+            }
+        }
+
+        // 2. KIỂM TRA LỊCH LÀM VIỆC: Xem Quản lý có phân ca mới không?
+        List<LichLamViec> lichs = lichLamViecRepository.checkCaHomNay(idNv, today);
+        if (!lichs.isEmpty()) {
+            LichLamViec caHienTai = lichs.get(0);
+
+            // 👉 ĐÂY LÀ CHÌA KHÓA: Nếu lịch đang ở trạng thái 2 (ĐANG MỞ / CHỜ LÀM)
+            if (caHienTai.getTrangThai() == 2) {
+                // Có ca mới tinh chưa Check-in! Trả về rỗng để Frontend mở form Nhập tiền
+                return null;
+            }
+        }
+
+        // 3. NẾU KHÔNG CÓ CA MỚI CHỜ LÀM: Trả về phiếu chấm công vừa đóng gần nhất
+        // (Để hiển thị giao diện Tổng kết Ca đã đóng và 2 nút Chỉ xem / Đăng xuất)
+        if (list != null && !list.isEmpty()) {
+            return list.get(0);
+        }
+
+        return null;
     }
 
     // 🚀 CHECK-IN
@@ -70,9 +98,10 @@ public class ChamCongService {
         if (!isThoiGianHopLe) {
             throw new RuntimeException("Hiện tại không nằm trong thời gian cho phép vào ca!");
         }
-        // 4️⃣ Kiểm tra đã check-in chưa
-        if (daCheckIn(idNv, today)) {
-            throw new RuntimeException("Bạn đã check-in rồi!");
+        // 4️⃣ Kiểm tra xem có ca nào đang làm dở chưa đóng không
+        ChamCong caDangMo = getChamCongHomNay(idNv);
+        if (caDangMo != null) {
+            throw new RuntimeException("Bạn đang có một ca chưa kết thúc. Vui lòng đóng ca cũ trước khi vào ca mới!");
         }
 
         // 5️⃣ Lấy nhân viên
@@ -104,14 +133,10 @@ public class ChamCongService {
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
 
-        // 1️⃣ Tìm bản ghi hôm nay
-        ChamCong chamCong = chamCongRepository
-                .findByNhanVien_IdAndNgay(idNv, today)
-                .orElseThrow(() -> new RuntimeException("Bạn chưa check-in hôm nay!"));
-
-        // 2️⃣ Kiểm tra đã check-out chưa
-        if (chamCong.getGioCheckOut() != null) {
-            throw new RuntimeException("Bạn đã check-out rồi!");
+        // 1️⃣ & 2️⃣ Lấy đúng cái ca ĐANG MỞ của ngày hôm nay ra để đóng
+        ChamCong chamCong = getChamCongHomNay(idNv);
+        if (chamCong == null) {
+            throw new RuntimeException("Bạn chưa check-in hoặc không có ca nào đang mở!");
         }
 
         // 3️⃣ Lấy ca làm hôm nay (Sử dụng hàm mới để lấy lịch bỏ qua trạng thái)

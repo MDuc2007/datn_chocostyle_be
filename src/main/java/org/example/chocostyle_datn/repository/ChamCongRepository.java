@@ -84,4 +84,6 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
     Double calculateDoanhThuChuyenKhoan(@Param("idNv") Integer idNv,
                                         @Param("startDateTime") java.time.LocalDateTime startDateTime,
                                         @Param("endDateTime") java.time.LocalDateTime endDateTime);
+    @Query("SELECT c FROM ChamCong c WHERE c.nhanVien.id = :idNv AND c.ngay = :ngay ORDER BY c.id DESC")
+    List<ChamCong> findDanhSachChamCongHomNay(@Param("idNv") Integer idNv, @Param("ngay") LocalDate ngay);
 }

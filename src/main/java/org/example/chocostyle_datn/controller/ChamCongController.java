@@ -61,12 +61,17 @@ public class ChamCongController {
 
     @GetMapping("/hom-nay/{idNv}")
     public ResponseEntity<?> getChamCongHomNay(@PathVariable Integer idNv) {
-        LocalDate today = LocalDate.now();
-        Optional<ChamCong> cc = chamCongRepository
-                .findByNhanVien_IdAndNgay(idNv, today);
+        try {
+            // 👉 ĐẢM BẢO DÒNG NÀY ĐANG GỌI getChamCongHomNay
+            ChamCong cc = service.getChamCongHomNay(idNv);
 
-        return cc.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.noContent().build());
+            if (cc == null) {
+                return ResponseEntity.ok().build(); // Không có data -> FE sẽ hiểu là mở Check-in
+            }
+            return ResponseEntity.ok(cc);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
     // API LẤY DANH SÁCH GIAO CA KẾT TOÁN
     @GetMapping("/giao-ca")
