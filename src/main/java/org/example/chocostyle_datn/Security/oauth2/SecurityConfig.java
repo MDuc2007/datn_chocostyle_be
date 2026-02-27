@@ -61,9 +61,7 @@ public class SecurityConfig {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(khachHangUserDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
-    }
-
-    // =====================================================
+    }// =====================================================
     // AUTH PROVIDER NHÂN VIÊN
     // =====================================================
     @Bean
@@ -114,18 +112,17 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // ============================
-                        // 👉 MỞ KHÓA CÁC API PUBLIC (AI CŨNG XEM ĐƯỢC)
+                        // 👉 ĐÃ THÊM: MỞ KHÓA CÁC API PUBLIC (AI CŨNG XEM ĐƯỢC)
                         // ============================
                         .requestMatchers(
                                 "/api/san-pham/**",        // Cho phép xem sản phẩm, best-seller, home
                                 "/api/don-hang/tra-cuu**", // Cho phép khách lạ tra cứu đơn hàng
                                 "/images/**",              // Cho phép tải ảnh avatar/sản phẩm lên giao diện
-                                "/oauth2/**",              // Cho phép chạy luồng đăng nhập Google
-                                "/ws-chocostyle/**",       // WebSockets cho ứng dụng
-                                "/api/conversations/**"    // Chat/Conversations
-                        ).permitAll()
-
-                        // Các API còn lại (thêm giỏ hàng, thanh toán, quản lý...) bắt buộc phải đăng nhập
+                                "/oauth2/**"               // Cho phép chạy luồng đăng nhập Google
+                        ).permitAll()// Các API còn lại (thêm giỏ hàng, thanh toán, quản lý...) bắt buộc phải đăng nhập
+                        .requestMatchers("/ws-chocostyle/**").permitAll()
+                        .requestMatchers("/api/conversations/**").permitAll()
+                        .requestMatchers("/api/vnpay/**").permitAll()
                         .anyRequest().authenticated()
                 )
 
@@ -137,11 +134,11 @@ public class SecurityConfig {
                 )
 
                 // ============================
-                // 👉 XỬ LÝ OAUTH2 THẤT BẠI
+                // 👉 ĐÃ THÊM: XỬ LÝ OAUTH2 THẤT BẠI
                 // ============================
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2AuthenticationSuccessHandler)
-                        .failureHandler(oAuth2AuthenticationFailureHandler) // Ném lỗi về Vue
+                        .failureHandler(oAuth2AuthenticationFailureHandler) // Thêm dòng này để ném lỗi về Vue
                 )
 
                 .sessionManagement(sess ->
