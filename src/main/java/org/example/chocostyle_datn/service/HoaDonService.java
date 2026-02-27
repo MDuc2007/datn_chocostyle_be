@@ -10,6 +10,7 @@ import org.example.chocostyle_datn.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -130,6 +131,10 @@ public class HoaDonService {
     public void updateStatus(Integer id, UpdateTrangThaiRequest req) {
         HoaDon hd = hoaDonRepo.findById(id).orElseThrow(() -> new RuntimeException("Hóa đơn không tồn tại"));
 
+        if (hd.getTrangThai() == 5) {
+            throw new RuntimeException("Hóa đơn đã hủy, không thể cập nhật!");
+        }
+
         // Logic quan trọng: Trừ kho khi chuyển sang trạng thái 1 (Xác nhận)
         if (req.getTrangThaiMoi() == 1 && hd.getTrangThai() == 0) {
             List<HoaDonChiTiet> chiTiets = hdctRepo.findByIdHoaDon_Id(id);
@@ -163,6 +168,11 @@ public class HoaDonService {
 
         hd.setTrangThai(req.getTrangThaiMoi());
         hd.setNgayCapNhat(LocalDateTime.now());
+
+        if (req.getTrangThaiMoi() == 4) { // 4 = Hoàn thành
+            hd.setNgayThanhToan(LocalDateTime.now());
+        }
+
         hoaDonRepo.save(hd);
         ghiLichSu(hd, req.getTrangThaiMoi(), getActionName(req.getTrangThaiMoi()), req.getGhiChu());
     }
@@ -187,7 +197,6 @@ public class HoaDonService {
     }
 
     private BigDecimal xuLyVoucher(CreateOrderRequest req, HoaDon hd) {
-
         BigDecimal tienGiam = BigDecimal.ZERO;
 
         if (req.getMaVoucher() == null || req.getMaVoucher().trim().isEmpty()) {
@@ -254,7 +263,6 @@ public class HoaDonService {
     // =================================================================
     @Transactional
     public HoaDon taoHoaDonChoTaiQuay() {
-
         HoaDon hd = new HoaDon();
         hd.setMaHoaDon(generateMaHoaDon());
         hd.setNgayTao(LocalDateTime.now());
@@ -271,7 +279,7 @@ public class HoaDonService {
         hd.setIdNhanVien(getNhanVienDangLogin());
 
         HoaDon savedHd = hoaDonRepo.save(hd);
-        ghiLichSu(savedHd, 0, "Tạo đơn nháp", "Tạo tab hóa đơn mới tại quầy");
+        ghiLichSu(savedHd, 0, "Tạo đơn", "Tạo tab hóa đơn mới tại quầy");
         return savedHd;
     }
 
@@ -285,7 +293,6 @@ public class HoaDonService {
 
         hd.setTongTienGoc(req.getTongTienHang());
         hd.setGhiChu(req.getGhiChu());
-
 
         // Xử lý Voucher - ĐÃ FIX LỖI "2 results were returned"
         BigDecimal tienGiam = xuLyVoucher(req, hd);
@@ -309,7 +316,6 @@ public class HoaDonService {
                         .map(dc -> dc.getDiaChiCuThe() + ", " + dc.getPhuong() + ", " + dc.getQuan() + ", " + dc.getThanhPho())
                         .findFirst()
                         .orElse("Chưa có địa chỉ mặc định"); // Trường hợp khách chưa có địa chỉ nào
-
 
                 hd.setDiaChiKhachHang(diaChiMacDinh);
             }
@@ -372,7 +378,6 @@ public class HoaDonService {
                     throw new RuntimeException("Sản phẩm " + sp.getMaChiTietSanPham() + " không đủ số lượng!");
                 }
 
-//                sp.setSoLuongTon(sp.getSoLuongTon() - item.getSoLuong());
                 spctRepo.save(sp);
 
                 HoaDonChiTiet hdct = new HoaDonChiTiet();
@@ -456,6 +461,7 @@ public class HoaDonService {
 
                 // CHỈ lưu chi tiết hóa đơn (HoaDonChiTiet)
                 // KHÔNG gọi spctRepo.save(sp) để tránh trừ số lượng tồn kho lúc này
+
                 HoaDonChiTiet hdct = new HoaDonChiTiet();
                 hdct.setIdHoaDon(savedHd);
                 hdct.setIdSpct(sp);
@@ -606,7 +612,6 @@ public class HoaDonService {
 
     @Transactional
     public void capNhatSoLuongTamThoi(Integer idChiTietSanPham, Integer soLuongThayDoi) {
-
         ChiTietSanPham sp = spctRepo.findByIdForUpdate(idChiTietSanPham)
                 .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
 
@@ -618,4 +623,96 @@ public class HoaDonService {
         spctRepo.save(sp);
     }
 
+    // =================================================================
+    // 9. AUTO XÓA HÓA ĐƠN NHÁP LÚC 00:00
+    // =================================================================
+    @Scheduled(cron = "0 0 0 * * ?")
+    @Transactional
+    public void autoXoaHoaDonNhacMoiNgay() {
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+        List<HoaDon> hoaDonNhac = hoaDonRepo
+                .findByLoaiDonAndTrangThaiAndNgayTaoBefore(
+                        1,
+                        0,
+                        startOfToday
+                );
+
+        for (HoaDon hd : hoaDonNhac) {
+            xoaDonQuay(hd.getId());
+        }
+
+        System.out.println("Đã tự động xóa " + hoaDonNhac.size() + " hóa đơn nháp lúc 00:00");
+    }
+
+    // =================================================================
+    // 10. THÊM SẢN PHẨM VÀO ĐƠN NHÁP (GHI LOG)
+    // =================================================================
+    @Transactional
+    public void themSanPhamVaoDonNhap(Integer idHoaDon, Integer idSpct, int soLuongThem) {
+        HoaDon hd = hoaDonRepo.findById(idHoaDon)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn"));
+
+        ChiTietSanPham sp = spctRepo.findById(idSpct)
+                .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
+
+        // Kiểm tra xem SP này đã có trong đơn chưa
+        HoaDonChiTiet hdct = hdctRepo.findByIdHoaDon_Id(idHoaDon).stream()
+                .filter(ct -> ct.getIdSpct().getId().equals(idSpct))
+                .findFirst()
+                .orElse(null);
+
+        if (hdct != null) {
+            // Nếu đã có -> Cộng dồn số lượng
+            hdct.setSoLuong(hdct.getSoLuong() + soLuongThem);
+            hdct.setThanhTien(hdct.getDonGia().multiply(BigDecimal.valueOf(hdct.getSoLuong())));
+        } else {
+            // Nếu chưa có -> Tạo mới
+            hdct = new HoaDonChiTiet();
+            hdct.setIdHoaDon(hd);
+            hdct.setIdSpct(sp);
+            hdct.setSoLuong(soLuongThem);
+            hdct.setDonGia(sp.getGiaBan()); // Lấy giá bán hiện tại
+            hdct.setThanhTien(sp.getGiaBan().multiply(BigDecimal.valueOf(soLuongThem)));
+        }
+        hdctRepo.save(hdct);
+
+        // --- GHI LỊCH SỬ THAO TÁC ---
+        // Lấy tên SP, màu sắc, size để ghi chú cho rõ ràng
+        String tenSp = sp.getIdSanPham() != null ? sp.getIdSanPham().getTenSp() : "Sản phẩm";
+        String mauSac = sp.getIdMauSac() != null ? sp.getIdMauSac().getTenMauSac() : "";
+        String kichCo = sp.getIdKichCo() != null ? sp.getIdKichCo().getTenKichCo() : "";
+
+        String ghiChu = String.format("Thêm %d x [%s - %s - %s] vào giỏ hàng", soLuongThem, tenSp, mauSac, kichCo);
+
+        ghiLichSu(hd, hd.getTrangThai(), "Thêm sản phẩm", ghiChu);
+    }
+
+    // =================================================================
+    // 11. XÓA SẢN PHẨM KHỎI ĐƠN NHÁP DỰA VÀO ID SẢN PHẨM CHI TIẾT (GHI LOG)
+    // =================================================================
+    @Transactional
+    public void xoaSanPhamKhoiDonNhap(Integer idHoaDon, Integer idSpct) {
+        HoaDon hd = hoaDonRepo.findById(idHoaDon)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn"));
+
+        // Tìm dòng sản phẩm đó trong giỏ hàng hiện tại
+        HoaDonChiTiet hdct = hdctRepo.findByIdHoaDon_Id(idHoaDon).stream()
+                .filter(ct -> ct.getIdSpct().getId().equals(idSpct))
+                .findFirst()
+                .orElse(null);
+
+        if (hdct != null) {
+            ChiTietSanPham sp = hdct.getIdSpct();
+            String tenSp = sp.getIdSanPham() != null ? sp.getIdSanPham().getTenSp() : "Sản phẩm";
+            String mauSac = sp.getIdMauSac() != null ? sp.getIdMauSac().getTenMauSac() : "";
+            String kichCo = sp.getIdKichCo() != null ? sp.getIdKichCo().getTenKichCo() : "";
+
+            // Xóa khỏi DB để giỏ hàng trống
+            hdctRepo.delete(hdct);
+
+            // --- GHI LỊCH SỬ THAO TÁC RÕ RÀNG ---
+            String ghiChu = String.format("Khách bỏ chọn, xóa toàn bộ [%s - %s - %s] khỏi đơn", tenSp, mauSac, kichCo);
+            ghiLichSu(hd, hd.getTrangThai(), "Bỏ sản phẩm", ghiChu);
+        }
+    }
 }
