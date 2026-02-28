@@ -169,4 +169,12 @@ public class HoaDonController {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
+    @GetMapping("/my-orders")
+    public ResponseEntity<?> getMyOrders() {
+        try {
+            return ResponseEntity.ok(hoaDonService.getMyOrders());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi tải lịch sử đơn hàng: " + e.getMessage());
+        }
+    }
 }

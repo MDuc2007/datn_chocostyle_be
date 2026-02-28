@@ -87,4 +87,9 @@ public class PhieuGiamGiaController {
     ) {
         return phieuGiamGiaService.getVoucherForCustomer(idKhachHang);
     }
+    @GetMapping("/public/my-vouchers")
+    public ResponseEntity<List<PhieuGiamGiaResponse>> getMyVouchers(@RequestParam(required = false) Integer khachHangId) {
+        // Gọi hàm Service đã sửa ở Bước 1
+        return ResponseEntity.ok(phieuGiamGiaService.getVoucherForCustomer(khachHangId));
+    }
 }
