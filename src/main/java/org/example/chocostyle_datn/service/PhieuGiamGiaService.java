@@ -40,8 +40,6 @@ public class PhieuGiamGiaService {
     private EmailService emailService;
 
 
-
-
     public List<PhieuGiamGiaResponse> getAllPGG() {
         return phieuGiamGiaRepository.findAllOrderByIdDesc()
                 .stream()
@@ -358,8 +356,6 @@ public class PhieuGiamGiaService {
     }
 
 
-
-
     public Boolean deletePGG(Integer id) {
         PhieuGiamGia pgg = phieuGiamGiaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu giảm giá"));
@@ -465,6 +461,8 @@ public class PhieuGiamGiaService {
         return toResponse(pgg);
     }
 
+    // Trong PhieuGiamGiaService.java
+
     public List<PhieuGiamGiaResponse> getVoucherForCustomer(Integer idKhachHang) {
 
         LocalDate today = LocalDate.now();
@@ -472,24 +470,30 @@ public class PhieuGiamGiaService {
         return phieuGiamGiaRepository.findAll()
                 .stream()
                 .filter(pgg -> {
-
-                    // Chỉ lấy voucher đang hoạt động
+                    // 1. Check Trạng thái hoạt động
                     if (pgg.getTrangThai() != 1) return false;
+
+                    // 2. Check Thời gian (Ngày bắt đầu <= Hôm nay <= Ngày kết thúc)
                     if (today.isBefore(pgg.getNgayBatDau())) return false;
                     if (today.isAfter(pgg.getNgayKetThuc())) return false;
 
-                    // Nếu là ALL -> luôn cho phép
+                    // 3. [MỚI THÊM] Check Số lượng (Phải còn lượt sử dụng)
+                    if (pgg.getSoLuong() <= 0 || pgg.getSoLuongDaDung() >= pgg.getSoLuong()) {
+                        return false;
+                    }
+
+                    // 4. Xử lý loại voucher
+                    // Nếu là ALL -> Luôn hiển thị
                     if ("ALL".equals(pgg.getKieuApDung())) {
                         return true;
                     }
 
-                    // Nếu là PERSONAL
+                    // Nếu là PERSONAL -> Check quyền sở hữu
                     if ("PERSONAL".equals(pgg.getKieuApDung())) {
-
-                        // Chưa chọn khách -> không cho dùng
+                        // Nếu khách chưa đăng nhập -> Không hiển thị voucher cá nhân
                         if (idKhachHang == null) return false;
 
-                        // Phải tồn tại bản ghi và chưa sử dụng
+                        // Kiểm tra trong bảng trung gian: Có tồn tại và CHƯA sử dụng
                         return pggKhRepository
                                 .existsByPhieuGiamGiaIdAndKhachHangIdAndDaSuDungFalse(
                                         pgg.getId(),
@@ -500,9 +504,8 @@ public class PhieuGiamGiaService {
                     return false;
                 })
                 .map(this::toResponse)
-                .toList();
+                .collect(Collectors.toList()); // Dùng .toList() nếu Java 16+, nếu thấp hơn dùng Collectors
     }
-
 }
 
 

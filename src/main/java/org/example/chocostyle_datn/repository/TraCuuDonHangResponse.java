@@ -9,6 +9,7 @@ import java.util.List;
 
 @Data
 public class TraCuuDonHangResponse {
+    private Integer id;
     private String maDonHang;
     private LocalDateTime ngayTao;
     private String trangThai; // LƯU Ý: Phải là PENDING, PROCESSING, SHIPPING, DELIVERED hoặc CANCELLED

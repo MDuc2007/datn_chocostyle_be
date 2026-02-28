@@ -49,58 +49,71 @@ public class VnpayController {
         return ResponseEntity.ok(paymentUrl);
     }
 
+    // API: Nhận kết quả trả về từ VNPAY
     @GetMapping("/payment-return")
-    public void paymentReturn(
-            @RequestParam Map<String, String> params,
-            HttpServletResponse response) throws IOException {
+    public void paymentReturn(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String responseCode = request.getParameter("vnp_ResponseCode");
+        String transactionNo = request.getParameter("vnp_TransactionNo"); // Mã giao dịch VNPAY
+        String txnRef = request.getParameter("vnp_TxnRef"); // ID Hóa đơn của mình
 
-        // 1. Kiểm tra chữ ký (Checksum) để đảm bảo dữ liệu không bị giả mạo
-        boolean valid = vnpayService.validateSignature(params);
-        if (!valid) {
-            response.sendRedirect("http://localhost:5173/payment-result?status=invalid");
+        // --- SỬA LỖI Ở ĐÂY: Chia 100 để đưa về đúng đơn vị tiền tệ ---
+        long vnpAmount = Long.parseLong(request.getParameter("vnp_Amount")) / 100;
+
+        if (txnRef == null) {
+            response.sendRedirect("http://localhost:5173/payment-result?status=error");
             return;
         }
 
-        // 2. Lấy thông tin từ VNPAY trả về
-        String responseCode = params.get("vnp_ResponseCode");
-        String txnRef = params.get("vnp_TxnRef"); // Đây là hoaDonId
-        long vnpAmount = Long.parseLong(params.get("vnp_Amount")) / 100; // VNPAY nhân 100 nên phải chia lại
-
         Integer hoaDonId = Integer.parseInt(txnRef);
-        HoaDon hd = hoaDonRepo.findById(hoaDonId).orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn"));
+        HoaDon hd = hoaDonRepo.findById(hoaDonId).orElse(null);
 
-        // 3. Kiểm tra logic: Thành công (00) VÀ Số tiền phải khớp
+        if (hd == null) {
+            response.sendRedirect("http://localhost:5173/payment-result?status=not_found");
+            return;
+        }
+
+        // 1. Kiểm tra mã phản hồi: 00 là thành công
         if ("00".equals(responseCode)) {
-            // Kiểm tra số tiền (quan trọng)
+
+            // 2. Kiểm tra số tiền: Nếu không khớp thì báo lỗi (Tránh gian lận)
             if (vnpAmount != hd.getTongTienThanhToan().longValue()) {
-                response.sendRedirect("http://localhost:5173/payment-result?status=fraud"); // Sai tiền
+                // Sai tiền -> Chuyển hướng báo lỗi
+                response.sendRedirect("http://localhost:5173/payment-result?status=fraud&vnp_ResponseCode=99");
                 return;
             }
 
-            // Cập nhật trạng thái thành công
-            hd.setTrangThai(0); // 1: Đã thanh toán / Chờ xác nhận
-            hd.setNgayThanhToan(LocalDateTime.now());
-            hoaDonRepo.save(hd);
+            // 3. Cập nhật thành công vào Database
+            // Chỉ cập nhật nếu đơn chưa hoàn thành để tránh xử lý lặp lại
+            if (hd.getTrangThai() == 0) {
+                hd.setTrangThai(0); // 1: Đã thanh toán / Chờ xác nhận (Tùy quy ước của bạn)
+                hd.setNgayThanhToan(LocalDateTime.now());
+                hoaDonRepo.save(hd);
 
-            ThanhToan tt = new ThanhToan();
-            tt.setIdHoaDon(hd);
-            tt.setSoTien(hd.getTongTienThanhToan());
-            tt.setTrangThai(1);
-            tt.setLoaiGiaoDich(1);
-            tt.setMaGiaoDich(params.get("vnp_TransactionNo"));
-            tt.setThoiGianThanhToan(LocalDateTime.now());
-            PhuongThucThanhToan pttt = ptttRepo.findById(5).orElse(null);
-            tt.setIdPttt(pttt);
+                // Lưu lịch sử thanh toán
+                ThanhToan tt = new ThanhToan();
+                tt.setIdHoaDon(hd);
+                tt.setSoTien(hd.getTongTienThanhToan());
+                tt.setTrangThai(1); // Thành công
+                tt.setLoaiGiaoDich(1); // 1: Thanh toán
+                tt.setMaGiaoDich(transactionNo);
+                tt.setThoiGianThanhToan(LocalDateTime.now());
 
-            thanhToanRepo.save(tt);
+                // Lấy phương thức thanh toán VNPAY (Giả sử ID 2 là VNPAY/Chuyển khoản)
+                // Bạn cần thay đổi ID này cho đúng với DB của bạn
+                 PhuongThucThanhToan pttt = ptttRepo.findById(5).orElse(null);
+                 tt.setIdPttt(pttt);
 
-            response.sendRedirect("http://localhost:5173/payment-result?status=success");
+                thanhToanRepo.save(tt);
+            }
+
+            // 4. CHUYỂN HƯỚNG VỀ TRANG KẾT QUẢ (QUAN TRỌNG)
+            // Phải kèm hoaDonId để Frontend hiện nút "Xem chi tiết"
+            // Phải kèm vnp_ResponseCode=00 để hiện màn hình Xanh (Thành công)
+            response.sendRedirect("http://localhost:5173/payment-result?vnp_ResponseCode=00&hoaDonId=" + hd.getId());
 
         } else {
-            // Thanh toán thất bại hoặc hủy
-            hd.setTrangThai(0); // 0: Hủy hoặc chưa thanh toán
-            hoaDonRepo.save(hd);
-            response.sendRedirect("http://localhost:5173/payment-result?status=fail");
+            // Trường hợp thất bại / Hủy giao dịch
+            response.sendRedirect("http://localhost:5173/payment-result?vnp_ResponseCode=" + responseCode);
         }
     }
 }

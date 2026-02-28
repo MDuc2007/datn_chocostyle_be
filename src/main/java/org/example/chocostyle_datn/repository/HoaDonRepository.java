@@ -58,5 +58,5 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
     List<HoaDon> findAllByTrangThaiAndNgayTaoBefore(Integer trangThai, LocalDateTime time);
 
     Optional<HoaDon> findByMaHoaDon(String maHoaDon);
-
+    List<HoaDon> findByIdKhachHang_IdOrderByIdAsc(Integer idKhachHang);
 }
