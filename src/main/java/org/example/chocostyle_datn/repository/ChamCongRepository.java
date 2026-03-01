@@ -31,21 +31,28 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
             "ISNULL(cc.tien_chuyen_khoan_dau_ca, 0) as tienChuyenKhoanDauCa, " +
             "ISNULL(cc.tong_doanh_thu, 0) as tongDoanhThu, " +
             "ISNULL(cc.tien_chenh_lech, 0) as tienChenhLech, " +
-            "ISNULL(cc.ghi_chu, '') as ghiChu " +
+            "ISNULL(cc.ghi_chu, '') as ghiChu, " +
+            "ISNULL(cc.doanh_thu_tien_mat, 0) as doanhThuTienMat, " +
+            "ISNULL(cc.doanh_thu_ck, 0) as doanhThuCk, " +
+            "ISNULL(cc.chenh_lech_tien_mat, 0) as chenhLechTienMat, " +
+            "ISNULL(cc.chenh_lech_ck, 0) as chenhLechCk " +
             "FROM cham_cong cc " +
             "JOIN nhan_vien nv ON cc.id_nhan_vien = nv.id_nv " +
-            "LEFT JOIN lich_lam_viec llv ON llv.id_nhan_vien = cc.id_nhan_vien AND llv.ngay_lam_viec = cc.ngay " +
-            "LEFT JOIN ca_lam_viec clv ON llv.id_ca = clv.id_ca " +
+            // 👉 THAY THẾ LEFT JOIN BẰNG OUTER APPLY ĐỂ LỌC ĐÚNG 1 CA CHUẨN XÁC
+            "OUTER APPLY ( " +
+            "    SELECT TOP 1 c.ten_ca, c.ma_ca " +
+            "    FROM lich_lam_viec l " +
+            "    JOIN ca_lam_viec c ON l.id_ca = c.id_ca " +
+            "    WHERE l.id_nhan_vien = cc.id_nhan_vien AND l.ngay_lam_viec = cc.ngay " +
+            "    ORDER BY ABS(DATEDIFF(MINUTE, cc.gio_check_in, c.gio_bat_dau)) " +
+            ") clv " +
             "WHERE (:keyword IS NULL OR :keyword = '' OR nv.ho_ten LIKE '%' + :keyword + '%' OR clv.ma_ca LIKE '%' + :keyword + '%') " +
-            "  AND (:fromDate IS NULL OR :fromDate = '' OR cc.ngay >= CAST(:fromDate AS DATE)) " +
-            "  AND (:toDate IS NULL OR :toDate = '' OR cc.ngay <= CAST(:toDate AS DATE)) " +
-            "ORDER BY cc.ngay DESC, cc.gio_check_in DESC",
-            nativeQuery = true)
-    List<Map<String, Object>> getDanhSachGiaoCa(
-            @Param("keyword") String keyword,
-            @Param("fromDate") String fromDate,
-            @Param("toDate") String toDate
-    );
+            "AND (:fromDate IS NULL OR :fromDate = '' OR cc.ngay >= CAST(:fromDate AS DATE)) " +
+            "AND (:toDate IS NULL OR :toDate = '' OR cc.ngay <= CAST(:toDate AS DATE)) " +
+            "ORDER BY cc.ngay DESC, cc.gio_check_in DESC", nativeQuery = true)
+    List<Map<String, Object>> getDanhSachGiaoCa(@Param("keyword") String keyword,
+                                                @Param("fromDate") String fromDate,
+                                                @Param("toDate") String toDate);
     @Query(value = "SELECT ISNULL(SUM(tong_tien_thanh_toan), 0) FROM hoa_don " +
             "WHERE id_nhan_vien = :idNv " +
             "AND ngay_tao >= :startDateTime " +
@@ -86,4 +93,7 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
                                         @Param("endDateTime") java.time.LocalDateTime endDateTime);
     @Query("SELECT c FROM ChamCong c WHERE c.nhanVien.id = :idNv AND c.ngay = :ngay ORDER BY c.id DESC")
     List<ChamCong> findDanhSachChamCongHomNay(@Param("idNv") Integer idNv, @Param("ngay") LocalDate ngay);
+
+    @Query(value = "SELECT TOP 1 * FROM cham_cong WHERE trang_thai = 1 ORDER BY id DESC", nativeQuery = true)
+    ChamCong layCaDongGanNhat();
 }

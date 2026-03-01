@@ -22,4 +22,8 @@ public class GiaoCaResponse {
     private Double tienChuyenKhoanDauCa;
     private Double tienChenhLech;
     private String ghiChu;
+    private Double doanhThuTienMat;
+    private Double doanhThuCk;
+    private Double chenhLechTienMat;
+    private Double chenhLechCk;
 }

@@ -241,6 +241,10 @@ public class ChamCongService {
             dto.setTongDoanhThu(Double.valueOf(row.get("tongDoanhThu").toString()));
             dto.setTienChenhLech(Double.valueOf(row.get("tienChenhLech").toString()));
             dto.setGhiChu((String) row.get("ghiChu"));
+            dto.setDoanhThuTienMat(Double.valueOf(row.get("doanhThuTienMat").toString()));
+            dto.setDoanhThuCk(Double.valueOf(row.get("doanhThuCk").toString()));
+            dto.setChenhLechTienMat(Double.valueOf(row.get("chenhLechTienMat").toString()));
+            dto.setChenhLechCk(Double.valueOf(row.get("chenhLechCk").toString()));
             if (dto.getTrangThai() == 3) {
                 dto.setTienChenh((tienMat + tienCk) - doanhThu);
             } else {
@@ -250,5 +254,11 @@ public class ChamCongService {
             responses.add(dto);
         }
         return responses;
+    }
+    public Map<String, Double> laySoDuCaTruoc() {
+        ChamCong caTruoc = chamCongRepository.layCaDongGanNhat();
+        Double tienMat = (caTruoc != null && caTruoc.getTienMatCuoiCa() != null) ? caTruoc.getTienMatCuoiCa() : 0.0;
+        Double tienCk = (caTruoc != null && caTruoc.getTienChuyenKhoanCuoiCa() != null) ? caTruoc.getTienChuyenKhoanCuoiCa() : 0.0;
+        return Map.of("tienMat", tienMat, "tienCk", tienCk);
     }
 }
