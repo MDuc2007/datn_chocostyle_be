@@ -717,18 +717,33 @@ public class HoaDonService {
     }
 
     // =================================================================
-    // 12. TRA CỨU ĐƠN HÀNG
+    // 12. TRA CỨU ĐƠN HÀNG (CÓ CHECK QUYỀN SỞ HỮU)
     // =================================================================
     @Transactional(readOnly = true)
     public TraCuuDonHangResponse traCuuDonHang(String maDonHang) {
-
-        // 1. Tìm hóa đơn
+        // 1. Tìm hóa đơn theo mã
         HoaDon hd = hoaDonRepo.findByMaHoaDon(maDonHang)
-                .orElseThrow(() ->
-                        new RuntimeException("Không tìm thấy đơn hàng với mã: " + maDonHang));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã: " + maDonHang));
 
-        // 2. Map thông tin hóa đơn
+        // 2. CHECK QUYỀN SỞ HỮU (MỚI THÊM)
+        // Lấy thông tin người đang đăng nhập
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            throw new RuntimeException("Vui lòng đăng nhập để tra cứu đơn hàng!");
+        }
+
+        String email = auth.getName();
+        KhachHang currentKhach = khachHangRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin khách hàng!"));
+
+        // So sánh: Nếu hóa đơn không có khách hàng (khách lẻ) HOẶC ID khách hàng không khớp
+        if (hd.getIdKhachHang() == null || !hd.getIdKhachHang().getId().equals(currentKhach.getId())) {
+            throw new RuntimeException("Bạn không có quyền truy cập đơn hàng này!");
+        }
+
+        // 3. Nếu khớp, trả về dữ liệu như cũ
         TraCuuDonHangResponse response = new TraCuuDonHangResponse();
+        response.setId(hd.getId());
         response.setMaDonHang(hd.getMaHoaDon());
         response.setNgayTao(hd.getNgayTao());
 
@@ -743,74 +758,41 @@ public class HoaDonService {
         };
         response.setTrangThai(trangThaiVue);
 
-        // Thông tin người nhận
+        // ... (Giữ nguyên phần map dữ liệu còn lại bên dưới của bạn) ...
         response.setNguoiNhan(hd.getTenKhachHang());
         response.setSoDienThoai(hd.getSoDienThoai());
         response.setDiaChi(hd.getDiaChiKhachHang());
 
-        // Tiền
         response.setTongTienHang(hd.getTongTienGoc());
-        response.setPhiVanChuyen(
-                hd.getPhiVanChuyen() != null ? hd.getPhiVanChuyen() : BigDecimal.ZERO
-        );
-        response.setTienGiamGia(
-                hd.getSoTienGiam() != null ? hd.getSoTienGiam() : BigDecimal.ZERO
-        );
+        response.setPhiVanChuyen(hd.getPhiVanChuyen() != null ? hd.getPhiVanChuyen() : BigDecimal.ZERO);
+        response.setTienGiamGia(hd.getSoTienGiam() != null ? hd.getSoTienGiam() : BigDecimal.ZERO);
         response.setTongTienThanhToan(hd.getTongTienThanhToan());
 
-        // 3. Phương thức thanh toán
         String phuongThuc = "Thanh toán khi nhận hàng (COD)";
         List<ThanhToan> thanhToans = thanhToanRepo.findByIdHoaDon_Id(hd.getId());
-        if (!thanhToans.isEmpty()
-                && thanhToans.get(0).getIdPttt() != null) {
+        if (!thanhToans.isEmpty() && thanhToans.get(0).getIdPttt() != null) {
             phuongThuc = thanhToans.get(0).getIdPttt().getTenPttt();
         }
         response.setPhuongThucThanhToan(phuongThuc);
 
-        // 4. Map danh sách sản phẩm
-        List<HoaDonChiTiet> chiTiets =
-                hdctRepo.findByIdHoaDon_Id(hd.getId());
-
+        // Map sản phẩm
+        List<HoaDonChiTiet> chiTiets = hdctRepo.findByIdHoaDon_Id(hd.getId());
         List<SanPhamTraCuuDto> sanPhamList = chiTiets.stream().map(ct -> {
-
             SanPhamTraCuuDto dto = new SanPhamTraCuuDto();
-
             if (ct.getIdSpct() != null && ct.getIdSpct().getIdSanPham() != null) {
-
-                dto.setTenSp(ct.getIdSpct()
-                        .getIdSanPham()
-                        .getTenSp());
-
-                dto.setHinhAnh(
-                        ct.getIdSpct().getIdSanPham().getHinhAnh() != null
-                                ? ct.getIdSpct().getIdSanPham().getHinhAnh()
-                                : ""
-                );
-
-                dto.setMauSac(
-                        ct.getIdSpct().getIdMauSac() != null
-                                ? ct.getIdSpct().getIdMauSac().getTenMauSac()
-                                : "-"
-                );
-
-                dto.setKichCo(
-                        ct.getIdSpct().getIdKichCo() != null
-                                ? ct.getIdSpct().getIdKichCo().getTenKichCo()
-                                : "-"
-                );
-
+                dto.setTenSp(ct.getIdSpct().getIdSanPham().getTenSp());
+                dto.setHinhAnh(ct.getIdSpct().getIdSanPham().getHinhAnh() != null ? ct.getIdSpct().getIdSanPham().getHinhAnh() : "");
+                dto.setMauSac(ct.getIdSpct().getIdMauSac() != null ? ct.getIdSpct().getIdMauSac().getTenMauSac() : "-");
+                dto.setKichCo(ct.getIdSpct().getIdKichCo() != null ? ct.getIdSpct().getIdKichCo().getTenKichCo() : "-");
             } else {
                 dto.setTenSp("Sản phẩm đã bị xóa");
                 dto.setHinhAnh("");
                 dto.setMauSac("-");
                 dto.setKichCo("-");
             }
-
             dto.setSoLuong(ct.getSoLuong());
             dto.setGiaBan(ct.getDonGia());
-
             return dto;
-
         }).collect(Collectors.toList());
 
         response.setSanPhamList(sanPhamList);
@@ -818,4 +800,28 @@ public class HoaDonService {
         return response;
     }
 
+    @Transactional(readOnly = true)
+    public List<HoaDonResponse> getMyOrders() {
+        // 1. Lấy Email từ Security Context (Token)
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // 2. Chỉ tìm khách hàng theo Email
+        KhachHang kh = khachHangRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy thông tin khách hàng với email: " + email));
+
+        // 3. Lấy danh sách hóa đơn theo ID Khách hàng vừa tìm được
+        List<HoaDon> list = hoaDonRepo.findByIdKhachHang_IdOrderByIdAsc(kh.getId());
+
+        // 4. Convert sang Response
+        return list.stream().map(hd -> HoaDonResponse.builder()
+                .id(hd.getId())
+                .maHoaDon(hd.getMaHoaDon())
+                .tenKhachHang(hd.getTenKhachHang())
+                .soDienThoai(hd.getSoDienThoai())
+                .tongTien(hd.getTongTienThanhToan())
+                .loaiDon(hd.getLoaiDon())
+                .trangThai(hd.getTrangThai())
+                .ngayTao(hd.getNgayTao())
+                .build()).collect(Collectors.toList());
+    }
 }
