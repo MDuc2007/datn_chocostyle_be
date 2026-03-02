@@ -9,9 +9,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import java.util.List;
 import java.util.Optional;
+
 @Repository
 public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
 
@@ -46,4 +46,8 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
     HoaDon findTopByOrderByIdDesc();
 
     Optional<HoaDon> findByMaHoaDon(String maHoaDon);
+
+    // 👉 ĐÃ SỬA: Xóa hàm lỗi cũ và thay bằng Native Query chạy thẳng SQL
+    @Query(value = "SELECT * FROM hoa_don WHERE id_khach_hang = :khachHangId ORDER BY ngay_tao DESC", nativeQuery = true)
+    List<HoaDon> getHoaDonByKhachHangId(@Param("khachHangId") Integer khachHangId);
 }

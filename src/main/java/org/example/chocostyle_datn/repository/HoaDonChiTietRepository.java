@@ -12,12 +12,14 @@ import java.util.List;
 
 @Repository
 public interface HoaDonChiTietRepository extends JpaRepository<HoaDonChiTiet, Integer> {
-    // Tìm danh sách chi tiết sản phẩm theo ID hóa đơn
-    // Cú pháp: findBy + TênBiếnTrongEntity (idHoaDon) + _ + Id (của bảng HoaDon)
+
+    // Hàm cũ của bạn (giữ nguyên vì nó đúng)
     List<HoaDonChiTiet> findByIdHoaDon_Id(Integer idHoaDon);
 
+    // Hàm cũ của bạn (giữ nguyên)
     @Modifying
     @Transactional
     @Query(value = "DELETE FROM hoa_don_chi_tiet WHERE id_hoa_don = :idHoaDon", nativeQuery = true)
     void xoaChiTietTheoIdHoaDon(@Param("idHoaDon") Integer idHoaDon);
+
 }

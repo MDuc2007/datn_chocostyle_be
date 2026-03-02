@@ -63,5 +63,38 @@ public class NhanVienController {
         Page<NhanVienResponse> result = service.searchNhanVien(keyword, trangThai, page, size);
         return ResponseEntity.ok(result);
     }
+
+    // ==========================================
+    // API NHẬN FILE TỪ VUE ĐỂ CẬP NHẬT AVATAR
+    // ==========================================
+    @PostMapping("/{id}/avatar")
+    public ResponseEntity<?> updateAvatar(
+            @PathVariable Integer id,
+            @RequestParam("avatarFile") org.springframework.web.multipart.MultipartFile file) {
+        try {
+            // Kiểm tra xem có gửi file lên không
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Vui lòng chọn ảnh."));
+            }
+
+            // Kiểm tra dung lượng (Ví dụ giới hạn 5MB = 5 * 1024 * 1024 bytes)
+            if (file.getSize() > 5242880) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Dung lượng ảnh không được vượt quá 5MB."));
+            }
+
+            // Gọi Service để xử lý và lưu
+            String newAvatarBase64 = service.updateAvatar(id, file);
+
+            // Trả về JSON chứa ảnh mới cho Vue: { "message": "Thành công", "avatar": "data:image/..." }
+            java.util.Map<String, String> response = new java.util.HashMap<>();
+            response.put("message", "Cập nhật ảnh thành công");
+            response.put("avatar", newAvatarBase64);
+
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        }
+    }
 }
 

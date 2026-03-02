@@ -7,6 +7,8 @@ import org.example.chocostyle_datn.model.Request.KhachHangRequest.DiaChiRequest;
 import org.example.chocostyle_datn.model.Response.KhachHangDetailResponse;
 import org.example.chocostyle_datn.model.Response.KhachHangResponse;
 import org.example.chocostyle_datn.repository.DiaChiRepository;
+import org.example.chocostyle_datn.repository.HoaDonChiTietRepository;
+import org.example.chocostyle_datn.repository.HoaDonRepository;
 import org.example.chocostyle_datn.repository.KhachHangRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -38,6 +40,13 @@ public class KhachHangService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private HoaDonRepository hoaDonRepository;
+
+
+    @Autowired
+    private HoaDonChiTietRepository hoaDonChiTietRepository;
 
     public List<KhachHang> getKhachHangForExport(String keyword, Integer status) {
         return khachHangRepository.searchKhachHangForExport(keyword, status);
@@ -288,4 +297,32 @@ public class KhachHangService {
                         .collect(Collectors.toList()))
                 .build();
     }
+
+    // =========================================================================
+    // CẬP NHẬT RIÊNG AVATAR CHO TRANG PROFILE KHÁCH HÀNG
+    // =========================================================================
+    @Transactional
+    public String updateAvatar(Integer id, MultipartFile file) {
+        // 1. Tìm khách hàng theo ID
+        KhachHang kh = khachHangRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng ID: " + id));
+
+        // 2. Kiểm tra file
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("File ảnh không hợp lệ");
+        }
+
+        // 3. Tái sử dụng hàm saveAvatar có sẵn của bạn để chuyển thành Base64
+        String base64Avatar = saveAvatar(file);
+
+        // 4. Cập nhật và lưu vào DB
+        kh.setAvatar(base64Avatar);
+        khachHangRepository.save(kh);
+
+        // 5. Trả về chuỗi ảnh mới để Controller gửi về cho Vue hiển thị luôn
+        return base64Avatar;
+    }
+
+
+
 }
