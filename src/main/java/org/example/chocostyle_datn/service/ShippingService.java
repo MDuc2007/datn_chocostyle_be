@@ -11,13 +11,10 @@ import java.util.Map;
 @Service
 public class ShippingService {
 
-
     private static final double SHOP_LAT = 21.0175;
     private static final double SHOP_LNG = 105.8523;
 
-
     private static final Map<String, double[]> DISTRICT_COORDS = new HashMap<>();
-
 
     static {
         DISTRICT_COORDS.put("Hai Bà Trưng", new double[]{21.0059, 105.8575});
@@ -31,38 +28,46 @@ public class ShippingService {
         DISTRICT_COORDS.put("Hà Đông", new double[]{20.9600, 105.7700});
     }
 
+    public int calculateShipping(String district) {
 
-    public int calculateShippingByDistrict(String district) {
+        if (district == null) return 50000;
 
+        district = district.trim();
+
+        if (district.startsWith("Quận ")) {
+            district = district.replace("Quận ", "");
+        }
 
         double[] coords = DISTRICT_COORDS.get(district);
 
-
         if (coords == null) return 50000;
 
-
-        double distance = calculateDistance(
+        double km = calculateDistance(
                 SHOP_LAT,
                 SHOP_LNG,
                 coords[0],
                 coords[1]
         );
 
-
-        return calculateFeeByKm(distance);
+        return calculateFeeByKm(km);
     }
 
+    private int calculateFeeByKm(double km) {
+
+        if (km <= 3) return 20000;
+        if (km <= 6) return 25000;
+        if (km <= 10) return 30000;
+
+        return 40000;
+    }
 
     private double calculateDistance(double lat1, double lon1,
                                      double lat2, double lon2) {
 
-
         final int R = 6371;
-
 
         double latDistance = Math.toRadians(lat2 - lat1);
         double lonDistance = Math.toRadians(lon2 - lon1);
-
 
         double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
                 + Math.cos(Math.toRadians(lat1))
@@ -70,24 +75,9 @@ public class ShippingService {
                 * Math.sin(lonDistance / 2)
                 * Math.sin(lonDistance / 2);
 
-
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-
         return R * c;
-    }
-
-
-    private int calculateFeeByKm(double km) {
-
-
-        if (km <= 3) return 20000;
-        if (km <= 6) return 25000;
-        if (km <= 10) return 30000;
-        if (km <= 15) return 40000;
-
-
-        return 50000;
     }
 }
 

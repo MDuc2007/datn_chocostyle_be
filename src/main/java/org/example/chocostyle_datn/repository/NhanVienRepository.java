@@ -42,4 +42,16 @@ public interface NhanVienRepository extends JpaRepository<NhanVien,Integer> {
             @Param("trangThai") Integer trangThai,
             Pageable pageable
     );
+    // Tìm nhân viên đang trong ca trực dựa theo giờ hiện tại và ngày hiện tại
+    @Query(value = "SELECT TOP 1 nv.* FROM nhan_vien nv " +
+            "JOIN lich_lam_viec lsv ON nv.id_nv = lsv.id_nhan_vien " +
+            "JOIN ca_lam_viec clv ON lsv.id_ca = clv.id_ca " +
+            "WHERE lsv.ngay_lam_viec = CAST(GETDATE() AS DATE) " +
+            "AND CAST(GETDATE() AS TIME) BETWEEN clv.gio_bat_dau AND clv.gio_ket_thuc " +
+            "AND nv.trang_thai = 1 AND lsv.trang_thai = 1", nativeQuery = true)
+    Optional<NhanVien> findNhanVienDangTrongCa();
+
+    // Nếu không có ai trong ca, lấy nhân viên quản lý hoặc nhân viên bất kỳ đang hoạt động
+    @Query(value = "SELECT TOP 1 * FROM nhan_vien WHERE trang_thai = 1 AND vai_tro = 'ADMIN'", nativeQuery = true)
+    NhanVien findNhanVienDuPhong();
 }

@@ -81,20 +81,6 @@ public class HoaDonController {
         }
     }
 
-//    // API 6: Tạo tab hóa đơn rỗng (Bán hàng tại quầy)
-//    @PostMapping("/tai-quay/tao-moi")
-//    public ResponseEntity<?> taoDonChoTaiQuay(@RequestParam Integer idNhanVien) {
-//        try {
-//            HoaDon hdMoi = hoaDonService.taoHoaDonChoTaiQuay(idNhanVien);
-//            // Trả về thẳng object để Frontend lấy id và maHoaDon gán lên UI
-//            return ResponseEntity.status(201).body(hdMoi);
-//        } catch (RuntimeException e) {
-//            return ResponseEntity.badRequest().body(e.getMessage());
-//        } catch (Exception e) {
-//            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
-//        }
-//    }
-
     // API 7: Cập nhật hóa đơn nháp (Xác nhận đặt hàng tại quầy)
     @PutMapping("/tai-quay/xac-nhan/{id}")
     public ResponseEntity<?> xacNhanDatHangTaiQuay(
@@ -122,6 +108,7 @@ public class HoaDonController {
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
+
     @PostMapping("/tai-quay/tao-moi")
     public ResponseEntity<?> taoDonChoTaiQuay() {
         HoaDon hdMoi = hoaDonService.taoHoaDonChoTaiQuay();
@@ -134,6 +121,35 @@ public class HoaDonController {
         hoaDonService.capNhatSoLuongTamThoi(idSpct, soLuongThayDoi);
         return ResponseEntity.ok("OK");
     }
+
+    // ==========================================
+    // TỪ NHÁNH HEAD: THÊM / XÓA SẢN PHẨM VÀO GIỎ
+    // ==========================================
+
+    // API 1: Khi nhân viên chọn thêm SP vào giỏ (Thêm SP A, SP B...)
+    @PostMapping("/{idHoaDon}/them-sp-vao-gio")
+    public ResponseEntity<?> themSanPhamVaoGio(
+            @PathVariable Integer idHoaDon,
+            @RequestParam Integer idSpct,
+            @RequestParam Integer soLuong) {
+
+        hoaDonService.themSanPhamVaoDonNhap(idHoaDon, idSpct, soLuong);
+        return ResponseEntity.ok("Đã thêm sản phẩm vào giỏ và ghi lịch sử!");
+    }
+
+    // API 2: Khi nhân viên đổi ý, ấn nút xóa SP A khỏi giỏ
+    @DeleteMapping("/{idHoaDon}/xoa-sp-khoi-gio/{idSpct}")
+    public ResponseEntity<?> xoaSanPhamKhoiGio(
+            @PathVariable Integer idHoaDon,
+            @PathVariable Integer idSpct) {
+
+        hoaDonService.xoaSanPhamKhoiDonNhap(idHoaDon, idSpct);
+        return ResponseEntity.ok("Đã bỏ sản phẩm khỏi giỏ và ghi lịch sử!");
+    }
+
+    // ==========================================
+    // TỪ NHÁNH HungDepZai: TRA CỨU ĐƠN HÀNG
+    // ==========================================
 
     // API 9: Tra cứu đơn hàng cho khách (KHÔNG CẦN LOGIN)
     @GetMapping("/tra-cuu")
@@ -151,6 +167,14 @@ public class HoaDonController {
         } catch (Exception e) {
             // Nếu có lỗi hệ thống khác, trả về 500
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+    @GetMapping("/my-orders")
+    public ResponseEntity<?> getMyOrders() {
+        try {
+            return ResponseEntity.ok(hoaDonService.getMyOrders());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi tải lịch sử đơn hàng: " + e.getMessage());
         }
     }
 }

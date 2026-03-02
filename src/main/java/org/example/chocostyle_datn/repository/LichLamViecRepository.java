@@ -85,6 +85,3 @@ public interface LichLamViecRepository extends JpaRepository<LichLamViec, Intege
     // Thêm hàm này để tìm lịch của nhân viên trong một ngày (không phân biệt trạng thái)
     List<LichLamViec> findByNhanVien_IdAndNgayLamViec(Integer idNv, LocalDate ngayLamViec);
 }
-
-
-

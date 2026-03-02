@@ -30,15 +30,43 @@ public class ChamCongService {
         this.nhanVienRepository = nhanVienRepository;
     }
 
-    // 🔎 Kiểm tra đã check-in chưa
-    public boolean daCheckIn(Integer idNv, LocalDate ngay) {
-        return chamCongRepository
-                .findByNhanVien_IdAndNgay(idNv, ngay)
-                .isPresent();
+    // 🔎 Hàm Lấy ca thông minh (Đã chuẩn hóa theo: 1=Đóng, 2=Chờ, 3=Đang làm)
+    public ChamCong getChamCongHomNay(Integer idNv) {
+        LocalDate today = LocalDate.now();
+        List<ChamCong> list = chamCongRepository.findDanhSachChamCongHomNay(idNv, today);
+
+        // 1. NẾU CÓ PHIẾU ĐANG LÀM DỞ: Ưu tiên trả về để nhân viên tiếp tục bán hàng
+        if (list != null && !list.isEmpty()) {
+            for (ChamCong cc : list) {
+                if (cc.getGioCheckOut() == null) {
+                    return cc; // Trả về ca có trạng thái 3 (Đang làm)
+                }
+            }
+        }
+
+        // 2. KIỂM TRA LỊCH LÀM VIỆC: Xem Quản lý có phân ca mới không?
+        List<LichLamViec> lichs = lichLamViecRepository.checkCaHomNay(idNv, today);
+        if (!lichs.isEmpty()) {
+            LichLamViec caHienTai = lichs.get(0);
+
+            // 👉 ĐÂY LÀ CHÌA KHÓA: Nếu lịch đang ở trạng thái 2 (ĐANG MỞ / CHỜ LÀM)
+            if (caHienTai.getTrangThai() == 2) {
+                // Có ca mới tinh chưa Check-in! Trả về rỗng để Frontend mở form Nhập tiền
+                return null;
+            }
+        }
+
+        // 3. NẾU KHÔNG CÓ CA MỚI CHỜ LÀM: Trả về phiếu chấm công vừa đóng gần nhất
+        // (Để hiển thị giao diện Tổng kết Ca đã đóng và 2 nút Chỉ xem / Đăng xuất)
+        if (list != null && !list.isEmpty()) {
+            return list.get(0);
+        }
+
+        return null;
     }
 
     // 🚀 CHECK-IN
-    public ChamCong checkIn(Integer idNv) {
+    public ChamCong checkIn(Integer idNv,Double tienMatDauCa, Double tienCkDauCa) {
 
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
@@ -55,20 +83,25 @@ public class ChamCongService {
 
         LocalTime gioBatDau = ca.getCaLamViec().getGioBatDau();
         LocalTime gioKetThuc = ca.getCaLamViec().getGioKetThuc();
+        LocalTime gioMoCaSom = gioBatDau.minusMinutes(30); // Cho phép check-in sớm 30p
 
-        // 2️⃣ CHẶN CHECK-IN SỚM
-        if (now.isBefore(gioBatDau)) {
-            throw new RuntimeException("Chưa đến giờ vào ca!");
+        // 2️⃣ VÀ 3️⃣: KIỂM TRA GIỜ CHECK-IN CHO CẢ CA NGÀY VÀ ĐÊM
+        boolean isThoiGianHopLe = false;
+
+        if (gioBatDau.isBefore(gioKetThuc)) {
+            // Ca ban ngày
+            isThoiGianHopLe = now.isAfter(gioMoCaSom) && now.isBefore(gioKetThuc);
+        } else {
+            // Ca qua đêm
+            isThoiGianHopLe = now.isAfter(gioMoCaSom) || now.isBefore(gioKetThuc);
         }
-
-        // 3️⃣ CHẶN CHECK-IN TRỄ SAU KHI CA ĐÃ KẾT THÚC
-        if (now.isAfter(gioKetThuc)) {
-            throw new RuntimeException("Ca làm hôm nay đã kết thúc!");
+        if (!isThoiGianHopLe) {
+            throw new RuntimeException("Hiện tại không nằm trong thời gian cho phép vào ca!");
         }
-
-        // 4️⃣ Kiểm tra đã check-in chưa
-        if (daCheckIn(idNv, today)) {
-            throw new RuntimeException("Bạn đã check-in rồi!");
+        // 4️⃣ Kiểm tra xem có ca nào đang làm dở chưa đóng không
+        ChamCong caDangMo = getChamCongHomNay(idNv);
+        if (caDangMo != null) {
+            throw new RuntimeException("Bạn đang có một ca chưa kết thúc. Vui lòng đóng ca cũ trước khi vào ca mới!");
         }
 
         // 5️⃣ Lấy nhân viên
@@ -81,7 +114,8 @@ public class ChamCongService {
         chamCong.setNgay(today);
         chamCong.setGioCheckIn(now);
         chamCong.setTrangThai(3);
-
+        chamCong.setTienMatDauCa(tienMatDauCa);
+        chamCong.setTienChuyenKhoanDauCa(tienCkDauCa);
         // Lưu chấm công
         ChamCong savedChamCong = chamCongRepository.save(chamCong);
 
@@ -94,19 +128,15 @@ public class ChamCongService {
     }
 
     // Sửa lại hàm checkOut để nhận thêm tiền
-    public ChamCong checkOut(Integer idNv, Double tienMat, Double tienChuyenKhoan) {
+    public ChamCong checkOut(Integer idNv, Double tienMat, Double tienChuyenKhoan, String ghiChu) {
 
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
 
-        // 1️⃣ Tìm bản ghi hôm nay
-        ChamCong chamCong = chamCongRepository
-                .findByNhanVien_IdAndNgay(idNv, today)
-                .orElseThrow(() -> new RuntimeException("Bạn chưa check-in hôm nay!"));
-
-        // 2️⃣ Kiểm tra đã check-out chưa
-        if (chamCong.getGioCheckOut() != null) {
-            throw new RuntimeException("Bạn đã check-out rồi!");
+        // 1️⃣ & 2️⃣ Lấy đúng cái ca ĐANG MỞ của ngày hôm nay ra để đóng
+        ChamCong chamCong = getChamCongHomNay(idNv);
+        if (chamCong == null) {
+            throw new RuntimeException("Bạn chưa check-in hoặc không có ca nào đang mở!");
         }
 
         // 3️⃣ Lấy ca làm hôm nay (Sử dụng hàm mới để lấy lịch bỏ qua trạng thái)
@@ -139,7 +169,29 @@ public class ChamCongService {
         chamCong.setTrangThai(1);
         chamCong.setTienMatCuoiCa(tienMat);
         chamCong.setTienChuyenKhoanCuoiCa(tienChuyenKhoan);
+        chamCong.setGhiChu(ghiChu);
+        // 2. TÍNH DOANH THU TÁCH BIỆT (Tiền mặt & Chuyển khoản)
+        java.time.LocalDateTime startDateTime = java.time.LocalDateTime.of(chamCong.getNgay(), chamCong.getGioCheckIn());
+        java.time.LocalDateTime endDateTime = java.time.LocalDateTime.now();
 
+        Double dtTienMat = chamCongRepository.calculateDoanhThuTienMat(idNv, startDateTime, endDateTime);
+        Double dtChuyenKhoan = chamCongRepository.calculateDoanhThuChuyenKhoan(idNv, startDateTime, endDateTime);
+
+        chamCong.setDoanhThuTienMat(dtTienMat);
+        chamCong.setDoanhThuCk(dtChuyenKhoan);
+        chamCong.setTongDoanhThu(dtTienMat + dtChuyenKhoan); // Tổng doanh thu bằng 2 túi cộng lại
+
+        // 3. TÍNH CHÊNH LỆCH CHO TỪNG TÚI TIỀN
+        Double dauCaMat = chamCong.getTienMatDauCa() != null ? chamCong.getTienMatDauCa() : 0.0;
+        Double dauCaCk = chamCong.getTienChuyenKhoanDauCa() != null ? chamCong.getTienChuyenKhoanDauCa() : 0.0;
+
+        // Công thức: Chênh lệch = Thực tế nhập vào - (Đầu ca + Doanh thu)
+        Double chenhLechMat = tienMat - (dauCaMat + dtTienMat);
+        Double chenhLechCk = tienChuyenKhoan - (dauCaCk + dtChuyenKhoan);
+
+        chamCong.setChenhLechTienMat(chenhLechMat);
+        chamCong.setChenhLechCk(chenhLechCk);
+        chamCong.setTienChenhLech(chenhLechMat + chenhLechCk); // Vẫn lưu tổng chênh lệch để dễ nhìn lướt
         // Lưu chấm công
         ChamCong savedChamCong = chamCongRepository.save(chamCong);
 
@@ -183,8 +235,16 @@ public class ChamCongService {
 
             dto.setTienMat(tienMat);
             dto.setTienChuyenKhoan(tienCk);
-            dto.setTongDoanhThu(doanhThu);
-
+//            dto.setTongDoanhThu(doanhThu);
+            dto.setTienMatDauCa(Double.valueOf(row.get("tienMatDauCa").toString()));
+            dto.setTienChuyenKhoanDauCa(Double.valueOf(row.get("tienChuyenKhoanDauCa").toString()));
+            dto.setTongDoanhThu(Double.valueOf(row.get("tongDoanhThu").toString()));
+            dto.setTienChenhLech(Double.valueOf(row.get("tienChenhLech").toString()));
+            dto.setGhiChu((String) row.get("ghiChu"));
+            dto.setDoanhThuTienMat(Double.valueOf(row.get("doanhThuTienMat").toString()));
+            dto.setDoanhThuCk(Double.valueOf(row.get("doanhThuCk").toString()));
+            dto.setChenhLechTienMat(Double.valueOf(row.get("chenhLechTienMat").toString()));
+            dto.setChenhLechCk(Double.valueOf(row.get("chenhLechCk").toString()));
             if (dto.getTrangThai() == 3) {
                 dto.setTienChenh((tienMat + tienCk) - doanhThu);
             } else {
@@ -194,5 +254,11 @@ public class ChamCongService {
             responses.add(dto);
         }
         return responses;
+    }
+    public Map<String, Double> laySoDuCaTruoc() {
+        ChamCong caTruoc = chamCongRepository.layCaDongGanNhat();
+        Double tienMat = (caTruoc != null && caTruoc.getTienMatCuoiCa() != null) ? caTruoc.getTienMatCuoiCa() : 0.0;
+        Double tienCk = (caTruoc != null && caTruoc.getTienChuyenKhoanCuoiCa() != null) ? caTruoc.getTienChuyenKhoanCuoiCa() : 0.0;
+        return Map.of("tienMat", tienMat, "tienCk", tienCk);
     }
 }

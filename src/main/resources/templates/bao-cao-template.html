@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Báo Cáo Doanh Thu - ChocoStyle</title>
+</head>
+<body style="background-color: #ffffff; margin: 0; padding: 20px; font-family: Arial, Helvetica, sans-serif; color: #333333;">
+
+<div style="max-width: 650px; margin: 0 auto; background-color: #ffffff; font-family: Arial, Helvetica, sans-serif;">
+
+    <div style="padding: 10px 0 20px 0;">
+        <h1 style="margin: 0; font-size: 26px; color: #603b2c; font-family: Arial, Helvetica, sans-serif;">
+            <span style="color: #f57224;"></span> CHOCOSTYLE
+        </h1>
+    </div>
+
+    <div style="height: 8px; background: linear-gradient(135deg, #f57224 40%, #603b2c 45%); width: 100%; margin-bottom: 30px;"></div>
+
+    <div style="padding: 0 10px;">
+        <p style="font-weight: bold; font-size: 14px; font-family: Arial, Helvetica, sans-serif; margin-bottom: 5px;">
+            Kính gửi Quý Quản lý,
+        </p>
+        <p style="font-size: 14px; line-height: 1.6; color: #333333; font-family: Arial, Helvetica, sans-serif; margin-top: 5px;">
+            ChocoStyle trân trọng thông báo tổng hợp kết quả kinh doanh <strong th:text="${kieuBaoCao}">...</strong> (Ngày <span th:text="${#dates.format(#dates.createNow(), 'dd/MM/yyyy')}"></span>) :
+        </p>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 25px; font-size: 13px; font-family: Arial, Helvetica, sans-serif;">
+            <thead>
+            <tr>
+                <th style="border: 1px solid #cccccc; padding: 12px; background-color: #fafafa; color: #e65c00; font-weight: bold; text-align: center; width: 50%;">
+                    Chỉ tiêu thống kê
+                </th>
+                <th style="border: 1px solid #cccccc; padding: 12px; background-color: #fafafa; color: #e65c00; font-weight: bold; text-align: center; width: 50%;">
+                    Thực tế đạt được (VND)
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td style="border: 1px solid #cccccc; padding: 12px; color: #333333; text-align: center;">
+                    Số lượng đơn hàng hoàn thành
+                </td>
+                <td style="border: 1px solid #cccccc; padding: 12px; text-align: right; color: #333333;"
+                    th:text="${dataBaoCao.soDonHang}">0
+                </td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #cccccc; padding: 12px; color: #e65c00; font-weight: bold; text-align: center;">
+                    Tổng cộng
+                </td>
+                <td style="border: 1px solid #cccccc; padding: 12px; text-align: right; font-weight: bold; color: #333333;"
+                    th:text="${#numbers.formatDecimal(dataBaoCao.doanhThu, 0, 'COMMA', 0, 'POINT')}">0
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div style="background-color: #f2f2f2; padding: 15px 20px; font-size: 13px; line-height: 1.8; font-family: Arial, Helvetica, sans-serif; color: #333333;">
+            <div style="display: flex; margin-bottom: 5px;">
+                <span style="color: #e65c00; font-size: 12px; margin-right: 8px;">▸</span>
+                <span>Số liệu trên được trích xuất trực tiếp từ dữ liệu bán hàng của hệ thống.</span>
+            </div>
+            <div style="display: flex; margin-bottom: 5px;">
+                <span style="color: #e65c00; font-size: 12px; margin-right: 8px;">▸</span>
+                <span>Chỉ các đơn hàng ở trạng thái <b>Hoàn thành</b> mới được tính vào doanh thu thực tế để báo cáo.</span>
+            </div>
+            <div style="color: #e65c00; font-weight: normal; margin-top: 10px;">
+                Tuyệt đối không chia sẻ số liệu kinh doanh này cho người ngoài hệ thống.
+            </div>
+        </div>
+
+        <div style="margin-top: 40px; font-family: Arial, Helvetica, sans-serif;">
+            <p style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #333333;">
+                ChocoStyle luôn mong muốn mang đến công cụ quản lý tốt nhất,
+            </p>
+            <p style="margin: 0 0 5px 0; font-size: 13px; color: #333333;">
+                Trân trọng cảm ơn,
+            </p>
+            <p style="margin: 0 0 20px 0; font-size: 13px; font-weight: bold; color: #333333;">
+                Hệ thống Quản lý Bán hàng ChocoStyle
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #e65c00; margin: 15px 0;">
+
+            <p style="margin: 0 0 5px 0; font-size: 11px; color: #666666; line-height: 1.5;">
+                Đây là email được gửi tự động từ hệ thống của ChocoStyle. Quý quản lý vui lòng không gửi lại vào email này.
+            </p>
+            <p style="margin: 0; font-size: 11px; color: #666666; line-height: 1.5;">
+                Mọi thông tin cần hỗ trợ kỹ thuật, vui lòng liên hệ:<br/>
+                Hotline: 1900 88 88 88 | Email: <a href="mailto:support@chocostyle.vn" style="color: #0000ee; text-decoration: underline;">support@chocostyle.vn</a>
+            </p>
+        </div>
+    </div>
+</div>
+</body>
+</html>

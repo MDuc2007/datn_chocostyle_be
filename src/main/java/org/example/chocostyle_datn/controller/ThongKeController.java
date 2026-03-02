@@ -2,11 +2,15 @@ package org.example.chocostyle_datn.controller;
 
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.example.chocostyle_datn.entity.CauHinhHeThong;
 import org.example.chocostyle_datn.entity.ChiTietSanPham;
 import org.example.chocostyle_datn.model.Request.ThongKeRequest;
 import org.example.chocostyle_datn.model.Response.DoanhThuResponse;
 import org.example.chocostyle_datn.model.Response.SanPhamBanChayResponse;
+import org.example.chocostyle_datn.model.Response.TongQuatResponse;
 import org.example.chocostyle_datn.model.Response.TrangThaiDonResponse;
+import org.example.chocostyle_datn.repository.CauHinhHeThongRepository;
+import org.example.chocostyle_datn.service.EmailServiceThongKe;
 import org.example.chocostyle_datn.service.ThongKeExcelService;
 import org.example.chocostyle_datn.service.ThongKeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +24,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -34,6 +39,12 @@ public class ThongKeController {
 
     @Autowired
     private ThongKeExcelService thongKeExcelService;
+
+    @Autowired
+    private CauHinhHeThongRepository cauHinhRepo;
+
+    @Autowired
+    private EmailServiceThongKe emailService; // Khai báo biến này để hết lỗi đỏ
 
 
     // API 1: Lấy dữ liệu tổng quan cho 4 Card (Hôm nay, Tuần này, Tháng này, Năm nay)
@@ -119,6 +130,72 @@ public class ThongKeController {
 
         // Gọi Service viết vào luồng xuất của response
         thongKeExcelService.exportDoanhThu(dataList, finalStart, finalEnd, response.getOutputStream());
+    }
+
+    // API lấy cấu hình hiện tại đưa lên giao diện
+    @GetMapping("/cau-hinh-email")
+    public ResponseEntity<?> getCauHinhEmail() {
+        return ResponseEntity.ok(cauHinhRepo.findById(1).orElse(null));
+    }
+
+    // API lưu cấu hình từ giao diện gửi xuống
+    @PostMapping("/cau-hinh-email")
+    public ResponseEntity<?> saveCauHinhEmail(@RequestBody org.example.chocostyle_datn.entity.CauHinhHeThong request) {
+        org.example.chocostyle_datn.entity.CauHinhHeThong config = cauHinhRepo.findById(1).orElse(null);
+        if (config != null) {
+            config.setEmailNhan(request.getEmailNhan());
+            config.setGuiNgay(request.getGuiNgay());
+            config.setGuiTuan(request.getGuiTuan());
+            config.setGuiThang(request.getGuiThang());
+            config.setGuiNam(request.getGuiNam());
+            cauHinhRepo.save(config);
+            return ResponseEntity.ok("Cập nhật cấu hình email thành công!");
+        }
+        return ResponseEntity.badRequest().body("Lỗi: Không tìm thấy dòng cấu hình trong DB!");
+    }
+
+    // API GỬI THỬ EMAIL ĐỂ TEST
+    @PostMapping("/test-email")
+    public ResponseEntity<?> testEmail() {
+        // Lấy cấu hình từ Database
+        org.example.chocostyle_datn.entity.CauHinhHeThong config = cauHinhRepo.findById(1).orElse(null);
+        String emailHeThong = "hethong.chocostyle@gmail.com";
+
+        if (config == null) {
+            return ResponseEntity.badRequest().body("❌ Lỗi: Chưa có cấu hình hệ thống!");
+        }
+
+        // Lấy toàn bộ bộ dữ liệu thống kê (Ngày, Tuần, Tháng, Năm)
+        Map<String, org.example.chocostyle_datn.model.Response.TongQuatResponse> duLieu = thongKeService.getDuLieuTongQuan();
+        boolean daGui = false;
+
+        // Kiểm tra xem công tắc nào đang bật thì gửi mail loại đó
+        if (config.getGuiNgay() != null && config.getGuiNgay()) {
+            emailService.guiMailHtml(emailHeThong, "🧪 [TEST] Báo Cáo Doanh Thu Ngày - ChocoStyle", duLieu.get("homNay"), "hôm nay");
+            daGui = true;
+        }
+
+        if (config.getGuiTuan() != null && config.getGuiTuan()) {
+            emailService.guiMailHtml(emailHeThong, "🧪 [TEST] Báo Cáo Doanh Thu Tuần - ChocoStyle", duLieu.get("tuanNay"), "tuần này");
+            daGui = true;
+        }
+
+        if (config.getGuiThang() != null && config.getGuiThang()) {
+            emailService.guiMailHtml(emailHeThong, "🧪 [TEST] Báo Cáo Doanh Thu Tháng - ChocoStyle", duLieu.get("thangNay"), "tháng này");
+            daGui = true;
+        }
+
+        if (config.getGuiNam() != null && config.getGuiNam()) {
+            emailService.guiMailHtml(emailHeThong, "🧪 [TEST] Báo Cáo Doanh Thu Năm - ChocoStyle", duLieu.get("namNay"), "năm nay");
+            daGui = true;
+        }
+
+        // Nếu người dùng không bật công tắc nào mà vẫn cố tình bấm Test
+        if (!daGui) {
+            emailService.guiMailHtml(emailHeThong, "🧪 [TEST] Báo Cáo Doanh Thu - ChocoStyle", duLieu.get("homNay"), "gửi thử nghiệm");
+        }
+
+        return ResponseEntity.ok("✅ Đã kiểm tra cấu hình và gửi mail test tương ứng!");
     }
 }
 

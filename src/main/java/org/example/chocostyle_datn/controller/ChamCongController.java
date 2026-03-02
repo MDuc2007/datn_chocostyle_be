@@ -25,10 +25,16 @@ public class ChamCongController {
     }
 
     @PostMapping("/check-in/{idNv}")
-    public ResponseEntity<?> checkIn(@PathVariable Integer idNv){
-
+    public ResponseEntity<?> checkIn(
+            @PathVariable Integer idNv,
+            @RequestBody Map<String, Double> payload // Thêm dòng này để nhận JSON
+    ){
         try {
-            return ResponseEntity.ok(service.checkIn(idNv));
+            Double tienMat = payload.getOrDefault("tienMatDauCa", 0.0);
+            Double tienCk = payload.getOrDefault("tienTaiKhoanDauCa", 0.0);
+
+            // Truyền tiền xuống Service
+            return ResponseEntity.ok(service.checkIn(idNv, tienMat, tienCk));
         } catch (RuntimeException e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -39,15 +45,15 @@ public class ChamCongController {
     @PostMapping("/check-out/{idNv}")
     public ResponseEntity<?> checkOut(
             @PathVariable Integer idNv,
-            @RequestBody Map<String, Double> payload // 👉 Hứng cục data JSON từ Frontend
+            @RequestBody Map<String, Object> payload // Đổi sang Object để nhận cả String (ghi chú)
     ) {
         try {
-            // Rút tiền từ payload ra
-            Double tienMat = payload.getOrDefault("tienMatCuoiCa", 0.0);
-            Double tienChuyenKhoan = payload.getOrDefault("tienChuyenKhoanCuoiCa", 0.0);
+            Double tienMat = Double.valueOf(payload.getOrDefault("tienMatCuoiCa", 0.0).toString());
+            Double tienChuyenKhoan = Double.valueOf(payload.getOrDefault("tienChuyenKhoanCuoiCa", 0.0).toString());
+            String ghiChu = (String) payload.getOrDefault("ghiChu", ""); // Hứng ghi chú
 
             // Truyền xuống Service
-            return ResponseEntity.ok(service.checkOut(idNv, tienMat, tienChuyenKhoan));
+            return ResponseEntity.ok(service.checkOut(idNv, tienMat, tienChuyenKhoan, ghiChu));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -55,12 +61,17 @@ public class ChamCongController {
 
     @GetMapping("/hom-nay/{idNv}")
     public ResponseEntity<?> getChamCongHomNay(@PathVariable Integer idNv) {
-        LocalDate today = LocalDate.now();
-        Optional<ChamCong> cc = chamCongRepository
-                .findByNhanVien_IdAndNgay(idNv, today);
+        try {
+            // 👉 ĐẢM BẢO DÒNG NÀY ĐANG GỌI getChamCongHomNay
+            ChamCong cc = service.getChamCongHomNay(idNv);
 
-        return cc.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.noContent().build());
+            if (cc == null) {
+                return ResponseEntity.ok().build(); // Không có data -> FE sẽ hiểu là mở Check-in
+            }
+            return ResponseEntity.ok(cc);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
     // API LẤY DANH SÁCH GIAO CA KẾT TOÁN
     @GetMapping("/giao-ca")
@@ -73,5 +84,9 @@ public class ChamCongController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+    @GetMapping("/so-du-ca-truoc")
+    public ResponseEntity<?> getSoDuCaTruoc() {
+        return ResponseEntity.ok(service.laySoDuCaTruoc());
     }
 }

@@ -13,12 +13,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/shipping")
 @RequiredArgsConstructor
 public class ShippingController {
+
     private final ShippingService shippingService;
 
-
     @GetMapping
-    public Integer calculate(@RequestParam String district) {
-        return shippingService.calculateShippingByDistrict(district);
+    public Integer calculate(
+            @RequestParam String district
+    ) {
+        return shippingService.calculateShipping(district);
     }
 }
 

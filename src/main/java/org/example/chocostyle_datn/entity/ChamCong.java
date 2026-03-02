@@ -1,6 +1,10 @@
 package org.example.chocostyle_datn.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -41,7 +45,30 @@ public class ChamCong {
     @Column(name = "tien_chuyen_khoan_cuoi_ca")
     private Double tienChuyenKhoanCuoiCa;
 
+    @Column(name = "tien_mat_dau_ca")
+    private Double tienMatDauCa;
 
+    @Column(name = "tien_chuyen_khoan_dau_ca")
+    private Double tienChuyenKhoanDauCa;
+
+    @Column(name = "ghi_chu")
+    private String ghiChu;
+    @Column(name = "tong_doanh_thu")
+    private Double tongDoanhThu;
+
+    @Column(name = "tien_chenh_lech")
+    private Double tienChenhLech;
+    @Column(name = "doanh_thu_tien_mat")
+    private Double doanhThuTienMat;
+
+    @Column(name = "doanh_thu_ck")
+    private Double doanhThuCk;
+
+    @Column(name = "chenh_lech_tien_mat")
+    private Double chenhLechTienMat;
+
+    @Column(name = "chenh_lech_ck")
+    private Double chenhLechCk;
     // ===== Getter & Setter =====
 
     public Integer getId() {
@@ -107,5 +134,77 @@ public class ChamCong {
 
     public void setTienChuyenKhoanCuoiCa(Double tienChuyenKhoanCuoiCa) {
         this.tienChuyenKhoanCuoiCa = tienChuyenKhoanCuoiCa;
+    }
+
+    public Double getTienMatDauCa() {
+        return tienMatDauCa;
+    }
+
+    public void setTienMatDauCa(Double tienMatDauCa) {
+        this.tienMatDauCa = tienMatDauCa;
+    }
+
+    public Double getTienChuyenKhoanDauCa() {
+        return tienChuyenKhoanDauCa;
+    }
+
+    public void setTienChuyenKhoanDauCa(Double tienChuyenKhoanDauCa) {
+        this.tienChuyenKhoanDauCa = tienChuyenKhoanDauCa;
+    }
+
+    public String getGhiChu() {
+        return ghiChu;
+    }
+
+    public void setGhiChu(String ghiChu) {
+        this.ghiChu = ghiChu;
+    }
+
+    public Double getTienChenhLech() {
+        return tienChenhLech;
+    }
+
+    public void setTienChenhLech(Double tienChenhLech) {
+        this.tienChenhLech = tienChenhLech;
+    }
+
+    public Double getTongDoanhThu() {
+        return tongDoanhThu;
+    }
+
+    public void setTongDoanhThu(Double tongDoanhThu) {
+        this.tongDoanhThu = tongDoanhThu;
+    }
+
+    public Double getDoanhThuTienMat() {
+        return doanhThuTienMat;
+    }
+
+    public void setDoanhThuTienMat(Double doanhThuTienMat) {
+        this.doanhThuTienMat = doanhThuTienMat;
+    }
+
+    public Double getDoanhThuCk() {
+        return doanhThuCk;
+    }
+
+    public void setDoanhThuCk(Double doanhThuCk) {
+        this.doanhThuCk = doanhThuCk;
+    }
+
+    public Double getChenhLechTienMat() {
+        return chenhLechTienMat;
+    }
+
+    public void setChenhLechTienMat(Double chenhLechTienMat) {
+        this.chenhLechTienMat = chenhLechTienMat;
+    }
+
+    public Double getChenhLechCk() {
+        return chenhLechCk;
+    }
+
+    public void setChenhLechCk(Double chenhLechCk) {
+        this.chenhLechCk = chenhLechCk;
     }
 }
