@@ -39,4 +39,8 @@ public class ChiTietSanPhamResponse {
     private String qrImage;
     //tesst
 
+    private BigDecimal giaGoc;       // Giá ban đầu (chưa giảm)
+    private BigDecimal giaSauGiam;   // Giá đã trừ % khuyến mãi
+    private Integer phanTramGiam;
+
 }
