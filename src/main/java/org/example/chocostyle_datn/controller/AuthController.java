@@ -139,7 +139,9 @@ public class AuthController {
         response.put("tokenType", "Bearer");
         response.put("username", nv.getEmail());
         response.put("role", role);
-
+        // 🔴 THÊM DÒNG NÀY VÀO ĐỂ APP HIỆN ĐƯỢC TÊN NHÂN VIÊN
+        // (Lưu ý: Thay getTenNhanVien() bằng hàm get tên thực tế trong class NhanVien của bạn)
+        response.put("tenNv", nv.getHoTen());
 
         return ResponseEntity.ok(response);
     }
