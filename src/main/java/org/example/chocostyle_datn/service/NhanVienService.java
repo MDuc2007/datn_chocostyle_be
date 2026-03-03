@@ -295,4 +295,30 @@ public class NhanVienService {
         // Chuyển đổi từ Entity sang Response
         return nhanVienPage.map(this::mapToResponse);
     }
+
+    // ==========================================
+    // API CHUYÊN DÙNG ĐỂ CẬP NHẬT AVATAR
+    // ==========================================
+    public String updateAvatar(Integer id, org.springframework.web.multipart.MultipartFile file) {
+        NhanVien nv = repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên: " + id));
+
+        try {
+            // Chuyển đổi file ảnh sang chuỗi Base64 để lưu thẳng vào DB
+            byte[] fileBytes = file.getBytes();
+            String base64Image = java.util.Base64.getEncoder().encodeToString(fileBytes);
+
+            // Lấy định dạng ảnh (png, jpeg...) để ghép chuỗi hiển thị HTML
+            String contentType = file.getContentType();
+            String fullBase64 = "data:" + contentType + ";base64," + base64Image;
+
+            // Lưu vào entity
+            nv.setAvatar(fullBase64);
+            repo.save(nv);
+
+            return fullBase64; // Trả về chuỗi ảnh mới để Frontend cập nhật ngay lập tức
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Lỗi khi đọc file ảnh: " + e.getMessage());
+        }
+    }
 }

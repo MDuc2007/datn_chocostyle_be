@@ -1,6 +1,5 @@
 package org.example.chocostyle_datn.repository;
 
-
 import jakarta.persistence.LockModeType;
 import org.example.chocostyle_datn.entity.ChiTietSanPham;
 import org.example.chocostyle_datn.entity.SanPham;
@@ -38,6 +37,7 @@ public interface ChiTietSanPhamRepository extends JpaRepository<ChiTietSanPham, 
             :keyword IS NULL 
             OR LOWER(ctsp.maChiTietSanPham) LIKE LOWER(CONCAT('%', :keyword, '%'))
             OR LOWER(ctsp.idSanPham.maSp) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            OR LOWER(ctsp.idSanPham.tenSp) LIKE LOWER(CONCAT('%', :keyword, '%')) 
           )
       AND (:mauSacId IS NULL OR ctsp.idMauSac.id = :mauSacId)
       AND (:kichCoId IS NULL OR ctsp.idKichCo.id = :kichCoId)
@@ -56,7 +56,5 @@ public interface ChiTietSanPhamRepository extends JpaRepository<ChiTietSanPham, 
             Pageable pageable
     );
 
-
     Optional<ChiTietSanPham> findByQrCode(String qrCode);
-
 }

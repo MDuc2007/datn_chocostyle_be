@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -58,5 +59,7 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
     List<HoaDon> findAllByTrangThaiAndNgayTaoBefore(Integer trangThai, LocalDateTime time);
 
     Optional<HoaDon> findByMaHoaDon(String maHoaDon);
+
     List<HoaDon> findByIdKhachHang_IdOrderByIdAsc(Integer idKhachHang);
+
 }

@@ -325,5 +325,44 @@ public class KhachHangController {
                 khachHangService.getDetailByEmail(email)
         );
     }
+
+    // =========================================================================
+    // 7. CẬP NHẬT RIÊNG AVATAR (DÙNG CHO TRANG PROFILE KHÁCH HÀNG)
+    // =========================================================================
+    @PostMapping("/{id}/avatar")
+    public ResponseEntity<?> updateAvatar(
+            @PathVariable Integer id,
+            @RequestParam("avatarFile") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body("Vui lòng chọn ảnh.");
+            }
+
+            // Kiểm tra dung lượng (giới hạn 5MB)
+            if (file.getSize() > 5242880) {
+                return ResponseEntity.badRequest().body("Dung lượng ảnh không được vượt quá 5MB.");
+            }
+
+            // Gọi service để cập nhật ảnh
+            // Lưu ý: Bạn cần tạo hàm updateAvatar trong KhachHangService (tương tự như NhanVienService)
+            String newAvatarBase64 = khachHangService.updateAvatar(id, file);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Cập nhật ảnh thành công");
+            response.put("avatar", newAvatarBase64);
+
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
+
+
+
 }
 

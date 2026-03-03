@@ -5,6 +5,7 @@ package org.example.chocostyle_datn.service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.example.chocostyle_datn.entity.HoaDon;
 import org.example.chocostyle_datn.entity.KhachHang;
 import org.example.chocostyle_datn.entity.PhieuGiamGia;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,11 +26,49 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class EmailService {
 
-
-
-
     @Autowired
     private JavaMailSender mailSender;
+    @Autowired
+    private JavaMailSender javaMailSender;
+
+    @Async // Chạy ngầm để không làm khách phải chờ lâu khi đặt hàng
+    public void sendOrderConfirmation(String toEmail, HoaDon hoaDon) {
+        if (toEmail == null || toEmail.isEmpty()) return;
+
+        String subject = "ChocoStyle - Xác nhận đơn hàng #" + hoaDon.getMaHoaDon();
+        // Link tra cứu (Thay đổi port Frontend của bạn, ví dụ localhost:5173)
+        String trackingLink = "http://localhost:5173/tra-cuu?code=" + hoaDon.getMaHoaDon();
+
+        String htmlContent = "<html><body>"
+                + "<h2>Cảm ơn bạn đã đặt hàng tại ChocoStyle!</h2>"
+                + "<p>Xin chào <b>" + hoaDon.getTenKhachHang() + "</b>,</p>"
+                + "<p>Đơn hàng của bạn đã được ghi nhận thành công.</p>"
+                + "<h3>Thông tin đơn hàng:</h3>"
+                + "<ul>"
+                + "<li><b>Mã đơn hàng:</b> " + hoaDon.getMaHoaDon() + "</li>"
+                + "<li><b>Sản phẩm mua:</b> (Xem chi tiết trong link tra cứu)</li>"
+                + "<li><b>Tổng thanh toán:</b> " + String.format("%,.0f", hoaDon.getTongTienThanhToan()) + " đ</li>"
+                + "<li><b>Địa chỉ giao:</b> " + hoaDon.getDiaChiKhachHang() + "</li>"
+                + "</ul>"
+                + "<p>Bạn có thể theo dõi trạng thái đơn hàng tại đường dẫn sau:</p>"
+                + "<a href='" + trackingLink + "' style='background-color: #6b3f1e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>TRA CỨU ĐƠN HÀNG</a>"
+                + "<p>Hoặc truy cập link: " + trackingLink + "</p>"
+                + "<br><p>Trân trọng,<br>Đội ngũ ChocoStyle</p>"
+                + "</body></html>";
+
+        try {
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true);
+            javaMailSender.send(message);
+            System.out.println("Đã gửi mail xác nhận đơn hàng tới: " + toEmail);
+        } catch (MessagingException e) {
+            System.err.println("Lỗi gửi mail: " + e.getMessage());
+        }
+    }
+
     @Async
     public void sendAccountInfo(String toEmail, String hoTen, String username, String password) {
         // Chủ đề email
