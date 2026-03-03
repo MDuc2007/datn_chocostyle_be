@@ -100,7 +100,7 @@ public class VnpayController {
 
                 // Lấy phương thức thanh toán VNPAY (Giả sử ID 2 là VNPAY/Chuyển khoản)
                 // Bạn cần thay đổi ID này cho đúng với DB của bạn
-                 PhuongThucThanhToan pttt = ptttRepo.findById(5).orElse(null);
+                 PhuongThucThanhToan pttt = ptttRepo.findById(3).orElse(null);
                  tt.setIdPttt(pttt);
 
                 thanhToanRepo.save(tt);
