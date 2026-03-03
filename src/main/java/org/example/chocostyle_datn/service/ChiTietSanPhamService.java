@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +31,9 @@ public class ChiTietSanPhamService {
     private final KieuDangRepository kieuDangRepository;
     private final ChiTietSanPhamRepository chiTietSanPhamRepository;
 
+    // Đã thêm ChiTietDotGiamGiaRepository
+    private final ChiTietDotGiamGiaRepository chiTietDotGiamGiaRepository;
+
     /* ================= GET ================= */
 
     public List<ChiTietSanPhamResponse> getAll() {
@@ -45,6 +49,12 @@ public class ChiTietSanPhamService {
         return mapToResponse(ctsp);
     }
 
+    // 👉 THÊM HÀM MỚI: LẤY CÁC SẢN PHẨM ĐANG CÓ ĐỢT GIẢM GIÁ (SALE)
+    public Page<ChiTietSanPhamResponse> getSaleProducts(Pageable pageable) {
+        return chiTietDotGiamGiaRepository.findActiveSaleProducts(pageable)
+                .map(this::mapToResponse);
+    }
+
     /* ================= CREATE ================= */
 
     @Transactional
@@ -56,26 +66,6 @@ public class ChiTietSanPhamService {
                 sanPhamRepository.findById(data.getIdSanPham())
                         .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"))
         );
-//        ctsp.setIdKichCo(
-//                kichCoRepository.findById(data.getIdKichCo())
-//                        .orElseThrow(() -> new RuntimeException("Kích cỡ không tồn tại"))
-//        );
-//        ctsp.setIdMauSac(
-//                mauSacRepository.findById(data.getIdMauSac())
-//                        .orElseThrow(() -> new RuntimeException("Màu sắc không tồn tại"))
-//        );
-//        ctsp.setIdLoaiAo(
-//                loaiAoRepository.findById(data.getIdLoaiAo())
-//                        .orElseThrow(() -> new RuntimeException("Loại áo không tồn tại"))
-//        );
-//        ctsp.setIdPhongCachMac(
-//                phongCachMacRepository.findById(data.getIdPhongCachMac())
-//                        .orElseThrow(() -> new RuntimeException("Phong cách mặc không tồn tại"))
-//        );
-//        ctsp.setIdKieuDang(
-//                kieuDangRepository.findById(data.getIdKieuDang())
-//                        .orElseThrow(() -> new RuntimeException("Kiểu dáng không tồn tại"))
-//        );
 
         ctsp.setSoLuongTon(data.getSoLuongTon());
         autoUpdateTrangThai(ctsp);
@@ -106,26 +96,6 @@ public class ChiTietSanPhamService {
 
         ChiTietSanPham ctsp = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy chi tiết sản phẩm"));
-//        ctsp.setIdKichCo(
-//                kichCoRepository.findById(data.getIdKichCo())
-//                        .orElseThrow(() -> new RuntimeException("Kích cỡ không tồn tại"))
-//        );
-//        ctsp.setIdMauSac(
-//                mauSacRepository.findById(data.getIdMauSac())
-//                        .orElseThrow(() -> new RuntimeException("Màu sắc không tồn tại"))
-//        );
-//        ctsp.setIdLoaiAo(
-//                loaiAoRepository.findById(data.getIdLoaiAo())
-//                        .orElseThrow(() -> new RuntimeException("Loại áo không tồn tại"))
-//        );
-//        ctsp.setIdPhongCachMac(
-//                phongCachMacRepository.findById(data.getIdPhongCachMac())
-//                        .orElseThrow(() -> new RuntimeException("Phong cách mặc không tồn tại"))
-//        );
-//        ctsp.setIdKieuDang(
-//                kieuDangRepository.findById(data.getIdKieuDang())
-//                        .orElseThrow(() -> new RuntimeException("Kiểu dáng không tồn tại"))
-//        );
 
         ctsp.setSoLuongTon(data.getSoLuongTon());
         autoUpdateTrangThai(ctsp);
@@ -206,26 +176,23 @@ public class ChiTietSanPhamService {
 
     public List<ChiTietSanPham> getDataExport(List<Integer> ids, Integer productId) {
 
-        // 1️⃣ Ưu tiên checkbox
         if (ids != null && !ids.isEmpty()) {
             return repository.findAllById(ids);
         }
 
-        // 2️⃣ Không tick checkbox nhưng đang xem theo sản phẩm
         if (productId != null) {
             return repository.findByIdSanPham_Id(productId);
         }
 
-        // 3️⃣ Cuối cùng mới export ALL
         return repository.findAll();
     }
 
 
     private void autoUpdateTrangThai(ChiTietSanPham ctsp) {
         if (ctsp.getSoLuongTon() == null || ctsp.getSoLuongTon() <= 0) {
-            ctsp.setTrangThai(0); // Hết hàng
+            ctsp.setTrangThai(0);
         } else {
-            ctsp.setTrangThai(1); // Đang bán
+            ctsp.setTrangThai(1);
         }
     }
 
@@ -264,6 +231,32 @@ public class ChiTietSanPhamService {
                         .map(HinhAnhSanPham::getUrlAnh)
                         .toList()
         );
+
+        // 👉 TÍNH TOÁN GIẢM GIÁ TỰ ĐỘNG NẾU CÓ KHUYẾN MÃI
+        BigDecimal giaGoc = ctsp.getGiaBan();
+        BigDecimal giaSauGiam = giaGoc;
+        Integer phanTramGiam = 0;
+
+        if (ctsp.getId() != null) {
+            Optional<ChiTietDotGiamGia> activeDiscountOpt = chiTietDotGiamGiaRepository.findActiveDiscountBySpctId(ctsp.getId());
+
+            if (activeDiscountOpt.isPresent()) {
+                ChiTietDotGiamGia activeDiscount = activeDiscountOpt.get();
+                DotGiamGia dgg = activeDiscount.getIdDotGiamGia();
+
+                if (dgg != null && dgg.getGiaTriGiam() != null) {
+                    phanTramGiam = dgg.getGiaTriGiam().intValue();
+
+                    BigDecimal tienGiam = giaGoc.multiply(BigDecimal.valueOf(phanTramGiam))
+                            .divide(BigDecimal.valueOf(100));
+                    giaSauGiam = giaGoc.subtract(tienGiam);
+                }
+            }
+        }
+
+        res.setGiaGoc(giaGoc);
+        res.setGiaSauGiam(giaSauGiam);
+        res.setPhanTramGiam(phanTramGiam);
 
         return res;
     }

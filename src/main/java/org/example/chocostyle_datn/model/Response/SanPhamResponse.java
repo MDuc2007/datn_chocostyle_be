@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +34,4 @@ public class SanPhamResponse {
     private String nguoiCapNhat;
     private String qrCode;
     private String qrImage;
-
-//tesst
 }

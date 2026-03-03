@@ -26,6 +26,17 @@ public class ChiTietSanPhamController {
     private final ChiTietSanPhamService chiTietSanPhamService;
     private final ChiTietSanPhamExcelService excelService;
 
+    // 👉 THÊM API MỚI: LẤY DANH SÁCH SẢN PHẨM ĐANG SALE
+    @GetMapping("/sale")
+    public ResponseEntity<Page<ChiTietSanPhamResponse>> getSaleProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size
+    ) {
+        return ResponseEntity.ok(
+                service.getSaleProducts(PageRequest.of(page, size))
+        );
+    }
+
     /* ================= GET ================= */
 
     @GetMapping
