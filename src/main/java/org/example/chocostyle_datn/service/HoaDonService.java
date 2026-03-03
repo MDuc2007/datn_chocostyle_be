@@ -45,6 +45,8 @@ public class HoaDonService {
     private PhieuGiamGiaKhachHangRepository pggKhRepository;
     @Autowired
     private PhuongThucThanhToanRepository ptttRepo;
+    @Autowired
+    private EmailService emailService;
 
     // =================================================================
     // 1. LẤY CHI TIẾT (GET DETAIL)
@@ -404,64 +406,60 @@ public class HoaDonService {
         hd.setLoaiDon(req.getLoaiDon());
         hd.setTongTienGoc(req.getTongTienHang());
         hd.setGhiChu(req.getGhiChu());
-
-        hd.setTrangThai(0); // Trạng thái ban đầu: Chờ xác nhận
+        hd.setTrangThai(0); // 0: Chờ xác nhận/Thanh toán
         hd.setNgayCapNhat(LocalDateTime.now());
 
         // Xử lý Voucher
         BigDecimal tienGiam = xuLyVoucher(req, hd);
 
-        // Tính toán tiền bạc
+        // Tính tiền
         BigDecimal phiShip = req.getPhiShip() != null ? req.getPhiShip() : BigDecimal.ZERO;
         hd.setPhiVanChuyen(phiShip);
         BigDecimal tongCuoiCung = req.getTongTienHang().add(phiShip).subtract(tienGiam);
         if (tongCuoiCung.compareTo(BigDecimal.ZERO) < 0) tongCuoiCung = BigDecimal.ZERO;
         hd.setTongTienThanhToan(tongCuoiCung);
 
-        // =================================================================
-        // FIX LỖI NOT NULL id_nhan_vien MÀ KHÔNG SỬA DB
-        // =================================================================
-        if (req.getLoaiDon() == 0) { // Đơn hàng Online
-            // Tìm nhân viên mặc định (ID = 1 hoặc ID admin bất kỳ có trong DB của bạn)
-            NhanVien nvMacDinh = nhanVienRepo.findById(1)
-                    .orElseThrow(() -> new RuntimeException("Cần có ít nhất một nhân viên trong hệ thống để xử lý đơn Online!"));
+        // Nhân viên
+        if (req.getLoaiDon() == 0) {
+            NhanVien nvMacDinh = nhanVienRepo.findById(1).orElse(null);
             hd.setIdNhanVien(nvMacDinh);
         } else {
-            // Nếu là luồng khác yêu cầu nhân viên (tại quầy), lấy người đang login
             hd.setIdNhanVien(getNhanVienDangLogin());
         }
-        // =================================================================
 
-        // Xử lý thông tin khách hàng
+        // --- XỬ LÝ KHÁCH HÀNG & LẤY EMAIL ĐỂ GỬI ---
+        String emailNhan = req.getEmailNguoiNhan(); // Lấy từ form khách nhập (Guest)
+
         if (req.getIdKhachHang() != null) {
+            // Khách quen (Đã login)
             KhachHang kh = khachHangRepo.findById(req.getIdKhachHang()).orElse(null);
             if (kh != null) {
                 hd.setIdKhachHang(kh);
                 hd.setTenKhachHang(kh.getTenKhachHang());
                 hd.setSoDienThoai(kh.getSoDienThoai());
-                String diaChiMacDinh = kh.getListDiaChiObj().stream()
-                        .filter(dc -> dc.getMacDinh() != null && dc.getMacDinh())
-                        .map(dc -> dc.getDiaChiCuThe() + ", " + dc.getPhuong() + ", " + dc.getQuan() + ", " + dc.getThanhPho())
-                        .findFirst()
-                        .orElse("Chưa có địa chỉ mặc định");
-                hd.setDiaChiKhachHang(diaChiMacDinh);
+                hd.setDiaChiKhachHang(req.getDiaChiGiaoHang());
+                // Nếu form không nhập email mới, ưu tiên lấy email từ tài khoản
+                if (emailNhan == null || emailNhan.isEmpty()) {
+                    emailNhan = kh.getEmail();
+                }
             }
         } else {
-            hd.setTenKhachHang("Khách lẻ");
+            // Khách lẻ (Guest)
+            hd.setIdKhachHang(null);
+            hd.setTenKhachHang(req.getTenNguoiNhan());
+            hd.setSoDienThoai(req.getSdtNguoiNhan());
+            hd.setDiaChiKhachHang(req.getDiaChiGiaoHang());
         }
+
+        // [QUAN TRỌNG]: Đã xóa dòng hd.setEmail(emailNhan) để tránh lỗi
+        // Chúng ta dùng biến local `emailNhan` để gửi mail ngay bên dưới.
 
         HoaDon savedHd = hoaDonRepo.save(hd);
 
-        // Xử lý chi tiết sản phẩm
+        // Lưu sản phẩm chi tiết
         if (req.getSanPhamChiTiet() != null) {
             for (org.example.chocostyle_datn.model.Request.CartItemRequest item : req.getSanPhamChiTiet()) {
-                // Dùng findById bình thường vì chưa trừ kho ngay, không nhất thiết phải Lock (findByIdForUpdate)
-                ChiTietSanPham sp = spctRepo.findById(item.getIdChiTietSanPham())
-                        .orElseThrow(() -> new RuntimeException("Sản phẩm ID " + item.getIdChiTietSanPham() + " không tồn tại"));
-
-                // CHỈ lưu chi tiết hóa đơn (HoaDonChiTiet)
-                // KHÔNG gọi spctRepo.save(sp) để tránh trừ số lượng tồn kho lúc này
-
+                ChiTietSanPham sp = spctRepo.findById(item.getIdChiTietSanPham()).orElseThrow();
                 HoaDonChiTiet hdct = new HoaDonChiTiet();
                 hdct.setIdHoaDon(savedHd);
                 hdct.setIdSpct(sp);
@@ -472,9 +470,47 @@ public class HoaDonService {
             }
         }
 
-        ghiLichSu(savedHd, savedHd.getTrangThai(), "Tạo mới đơn hàng", req.getGhiChu());
+        ghiLichSu(savedHd, 0, "Tạo đơn hàng", req.getGhiChu());
+
+        // --- GỬI MAIL XÁC NHẬN NGAY LẬP TỨC (CHO CẢ COD VÀ VNPAY) ---
+        if (emailNhan != null && !emailNhan.isEmpty()) {
+            emailService.sendOrderConfirmation(emailNhan, savedHd);
+        }
 
         return savedHd.getId();
+    }
+
+    // =================================================================
+    // 2. XỬ LÝ THANH TOÁN THÀNH CÔNG (CHỈ ĐỔI TRẠNG THÁI)
+    // =================================================================
+    @Transactional
+    public void xuLyThanhToanThanhCong(Integer idHoaDon, String maGiaoDichVnp) {
+        HoaDon hd = hoaDonRepo.findById(idHoaDon)
+                .orElseThrow(() -> new RuntimeException("Hóa đơn không tồn tại"));
+
+        if (hd.getTrangThai() == 0) {
+            hd.setTrangThai(1); // Đã thanh toán / Chờ giao hàng
+            hd.setNgayThanhToan(LocalDateTime.now());
+            hd.setNgayCapNhat(LocalDateTime.now());
+
+            // Lưu lịch sử giao dịch
+            PhuongThucThanhToan vnpay = ptttRepo.findById(2).orElse(null);
+            ThanhToan tt = new ThanhToan();
+            tt.setIdHoaDon(hd);
+            tt.setIdPttt(vnpay);
+            tt.setSoTien(hd.getTongTienThanhToan());
+            tt.setMaGiaoDich(maGiaoDichVnp);
+            tt.setTrangThai(1);
+            tt.setThoiGianThanhToan(LocalDateTime.now());
+            thanhToanRepo.save(tt);
+
+            ghiLichSu(hd, 1, "Thanh toán Online", "VNPAY Success: " + maGiaoDichVnp);
+            hoaDonRepo.save(hd);
+
+            // [QUAN TRỌNG]: Đã xóa đoạn gửi mail ở đây
+            // Lý do: Mail đã được gửi lúc tạo đơn (taoHoaDonMoi) rồi.
+            // Tránh gửi 2 lần và tránh lỗi hd.getEmail() không tồn tại.
+        }
     }
 
     // =================================================================
