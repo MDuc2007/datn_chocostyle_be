@@ -112,17 +112,35 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // ============================
-                        // 👉 ĐÃ THÊM: MỞ KHÓA CÁC API PUBLIC (AI CŨNG XEM ĐƯỢC)
+                        // 👉 ĐÃ SỬA: MỞ KHÓA API LẤY SẢN PHẨM & BỘ LỌC (CHỈ CHO PHÉP GET)
+                        // ============================
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/san-pham",
+                                "/api/san-pham/**",
+                                "/api/chi-tiet-san-pham",    // 👈 Sửa lỗi 401 trang Áo khoác, Lọc SP
+                                "/api/chi-tiet-san-pham/**", // 👈 Sửa lỗi 401 trang Ưu đãi (/sale)
+                                "/api/dot-giam-gia",
+                                "/api/dot-giam-gia/**",
+                                "/api/promotions",
+                                "/api/promotions/**",
+                                "/api/loai-ao",              // Mở các thuộc tính phòng khi bộ lọc gọi API
+                                "/api/mau-sac",
+                                "/api/kich-co"
+                        ).permitAll()
+
+                        // ============================
+                        // MỞ KHÓA CÁC API PUBLIC KHÁC
                         // ============================
                         .requestMatchers(
-                                "/api/san-pham/**",        // Cho phép xem sản phẩm, best-seller, home
                                 "/api/don-hang/tra-cuu**", // Cho phép khách lạ tra cứu đơn hàng
                                 "/images/**",              // Cho phép tải ảnh avatar/sản phẩm lên giao diện
-                                "/oauth2/**"               // Cho phép chạy luồng đăng nhập Google
-                        ).permitAll()// Các API còn lại (thêm giỏ hàng, thanh toán, quản lý...) bắt buộc phải đăng nhập
-                        .requestMatchers("/ws-chocostyle/**").permitAll()
-                        .requestMatchers("/api/conversations/**").permitAll()
-                        .requestMatchers("/api/vnpay/**").permitAll()
+                                "/oauth2/**",              // Cho phép chạy luồng đăng nhập Google
+                                "/ws-chocostyle/**",       // Web socket
+                                "/api/conversations/**",   // Chat
+                                "/api/vnpay/**"            // Thanh toán VNPay
+                        ).permitAll()
+
+                        // Các API còn lại (thêm giỏ hàng, thanh toán, quản lý...) bắt buộc phải đăng nhập
                         .anyRequest().authenticated()
                 )
 
@@ -134,11 +152,11 @@ public class SecurityConfig {
                 )
 
                 // ============================
-                // 👉 ĐÃ THÊM: XỬ LÝ OAUTH2 THẤT BẠI
+                // XỬ LÝ OAUTH2 THẤT BẠI
                 // ============================
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2AuthenticationSuccessHandler)
-                        .failureHandler(oAuth2AuthenticationFailureHandler) // Thêm dòng này để ném lỗi về Vue
+                        .failureHandler(oAuth2AuthenticationFailureHandler)
                 )
 
                 .sessionManagement(sess ->
