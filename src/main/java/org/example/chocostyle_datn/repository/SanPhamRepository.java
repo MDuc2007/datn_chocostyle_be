@@ -101,5 +101,4 @@ AND (:idXuatXu IS NULL OR sp.idXuatXu.id = :idXuatXu)
                 GROUP BY sp.id, sp.tenSp, sp.hinhAnh
             """)
     List<SanPhamHomeListResponse> getDanhSachSanPham();
-
 }
