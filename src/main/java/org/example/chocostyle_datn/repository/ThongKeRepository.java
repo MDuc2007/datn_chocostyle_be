@@ -19,21 +19,30 @@ import java.util.List;
 public interface ThongKeRepository extends JpaRepository<ChiTietSanPham, Integer> {
 
 
-    // 1. BIỂU ĐỒ DOANH THU (Đã sửa hàm Date an toàn hơn)
+    // 1. BIỂU ĐỒ DOANH THU & CHỈ SỐ TỔNG QUAN
     @Query(value = """
-       SELECT
-           -- Dùng CONVERT thay cho FORMAT để tránh lỗi phiên bản SQL
-           CONVERT(VARCHAR(10), h.ngay_thanh_toan, 120) as thoiGian,
-           SUM(h.tong_tien_thanh_toan) as doanhThu,
-           COUNT(h.id_hoa_don) as soLuongDon
-       FROM hoa_don h
-       WHERE h.trang_thai = 4
-         AND h.ngay_thanh_toan IS NOT NULL
-         AND CAST(h.ngay_thanh_toan AS DATE) >= :startDate
-         AND CAST(h.ngay_thanh_toan AS DATE) <= :endDate
-       GROUP BY CONVERT(VARCHAR(10), h.ngay_thanh_toan, 120)
-       ORDER BY thoiGian ASC
-   """, nativeQuery = true)
+        SELECT 
+            CONVERT(VARCHAR(10), h.ngay_tao, 120) as thoiGian, 
+            
+            -- Tổng doanh thu (không tính đơn hủy)
+            SUM(h.tong_tien_thanh_toan) as doanhThu,
+            
+            -- Doanh thu thực tế (Chỉ tính đơn Hoàn thành - trạng thái 4)
+            SUM(CASE WHEN h.trang_thai = 4 THEN h.tong_tien_thanh_toan ELSE 0 END) as doanhThuThucTe,
+            
+            -- Doanh thu dự kiến (Tính các đơn đang xử lý - trạng thái 0, 1, 2, 3)
+            SUM(CASE WHEN h.trang_thai IN (0, 1, 2, 3) THEN h.tong_tien_thanh_toan ELSE 0 END) as doanhThuDuKien,
+            
+            -- Tổng số lượng đơn
+            COUNT(h.id_hoa_don) as soLuongDon
+            
+        FROM hoa_don h
+        WHERE h.trang_thai != 5 -- Loại bỏ các đơn đã hủy (trạng thái 5)
+          AND CAST(h.ngay_tao AS DATE) >= :startDate 
+          AND CAST(h.ngay_tao AS DATE) <= :endDate
+        GROUP BY CONVERT(VARCHAR(10), h.ngay_tao, 120)
+        ORDER BY thoiGian ASC
+    """, nativeQuery = true)
     List<DoanhThuResponse> getDoanhThuChart(@Param("startDate") LocalDate startDate,
                                             @Param("endDate") LocalDate endDate);
 

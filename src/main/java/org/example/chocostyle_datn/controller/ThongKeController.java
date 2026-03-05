@@ -5,10 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.example.chocostyle_datn.entity.CauHinhHeThong;
 import org.example.chocostyle_datn.entity.ChiTietSanPham;
 import org.example.chocostyle_datn.model.Request.ThongKeRequest;
-import org.example.chocostyle_datn.model.Response.DoanhThuResponse;
-import org.example.chocostyle_datn.model.Response.SanPhamBanChayResponse;
-import org.example.chocostyle_datn.model.Response.TongQuatResponse;
-import org.example.chocostyle_datn.model.Response.TrangThaiDonResponse;
+import org.example.chocostyle_datn.model.Response.*;
 import org.example.chocostyle_datn.repository.CauHinhHeThongRepository;
 import org.example.chocostyle_datn.service.EmailServiceThongKe;
 import org.example.chocostyle_datn.service.ThongKeExcelService;
@@ -196,6 +193,12 @@ public class ThongKeController {
         }
 
         return ResponseEntity.ok("✅ Đã kiểm tra cấu hình và gửi mail test tương ứng!");
+    }
+    // API 6: Lấy danh sách thống kê chi tiết theo thời gian (Cho bảng table)
+    // URL: GET /api/thong-ke/chi-tiet-thoi-gian
+    @GetMapping("/chi-tiet-thoi-gian")
+    public ResponseEntity<List<ThongKeChiTietResponse>> getChiTietThoiGian() {
+        return ResponseEntity.ok(thongKeService.getBangThongKeChiTiet());
     }
 }
 
