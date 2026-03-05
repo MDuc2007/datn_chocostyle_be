@@ -392,7 +392,8 @@ public class SanPhamService {
                         p.getHinhAnh(),
                         p.getGiaMin(),
                         p.getGiaMax(),
-                        p.getSoLuongDaBan()
+                        p.getSoLuongDaBan(),
+                        p.getPhanTramGiam() // THÊM DÒNG NÀY ĐỂ MAP DỮ LIỆU
                 ))
                 .toList();
     }

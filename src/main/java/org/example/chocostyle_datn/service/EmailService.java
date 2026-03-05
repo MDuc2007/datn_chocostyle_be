@@ -74,19 +74,17 @@ public class EmailService {
         // Chủ đề email
         String subject = "Chào mừng bạn đến với ChocoStyle — Thông tin đăng nhập";
 
-
-
-
-        // Nội dung HTML (Giống mẫu bạn gửi)
+        // Nội dung HTML đã thay thế username bằng toEmail và thêm ghi chú rõ ràng
         String htmlContent = String.format("""
           <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px;">
               <h2 style="color: #444;">Xin chào %s,</h2>
               <p>Chào mừng bạn đã gia nhập đội ngũ <b>ChocoStyle</b>. Dưới đây là thông tin đăng nhập của bạn:</p>
               <ul style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; list-style-type: none;">
                   <li style="margin-bottom: 10px;">
-                      <strong>📛 Email đăng nhập:</strong> <span style="color: #63391F;">%s</span>
+                      <strong>📧 Tài khoản đăng nhập:</strong> <span style="color: #63391F;">%s</span> <br/>
+                      <i style="font-size: 13px; color: #666;">(Vui lòng sử dụng chính email này để đăng nhập vào hệ thống)</i>
                   </li>
-                  <li>
+                  <li style="margin-top: 10px;">
                       <strong>🔑 Mật khẩu:</strong> <span style="color: #63391F;">%s</span>
                   </li>
               </ul>
@@ -94,30 +92,18 @@ public class EmailService {
               <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
               <p>Trân trọng,<br><b>ChocoStyle Team</b></p>
           </div>
-          """, hoTen, username, password);
-
-
-
+          """, hoTen, toEmail, password);
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-
-
-
             helper.setTo(toEmail);
             helper.setSubject(subject);
             helper.setText(htmlContent, true); // true = gửi dưới dạng HTML
 
-
-
-
             mailSender.send(message);
             System.out.println("Gửi mail thành công cho: " + toEmail);
-
-
-
 
         } catch (MessagingException e) {
             System.err.println("Lỗi gửi mail: " + e.getMessage());

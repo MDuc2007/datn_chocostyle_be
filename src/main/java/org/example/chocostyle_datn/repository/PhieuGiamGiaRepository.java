@@ -34,4 +34,11 @@ public interface PhieuGiamGiaRepository extends JpaRepository<PhieuGiamGia,Integ
     List<String> findLastMaPgg();
 
     Optional<PhieuGiamGia> findFirstByMaPggOrderByTrangThaiDesc(String maPgg);
+
+    @Query("""
+    SELECT p FROM PhieuGiamGia p
+    WHERE p.trangThai = 1
+    AND CURRENT_TIMESTAMP BETWEEN p.ngayBatDau AND p.ngayKetThuc
+""")
+    List<PhieuGiamGia> findActiveVoucher();
 }

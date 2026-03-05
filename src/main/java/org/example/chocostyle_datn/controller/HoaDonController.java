@@ -153,22 +153,25 @@ public class HoaDonController {
 
     // API 9: Tra cứu đơn hàng cho khách (KHÔNG CẦN LOGIN)
     @GetMapping("/tra-cuu")
-    public ResponseEntity<?> traCuuDonHang(@RequestParam String maDonHang) {
+    public ResponseEntity<?> traCuuDonHang(
+            @RequestParam String maDonHang,
+            @RequestParam(required = false) String sdt) { // Thêm tham số sdt, để required = false để linh hoạt
         try {
-            // Gọi Service để tìm và lấy DTO
-            TraCuuDonHangResponse response = hoaDonService.traCuuDonHang(maDonHang);
+            // Truyền cả maDonHang và sdt vào Service
+            TraCuuDonHangResponse response = hoaDonService.traCuuDonHang(maDonHang, sdt);
 
-            // Trả về thẳng object JSON cho Frontend
+            // Trả về object JSON cho Frontend
             return ResponseEntity.ok(response);
 
         } catch (RuntimeException e) {
-            // Nếu không tìm thấy mã, trả về lỗi 400 Bad Request kèm thông báo
+            // Trả về lỗi 400 kèm thông báo cụ thể (ví dụ: "Số điện thoại không khớp")
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            // Nếu có lỗi hệ thống khác, trả về 500
+            // Lỗi hệ thống khác
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
+
     @GetMapping("/my-orders")
     public ResponseEntity<?> getMyOrders() {
         try {

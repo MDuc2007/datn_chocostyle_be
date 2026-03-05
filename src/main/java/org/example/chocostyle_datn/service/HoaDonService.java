@@ -292,7 +292,7 @@ public class HoaDonService {
     public void xacNhanDatHangTaiQuay(Integer idHoaDon, CreateOrderRequest req) {
         HoaDon hd = hoaDonRepo.findById(idHoaDon)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy hóa đơn nháp!"));
-
+        hd.setLoaiDon(req.getLoaiDon());
         hd.setTongTienGoc(req.getTongTienHang());
         hd.setGhiChu(req.getGhiChu());
 
@@ -756,28 +756,41 @@ public class HoaDonService {
     // 12. TRA CỨU ĐƠN HÀNG (CÓ CHECK QUYỀN SỞ HỮU)
     // =================================================================
     @Transactional(readOnly = true)
-    public TraCuuDonHangResponse traCuuDonHang(String maDonHang) {
+    public TraCuuDonHangResponse traCuuDonHang(String maDonHang, String sdt) {
         // 1. Tìm hóa đơn theo mã
         HoaDon hd = hoaDonRepo.findByMaHoaDon(maDonHang)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã: " + maDonHang));
 
-        // 2. CHECK QUYỀN SỞ HỮU (MỚI THÊM)
-        // Lấy thông tin người đang đăng nhập
+        // 2. XÁC THỰC QUYỀN TRUY CẬP (Hỗ trợ cả khách lẻ và khách đã đăng nhập)
+        boolean coQuyenAccess = false;
+
+        // Lấy thông tin người đang đăng nhập (nếu có)
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
-            throw new RuntimeException("Vui lòng đăng nhập để tra cứu đơn hàng!");
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            String email = auth.getName();
+            KhachHang currentKhach = khachHangRepo.findByEmail(email).orElse(null);
+
+            // Nếu khớp ID khách hàng thì cho phép truy cập luôn
+            if (currentKhach != null && hd.getIdKhachHang() != null &&
+                    hd.getIdKhachHang().getId().equals(currentKhach.getId())) {
+                coQuyenAccess = true;
+            }
         }
 
-        String email = auth.getName();
-        KhachHang currentKhach = khachHangRepo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin khách hàng!"));
+        // Nếu chưa đăng nhập HOẶC không phải chủ đơn hàng -> Bắt buộc check Số điện thoại
+        if (!coQuyenAccess) {
+            if (sdt == null || sdt.trim().isEmpty()) {
+                throw new RuntimeException("Vui lòng cung cấp số điện thoại mua hàng để tra cứu!");
+            }
 
-        // So sánh: Nếu hóa đơn không có khách hàng (khách lẻ) HOẶC ID khách hàng không khớp
-        if (hd.getIdKhachHang() == null || !hd.getIdKhachHang().getId().equals(currentKhach.getId())) {
-            throw new RuntimeException("Bạn không có quyền truy cập đơn hàng này!");
+            // Thêm check null cho sdt từ DB và trim() cả hai bên trước khi so sánh
+            if (hd.getSoDienThoai() == null || !hd.getSoDienThoai().trim().equals(sdt.trim())) {
+                throw new RuntimeException("Mã đơn hàng hoặc số điện thoại không chính xác!");
+            }
+            coQuyenAccess = true;
         }
 
-        // 3. Nếu khớp, trả về dữ liệu như cũ
+        // 3. Map dữ liệu trả về (Giữ nguyên logic gốc của bạn)
         TraCuuDonHangResponse response = new TraCuuDonHangResponse();
         response.setId(hd.getId());
         response.setMaDonHang(hd.getMaHoaDon());
@@ -794,7 +807,6 @@ public class HoaDonService {
         };
         response.setTrangThai(trangThaiVue);
 
-        // ... (Giữ nguyên phần map dữ liệu còn lại bên dưới của bạn) ...
         response.setNguoiNhan(hd.getTenKhachHang());
         response.setSoDienThoai(hd.getSoDienThoai());
         response.setDiaChi(hd.getDiaChiKhachHang());
@@ -804,6 +816,7 @@ public class HoaDonService {
         response.setTienGiamGia(hd.getSoTienGiam() != null ? hd.getSoTienGiam() : BigDecimal.ZERO);
         response.setTongTienThanhToan(hd.getTongTienThanhToan());
 
+        // Lấy thông tin phương thức thanh toán
         String phuongThuc = "Thanh toán khi nhận hàng (COD)";
         List<ThanhToan> thanhToans = thanhToanRepo.findByIdHoaDon_Id(hd.getId());
         if (!thanhToans.isEmpty() && thanhToans.get(0).getIdPttt() != null) {
@@ -811,7 +824,7 @@ public class HoaDonService {
         }
         response.setPhuongThucThanhToan(phuongThuc);
 
-        // Map sản phẩm
+        // Map danh sách sản phẩm chi tiết
         List<HoaDonChiTiet> chiTiets = hdctRepo.findByIdHoaDon_Id(hd.getId());
         List<SanPhamTraCuuDto> sanPhamList = chiTiets.stream().map(ct -> {
             SanPhamTraCuuDto dto = new SanPhamTraCuuDto();

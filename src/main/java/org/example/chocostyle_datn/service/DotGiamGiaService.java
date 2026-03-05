@@ -312,8 +312,8 @@ public class DotGiamGiaService {
 
 
     private DotGiamGiaResponse toResponse(DotGiamGia dgg) {
-        DotGiamGiaResponse res = new DotGiamGiaResponse();
 
+        DotGiamGiaResponse res = new DotGiamGiaResponse();
 
         res.setId(dgg.getId());
         res.setMaDotGiamGia(dgg.getMaDotGiamGia());
@@ -321,43 +321,51 @@ public class DotGiamGiaService {
         res.setGiaTriGiam(dgg.getGiaTriGiam());
         res.setNgayBatDau(dgg.getNgayBatDau());
         res.setNgayKetThuc(dgg.getNgayKetThuc());
-        res.setTrangThai(dgg.getTrangThai());
 
+        // ===== TÍNH TRẠNG THÁI ĐỘNG =====
+        Integer statusTheoNgay = tinhTrangThai(
+                dgg.getNgayBatDau(),
+                dgg.getNgayKetThuc()
+        );
 
+        if (statusTheoNgay == 0) {
+            res.setTrangThai(0);
+        } else if (dgg.getTrangThai() == 0) {
+            res.setTrangThai(0);
+        } else {
+            res.setTrangThai(statusTheoNgay);
+        }
+
+        // ===== LẤY CHI TIẾT ÁP DỤNG =====
         List<ChiTietDotGiamGia> list =
                 chiTietDotGiamGiaRepository.findById_IdDotGiamGia(dgg.getId());
 
-
-        // CTSP IDs (giữ lại cho FE nếu cần)
+        // Danh sách CTSP IDs (giữ cho FE nếu cần)
         res.setChiTietSanPhamIds(
                 list.stream()
                         .map(ct -> ct.getId().getIdSpct())
                         .toList()
         );
 
-
-        // Gom theo sản phẩm
+        // ===== Gom theo sản phẩm =====
         Map<Integer, List<ChiTietDotGiamGia>> groupBySp =
                 list.stream()
                         .collect(Collectors.groupingBy(
                                 ct -> ct.getIdSpct().getIdSanPham().getId()
                         ));
 
-
         List<DotGiamGiaSanPhamResponse> sanPhamApDung =
                 groupBySp.values().stream()
                         .map(ctList -> {
-                            ChiTietSanPham ctsp = ctList.get(0).getIdSpct();
 
+                            ChiTietSanPham ctsp = ctList.get(0).getIdSpct();
 
                             DotGiamGiaSanPhamResponse spRes =
                                     new DotGiamGiaSanPhamResponse();
 
-
                             spRes.setIdSp(ctsp.getIdSanPham().getId());
                             spRes.setMaSp(ctsp.getIdSanPham().getMaSp());
                             spRes.setTenSp(ctsp.getIdSanPham().getTenSp());
-
 
                             spRes.setChiTietSanPhamIds(
                                     ctList.stream()
@@ -365,14 +373,11 @@ public class DotGiamGiaService {
                                             .toList()
                             );
 
-
                             return spRes;
                         })
                         .toList();
 
-
         res.setSanPhamApDung(sanPhamApDung);
-
 
         return res;
     }
