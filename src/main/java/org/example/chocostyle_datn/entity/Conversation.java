@@ -3,6 +3,8 @@ package org.example.chocostyle_datn.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "conversations")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
