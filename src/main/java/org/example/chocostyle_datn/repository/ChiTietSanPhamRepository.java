@@ -57,4 +57,10 @@ public interface ChiTietSanPhamRepository extends JpaRepository<ChiTietSanPham, 
     );
 
     Optional<ChiTietSanPham> findByQrCode(String qrCode);
+
+    @Query("""
+                SELECT ct FROM ChiTietSanPham ct
+                WHERE ct.trangThai = 1
+            """)
+    List<ChiTietSanPham> getAllActive();
 }

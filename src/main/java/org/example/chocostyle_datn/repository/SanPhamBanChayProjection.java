@@ -9,5 +9,5 @@ public interface SanPhamBanChayProjection {
     BigDecimal getGiaMin();
     BigDecimal getGiaMax();
     Long getSoLuongDaBan();
+    Integer getPhanTramGiam(); // MỚI THÊM
 }
-
