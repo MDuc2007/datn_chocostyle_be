@@ -191,5 +191,97 @@ public class ThongKeService {
 
         return result;
     }
+    /**
+     * Lấy dữ liệu cho Bảng Thống Kê Chi Tiết Theo Thời Gian
+     * Trả về danh sách (List) để Frontend dễ dàng dùng v-for render ra bảng
+     */
+    public List<ThongKeChiTietResponse> getBangThongKeChiTiet() {
+        List<ThongKeChiTietResponse> result = new ArrayList<>();
+        LocalDate now = LocalDate.now();
+
+        // 1. Dòng Hôm nay (So với Hôm qua)
+        LocalDate yesterday = now.minusDays(1);
+        result.add(calculateRow("Hôm nay", now, now, yesterday, yesterday));
+
+        // 2. Dòng Tuần này (So với Tuần trước)
+        LocalDate startWeek = now.with(DayOfWeek.MONDAY);
+        LocalDate endWeek = now.with(DayOfWeek.SUNDAY);
+        LocalDate startPrevWeek = startWeek.minusWeeks(1);
+        LocalDate endPrevWeek = endWeek.minusWeeks(1);
+        result.add(calculateRow("Tuần này", startWeek, endWeek, startPrevWeek, endPrevWeek));
+
+        // 3. Dòng Tháng này (So với Tháng trước)
+        LocalDate startMonth = now.with(TemporalAdjusters.firstDayOfMonth());
+        LocalDate endMonth = now.with(TemporalAdjusters.lastDayOfMonth());
+        LocalDate startPrevMonth = startMonth.minusMonths(1);
+        LocalDate endPrevMonth = startPrevMonth.with(TemporalAdjusters.lastDayOfMonth());
+        result.add(calculateRow("Tháng này", startMonth, endMonth, startPrevMonth, endPrevMonth));
+
+        // 4. Dòng Năm nay (So với Năm trước)
+        LocalDate startYear = now.with(TemporalAdjusters.firstDayOfYear());
+        LocalDate endYear = now.with(TemporalAdjusters.lastDayOfYear());
+        LocalDate startPrevYear = startYear.minusYears(1);
+        LocalDate endPrevYear = startPrevYear.with(TemporalAdjusters.lastDayOfYear());
+        result.add(calculateRow("Năm nay", startYear, endYear, startPrevYear, endPrevYear));
+
+        return result;
+    }
+
+    /**
+     * Hàm phụ: Tính toán chi tiết cho 1 dòng trong bảng
+     */
+    private ThongKeChiTietResponse calculateRow(String thoiGianStr, LocalDate currStart, LocalDate currEnd,
+                                                LocalDate prevStart, LocalDate prevEnd) {
+        // 1. Lấy dữ liệu kỳ hiện tại
+        List<DoanhThuResponse> currentData = thongKeRepo.getDoanhThuChart(currStart, currEnd);
+        BigDecimal currentRevenue = BigDecimal.ZERO;
+        int currentOrders = 0;
+
+        if (currentData != null && !currentData.isEmpty()) {
+            // Chỗ này bạn có thể dùng getDoanhThu() nếu muốn lấy tổng,
+            // hoặc getDoanhThuThucTe() nếu đã cập nhật logic như bước trước
+            currentRevenue = currentData.stream()
+                    .map(DoanhThuResponse::getDoanhThu)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            currentOrders = currentData.stream()
+                    .mapToInt(DoanhThuResponse::getSoLuongDon)
+                    .sum();
+        }
+
+        // 2. Lấy dữ liệu kỳ trước (để so sánh tăng trưởng)
+        List<DoanhThuResponse> previousData = thongKeRepo.getDoanhThuChart(prevStart, prevEnd);
+        BigDecimal previousRevenue = BigDecimal.ZERO;
+
+        if (previousData != null && !previousData.isEmpty()) {
+            previousRevenue = previousData.stream()
+                    .map(DoanhThuResponse::getDoanhThu)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+
+        // 3. Tính Giá trị trung bình/đơn
+        BigDecimal avgValue = BigDecimal.ZERO;
+        if (currentOrders > 0) {
+            avgValue = currentRevenue.divide(new BigDecimal(currentOrders), 0, java.math.RoundingMode.HALF_UP);
+        }
+
+        // 4. Tính % Tăng trưởng
+        double growth = 0.0;
+        if (previousRevenue.compareTo(BigDecimal.ZERO) == 0) {
+            growth = currentRevenue.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0;
+        } else {
+            BigDecimal diff = currentRevenue.subtract(previousRevenue);
+            BigDecimal percentage = diff.divide(previousRevenue, 4, java.math.RoundingMode.HALF_UP)
+                    .multiply(new BigDecimal("100"));
+            growth = percentage.doubleValue();
+        }
+
+        return ThongKeChiTietResponse.builder()
+                .thoiGian(thoiGianStr)
+                .doanhThu(currentRevenue)
+                .soDonHang(currentOrders)
+                .giaTriTrungBinh(avgValue)
+                .tangTruong(growth)
+                .build();
+    }
 }
 
