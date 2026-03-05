@@ -147,7 +147,8 @@ public class SecurityConfig {
                                 "/oauth2/**",              // Cho phép chạy luồng đăng nhập Google
                                 "/ws-chocostyle/**",       // Web socket
                                 "/api/conversations/**",   // Chat
-                                "/api/vnpay/**"            // Thanh toán VNPay
+                                "/api/vnpay/**",
+                                "/api/hoa-don/**"// Thanh toán VNPay
                         ).permitAll()
 
                         // Các API còn lại (thêm giỏ hàng, xem lịch sử đơn hàng, quản lý...) bắt buộc phải đăng nhập
