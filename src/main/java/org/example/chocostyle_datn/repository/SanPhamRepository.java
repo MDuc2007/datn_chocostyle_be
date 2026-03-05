@@ -68,11 +68,14 @@ AND (:idXuatXu IS NULL OR sp.idXuatXu.id = :idXuatXu)
                     sp.hinh_anh        AS hinhAnh,
                     MIN(ctsp.gia_ban)  AS giaMin,
                     MAX(ctsp.gia_ban)  AS giaMax,
-                    SUM(hdct.so_luong) AS soLuongDaBan
+                    SUM(hdct.so_luong) AS soLuongDaBan,
+                    MAX(dgg.gia_tri_giam) AS phanTramGiam 
                 FROM hoa_don_chi_tiet hdct
                 JOIN hoa_don hd ON hdct.id_hoa_don = hd.id_hoa_don
                 JOIN chi_tiet_san_pham ctsp ON hdct.id_spct = ctsp.id_spct
                 JOIN san_pham sp ON ctsp.id_san_pham = sp.id_sp
+                LEFT JOIN chi_tiet_dot_giam_gia cdgg ON cdgg.id_spct = ctsp.id_spct AND cdgg.trang_thai = 1
+                LEFT JOIN dot_giam_gia dgg ON dgg.id_dot_giam_gia = cdgg.id_dot_giam_gia AND dgg.trang_thai = 1
                 WHERE hd.trang_thai = 4
                 GROUP BY sp.id_sp, sp.ten_sp, sp.hinh_anh
                 ORDER BY soLuongDaBan DESC
@@ -87,10 +90,13 @@ AND (:idXuatXu IS NULL OR sp.idXuatXu.id = :idXuatXu)
                     sp.hinhAnh,
                     MIN(ct.giaBan),
                     MAX(ct.giaBan),
-                    null
+                    CAST(null AS long), 
+                    MAX(dgg.giaTriGiam)
                 )
                 FROM SanPham sp
                 JOIN ChiTietSanPham ct ON ct.idSanPham.id = sp.id
+                LEFT JOIN ChiTietDotGiamGia cdgg ON cdgg.idSpct.id = ct.id AND cdgg.trangThai = 1
+                LEFT JOIN DotGiamGia dgg ON dgg.id = cdgg.idDotGiamGia.id AND dgg.trangThai = 1
                 WHERE sp.trangThai = 1
                 GROUP BY sp.id, sp.tenSp, sp.hinhAnh
             """)
