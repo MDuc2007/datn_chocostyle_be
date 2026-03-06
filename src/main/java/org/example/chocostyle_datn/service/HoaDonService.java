@@ -417,9 +417,6 @@ public class HoaDonService {
                     throw new RuntimeException("Sản phẩm " + sp.getMaChiTietSanPham() + " không đủ số lượng!");
                 }
 
-                sp.setSoLuongTon(sp.getSoLuongTon() - item.getSoLuong()); // Bổ sung trừ kho
-                spctRepo.save(sp);
-
                 HoaDonChiTiet hdct = new HoaDonChiTiet();
                 hdct.setIdHoaDon(hd);
                 hdct.setIdSpct(sp);
@@ -730,6 +727,10 @@ public class HoaDonService {
 
         ChiTietSanPham sp = spctRepo.findById(idSpct)
                 .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
+
+        if (sp.getSoLuongTon() < soLuongThem) {
+            throw new RuntimeException("Sản phẩm không đủ tồn kho!");
+        }
 
         // Kiểm tra xem SP này đã có trong đơn chưa
         HoaDonChiTiet hdct = hdctRepo.findByIdHoaDon_Id(idHoaDon).stream()
