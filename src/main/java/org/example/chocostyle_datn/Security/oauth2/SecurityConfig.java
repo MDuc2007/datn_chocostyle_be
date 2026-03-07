@@ -41,7 +41,6 @@ public class SecurityConfig {
     @Autowired
     private OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
-    // 👉 THÊM: Tiêm class xử lý lỗi OAuth2 (Báo tài khoản bị khóa)
     @Autowired
     private OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
@@ -61,7 +60,9 @@ public class SecurityConfig {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(khachHangUserDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
-    }// =====================================================
+    }
+
+    // =====================================================
     // AUTH PROVIDER NHÂN VIÊN
     // =====================================================
     @Bean
@@ -112,17 +113,46 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // ============================
-                        // 👉 ĐÃ THÊM: MỞ KHÓA CÁC API PUBLIC (AI CŨNG XEM ĐƯỢC)
+                        // MỞ KHÓA API LẤY SẢN PHẨM & BỘ LỌC (CHỈ CHO PHÉP GET)
+                        // ============================
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/san-pham",
+                                "/api/san-pham/**",
+                                "/api/chi-tiet-san-pham",
+                                "/api/chi-tiet-san-pham/**",
+                                "/api/dot-giam-gia",
+                                "/api/dot-giam-gia/**",
+                                "/api/promotions",
+                                "/api/promotions/**",
+                                "/api/loai-ao",
+                                "/api/mau-sac",
+                                "/api/kich-co"
+                        ).permitAll()
+
+                        // ============================
+                        // 👉 MỚI THÊM: CHO PHÉP KHÁCH LẺ THANH TOÁN (POST)
+                        // ============================
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/hoa-don" // Mở API tạo hóa đơn cho khách vãng lai không cần token
+                        ).permitAll()
+
+                        // ============================
+                        // MỞ KHÓA CÁC API PUBLIC KHÁC
                         // ============================
                         .requestMatchers(
-                                "/api/san-pham/**",        // Cho phép xem sản phẩm, best-seller, home
+                                "/api/hoa-don/my-orders",
                                 "/api/don-hang/tra-cuu**", // Cho phép khách lạ tra cứu đơn hàng
+                                "/api/hoa-don/tra-cuu",
+                                "/api/hoa-don/**",// Endpoint tra cứu bổ sung
                                 "/images/**",              // Cho phép tải ảnh avatar/sản phẩm lên giao diện
-                                "/oauth2/**"               // Cho phép chạy luồng đăng nhập Google
-                        ).permitAll()// Các API còn lại (thêm giỏ hàng, thanh toán, quản lý...) bắt buộc phải đăng nhập
-                        .requestMatchers("/ws-chocostyle/**").permitAll()
-                        .requestMatchers("/api/conversations/**").permitAll()
-                        .requestMatchers("/api/vnpay/**").permitAll()
+                                "/oauth2/**",              // Cho phép chạy luồng đăng nhập Google
+                                "/ws-chocostyle/**",       // Web socket
+                                "/api/conversations/**",   // Chat
+                                "/api/vnpay/**",
+                                "/api/hoa-don/**"// Thanh toán VNPay
+                        ).permitAll()
+
+                        // Các API còn lại (thêm giỏ hàng, xem lịch sử đơn hàng, quản lý...) bắt buộc phải đăng nhập
                         .anyRequest().authenticated()
                 )
 
@@ -134,11 +164,11 @@ public class SecurityConfig {
                 )
 
                 // ============================
-                // 👉 ĐÃ THÊM: XỬ LÝ OAUTH2 THẤT BẠI
+                // XỬ LÝ OAUTH2 THẤT BẠI/THÀNH CÔNG
                 // ============================
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(oAuth2AuthenticationSuccessHandler)
-                        .failureHandler(oAuth2AuthenticationFailureHandler) // Thêm dòng này để ném lỗi về Vue
+                        .failureHandler(oAuth2AuthenticationFailureHandler)
                 )
 
                 .sessionManagement(sess ->

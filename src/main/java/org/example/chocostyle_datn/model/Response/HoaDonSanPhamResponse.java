@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @Builder
 public class HoaDonSanPhamResponse {
+    private Integer idSpct;
     private String tenSanPham;
     private String mauSac;
     private String kichCo;

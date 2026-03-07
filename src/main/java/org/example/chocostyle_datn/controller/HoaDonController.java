@@ -1,13 +1,17 @@
 package org.example.chocostyle_datn.controller;
 
 import org.example.chocostyle_datn.entity.HoaDon;
+import org.example.chocostyle_datn.entity.HoaDonChiTiet;
+import org.example.chocostyle_datn.entity.KhachHang;
+import org.example.chocostyle_datn.entity.ThanhToan;
 import org.example.chocostyle_datn.model.Request.CreateOrderRequest;
 import org.example.chocostyle_datn.model.Request.RefundRequest;
 import org.example.chocostyle_datn.model.Request.SearchHoaDonRequest;
 import org.example.chocostyle_datn.model.Request.UpdateTrangThaiRequest;
 import org.example.chocostyle_datn.model.Response.HoaDonDetailResponse;
 import org.example.chocostyle_datn.model.Response.HoaDonResponse;
-import org.example.chocostyle_datn.repository.TraCuuDonHangResponse;
+import org.example.chocostyle_datn.model.Response.SanPhamTraCuuDto;
+import org.example.chocostyle_datn.repository.*;
 import org.example.chocostyle_datn.service.HoaDonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -15,7 +19,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/hoa-don")
@@ -26,6 +37,15 @@ public class HoaDonController {
     private HoaDonService hoaDonService;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+    @Autowired
+    private HoaDonRepository hoaDonRepository;
+    @Autowired
+    private KhachHangRepository khachHangRepository;
+    @Autowired
+    private ThanhToanRepository thanhToanRepository;
+    @Autowired
+    private HoaDonChiTietRepository hoaDonChiTietRepository;
+
     // API 1: Lấy danh sách
     @GetMapping
     public ResponseEntity<Page<HoaDonResponse>> getAll(
@@ -155,28 +175,70 @@ public class HoaDonController {
 
     // API 9: Tra cứu đơn hàng cho khách (KHÔNG CẦN LOGIN)
     @GetMapping("/tra-cuu")
-    public ResponseEntity<?> traCuuDonHang(@RequestParam String maDonHang) {
+    public ResponseEntity<?> traCuuDonHang(
+            @RequestParam String maDonHang,
+            @RequestParam(required = false) String sdt) { // Thêm tham số sdt, để required = false để linh hoạt
         try {
-            // Gọi Service để tìm và lấy DTO
-            TraCuuDonHangResponse response = hoaDonService.traCuuDonHang(maDonHang);
+            // Truyền cả maDonHang và sdt vào Service
+            TraCuuDonHangResponse response = hoaDonService.traCuuDonHang(maDonHang, sdt);
 
-            // Trả về thẳng object JSON cho Frontend
+            // Trả về object JSON cho Frontend
             return ResponseEntity.ok(response);
 
         } catch (RuntimeException e) {
-            // Nếu không tìm thấy mã, trả về lỗi 400 Bad Request kèm thông báo
+            // Trả về lỗi 400 kèm thông báo cụ thể (ví dụ: "Số điện thoại không khớp")
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            // Nếu có lỗi hệ thống khác, trả về 500
+            // Lỗi hệ thống khác
             return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
         }
     }
+
+
     @GetMapping("/my-orders")
     public ResponseEntity<?> getMyOrders() {
         try {
             return ResponseEntity.ok(hoaDonService.getMyOrders());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi tải lịch sử đơn hàng: " + e.getMessage());
+        }
+    }
+    @PutMapping("/{id}/thong-tin-nhan-hang")
+    public ResponseEntity<?> capNhatThongTinNhanHang(
+            @PathVariable Integer id,
+            @RequestParam String ten,
+            @RequestParam String sdt,
+            @RequestParam String diaChi) {
+        try {
+            hoaDonService.capNhatThongTinGiaoHang(id, ten, sdt, diaChi);
+            return ResponseEntity.ok("Cập nhật thông tin nhận hàng thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @PutMapping("/{id}/so-luong-san-pham")
+    public ResponseEntity<?> capNhatSoLuongSanPham(
+            @PathVariable Integer id,
+            @RequestParam Integer idSpct,
+            @RequestParam int soLuongMoi) {
+        try {
+            hoaDonService.capNhatSoLuongChiTiet(id, idSpct, soLuongMoi);
+            return ResponseEntity.ok("Cập nhật số lượng thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    // Trong HoaDonController.java
+    @PutMapping("/{id}/thay-doi-gia")
+    public ResponseEntity<?> thayDoiGiaSanPham(
+            @PathVariable Integer id,
+            @RequestParam Integer idSpct,
+            @RequestParam BigDecimal giaMoi) {
+        try {
+            hoaDonService.thayDoiGiaChiTiet(id, idSpct, giaMoi);
+            return ResponseEntity.ok("Cập nhật giá thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
     // ==========================================
