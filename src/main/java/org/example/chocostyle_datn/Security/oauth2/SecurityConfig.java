@@ -142,7 +142,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/hoa-don/my-orders",
                                 "/api/don-hang/tra-cuu**", // Cho phép khách lạ tra cứu đơn hàng
-                                "/api/hoa-don/tra-cuu",    // Endpoint tra cứu bổ sung
+                                "/api/hoa-don/tra-cuu",
+                                "/api/hoa-don/**",// Endpoint tra cứu bổ sung
                                 "/images/**",              // Cho phép tải ảnh avatar/sản phẩm lên giao diện
                                 "/oauth2/**",              // Cho phép chạy luồng đăng nhập Google
                                 "/ws-chocostyle/**",       // Web socket

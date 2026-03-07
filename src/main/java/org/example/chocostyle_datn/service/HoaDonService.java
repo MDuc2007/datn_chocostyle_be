@@ -990,4 +990,98 @@ public class HoaDonService {
         String message = String.format("[PRICE_CHANGE] ID %d: Từ %s thành %s", idSpct, giaCu.toString(), giaMoi.toString());
         ghiLichSu(hd, 0, "Thay đổi giá sản phẩm", message);
     }
+
+
+    @Transactional(readOnly = true)
+    public TraCuuDonHangResponse traCuuDonHang(String maDonHang, String sdt) {
+        // 1. Tìm hóa đơn theo mã
+        HoaDon hd = hoaDonRepo.findByMaHoaDon(maDonHang)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã: " + maDonHang));
+
+        // 2. XÁC THỰC QUYỀN TRUY CẬP (Hỗ trợ cả khách lẻ và khách đã đăng nhập)
+        boolean coQuyenAccess = false;
+
+        // Lấy thông tin người đang đăng nhập (nếu có)
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            String email = auth.getName();
+            KhachHang currentKhach = khachHangRepo.findByEmail(email).orElse(null);
+
+            // Nếu khớp ID khách hàng thì cho phép truy cập luôn
+            if (currentKhach != null && hd.getIdKhachHang() != null &&
+                    hd.getIdKhachHang().getId().equals(currentKhach.getId())) {
+                coQuyenAccess = true;
+            }
+        }
+
+        // Nếu chưa đăng nhập HOẶC không phải chủ đơn hàng -> Bắt buộc check Số điện thoại
+        if (!coQuyenAccess) {
+            if (sdt == null || sdt.trim().isEmpty()) {
+                throw new RuntimeException("Vui lòng cung cấp số điện thoại mua hàng để tra cứu!");
+            }
+            // So sánh số điện thoại trong đơn hàng với số điện thoại khách nhập
+            if (!hd.getSoDienThoai().equals(sdt.trim())) {
+                throw new RuntimeException("Mã đơn hàng hoặc số điện thoại không chính xác!");
+            }
+            coQuyenAccess = true;
+        }
+
+        // 3. Map dữ liệu trả về (Giữ nguyên logic gốc của bạn)
+        TraCuuDonHangResponse response = new TraCuuDonHangResponse();
+        response.setId(hd.getId());
+        response.setMaDonHang(hd.getMaHoaDon());
+        response.setNgayTao(hd.getNgayTao());
+
+        // Map trạng thái cho Vue Timeline
+        String trangThaiVue = switch (hd.getTrangThai()) {
+            case 0 -> "PENDING";
+            case 1 -> "PROCESSING";
+            case 2, 3 -> "SHIPPING";
+            case 4 -> "DELIVERED";
+            case 5 -> "CANCELLED";
+            default -> "PENDING";
+        };
+        response.setTrangThai(trangThaiVue);
+
+        response.setNguoiNhan(hd.getTenKhachHang());
+        response.setSoDienThoai(hd.getSoDienThoai());
+        response.setDiaChi(hd.getDiaChiKhachHang());
+
+        response.setTongTienHang(hd.getTongTienGoc());
+        response.setPhiVanChuyen(hd.getPhiVanChuyen() != null ? hd.getPhiVanChuyen() : BigDecimal.ZERO);
+        response.setTienGiamGia(hd.getSoTienGiam() != null ? hd.getSoTienGiam() : BigDecimal.ZERO);
+        response.setTongTienThanhToan(hd.getTongTienThanhToan());
+
+        // Lấy thông tin phương thức thanh toán
+        String phuongThuc = "Thanh toán khi nhận hàng (COD)";
+        List<ThanhToan> thanhToans = thanhToanRepo.findByIdHoaDon_Id(hd.getId());
+        if (!thanhToans.isEmpty() && thanhToans.get(0).getIdPttt() != null) {
+            phuongThuc = thanhToans.get(0).getIdPttt().getTenPttt();
+        }
+        response.setPhuongThucThanhToan(phuongThuc);
+
+        // Map danh sách sản phẩm chi tiết
+        List<HoaDonChiTiet> chiTiets = hdctRepo.findByIdHoaDon_Id(hd.getId());
+        List<SanPhamTraCuuDto> sanPhamList = chiTiets.stream().map(ct -> {
+            SanPhamTraCuuDto dto = new SanPhamTraCuuDto();
+            if (ct.getIdSpct() != null && ct.getIdSpct().getIdSanPham() != null) {
+                dto.setTenSp(ct.getIdSpct().getIdSanPham().getTenSp());
+                dto.setHinhAnh(ct.getIdSpct().getIdSanPham().getHinhAnh() != null ? ct.getIdSpct().getIdSanPham().getHinhAnh() : "");
+                dto.setMauSac(ct.getIdSpct().getIdMauSac() != null ? ct.getIdSpct().getIdMauSac().getTenMauSac() : "-");
+                dto.setKichCo(ct.getIdSpct().getIdKichCo() != null ? ct.getIdSpct().getIdKichCo().getTenKichCo() : "-");
+            } else {
+                dto.setTenSp("Sản phẩm đã bị xóa");
+                dto.setHinhAnh("");
+                dto.setMauSac("-");
+                dto.setKichCo("-");
+            }
+            dto.setSoLuong(ct.getSoLuong());
+            dto.setGiaBan(ct.getDonGia());
+            return dto;
+        }).collect(Collectors.toList());
+
+        response.setSanPhamList(sanPhamList);
+
+        return response;
+    }
 }
