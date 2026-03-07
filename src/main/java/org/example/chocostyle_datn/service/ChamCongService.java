@@ -7,9 +7,11 @@ import org.example.chocostyle_datn.model.Response.GiaoCaResponse;
 import org.example.chocostyle_datn.repository.ChamCongRepository;
 import org.example.chocostyle_datn.repository.LichLamViecRepository;
 import org.example.chocostyle_datn.repository.NhanVienRepository;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -260,5 +262,74 @@ public class ChamCongService {
         Double tienMat = (caTruoc != null && caTruoc.getTienMatCuoiCa() != null) ? caTruoc.getTienMatCuoiCa() : 0.0;
         Double tienCk = (caTruoc != null && caTruoc.getTienChuyenKhoanCuoiCa() != null) ? caTruoc.getTienChuyenKhoanCuoiCa() : 0.0;
         return Map.of("tienMat", tienMat, "tienCk", tienCk);
+    }
+    // 🤖 HÀM CHẠY NGẦM: TỰ ĐỘNG ĐÓNG CA QUÁ HẠN 30 PHÚT
+    @Scheduled(fixedRate = 60000) // Chạy lặp lại mỗi 60 giây
+    public void tuDongDongCaQuaHan() {
+        // 1. Lấy tất cả các ca chưa check-out
+        List<ChamCong> cacCaDangMo = chamCongRepository.findTatCaCaDangMo();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (ChamCong cc : cacCaDangMo) {
+            // 2. Tìm lịch làm việc tương ứng với ca này
+            List<LichLamViec> lichs = lichLamViecRepository.findByNhanVien_IdAndNgayLamViec(cc.getNhanVien().getId(), cc.getNgay());
+            LichLamViec caHienTai = null;
+
+            for (LichLamViec l : lichs) {
+                if (l.getTrangThai() == 3) { // 3 = Đang làm
+                    caHienTai = l;
+                    break;
+                }
+            }
+
+            if (caHienTai != null) {
+                LocalTime gioKetThuc = caHienTai.getCaLamViec().getGioKetThuc();
+                LocalDateTime thoiGianKetThucCa = LocalDateTime.of(cc.getNgay(), gioKetThuc);
+
+                // Xử lý logic nếu là ca đêm (qua 12h đêm)
+                if (gioKetThuc.isBefore(caHienTai.getCaLamViec().getGioBatDau())) {
+                    thoiGianKetThucCa = thoiGianKetThucCa.plusDays(1);
+                }
+
+                // 3. NẾU HIỆN TẠI ĐÃ VƯỢT QUÁ GIỜ KẾT THÚC 30 PHÚT
+                if (now.isAfter(thoiGianKetThucCa.plusMinutes(30))) {
+
+                    // Tự động set giờ ra và trạng thái
+                    cc.setGioCheckOut(now.toLocalTime());
+                    cc.setTrangThai(1); // 1 = Đã đóng
+
+                    // Vì nhân viên quên chốt, hệ thống tự điền két thực tế = 0
+                    cc.setTienMatCuoiCa(0.0);
+                    cc.setTienChuyenKhoanCuoiCa(0.0);
+                    cc.setGhiChu("Hệ thống tự động đóng ca do nhân viên quên Check-out quá 30 phút.");
+
+                    // Tính toán doanh thu như bình thường
+                    LocalDateTime startDateTime = LocalDateTime.of(cc.getNgay(), cc.getGioCheckIn());
+                    Double dtTienMat = chamCongRepository.calculateDoanhThuTienMat(cc.getNhanVien().getId(), startDateTime, now);
+                    Double dtChuyenKhoan = chamCongRepository.calculateDoanhThuChuyenKhoan(cc.getNhanVien().getId(), startDateTime, now);
+
+                    cc.setDoanhThuTienMat(dtTienMat);
+                    cc.setDoanhThuCk(dtChuyenKhoan);
+                    cc.setTongDoanhThu(dtTienMat + dtChuyenKhoan);
+
+                    // Tính chênh lệch (Vì két thực tế = 0 nên độ lệch sẽ bị ÂM, Quản lý nhìn vào sẽ biết ngay)
+                    Double dauCaMat = cc.getTienMatDauCa() != null ? cc.getTienMatDauCa() : 0.0;
+                    Double dauCaCk = cc.getTienChuyenKhoanDauCa() != null ? cc.getTienChuyenKhoanDauCa() : 0.0;
+
+                    cc.setChenhLechTienMat(0.0 - (dauCaMat + dtTienMat));
+                    cc.setChenhLechCk(0.0 - (dauCaCk + dtChuyenKhoan));
+                    cc.setTienChenhLech(cc.getChenhLechTienMat() + cc.getChenhLechCk());
+
+                    // Lưu phiếu chấm công
+                    chamCongRepository.save(cc);
+
+                    // Cập nhật lại lịch làm việc
+                    caHienTai.setTrangThai(1);
+                    lichLamViecRepository.save(caHienTai);
+
+                    System.out.println("⚠️ Đã tự động đóng ca cho nhân viên ID: " + cc.getNhanVien().getId());
+                }
+            }
+        }
     }
 }

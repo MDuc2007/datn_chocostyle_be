@@ -10,6 +10,7 @@ import org.example.chocostyle_datn.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -47,7 +48,8 @@ public class HoaDonService {
     private PhuongThucThanhToanRepository ptttRepo;
     @Autowired
     private EmailService emailService;
-
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
     // =================================================================
     // 1. LẤY CHI TIẾT (GET DETAIL)
     // =================================================================
@@ -393,6 +395,7 @@ public class HoaDonService {
         }
 
         ghiLichSu(hd, 4, "Xác nhận đặt hàng", "Khách hàng hoàn tất mua tại quầy");
+        broadcastOrderUpdate(idHoaDon);
     }
 
     // =================================================================
@@ -721,6 +724,7 @@ public class HoaDonService {
         String ghiChu = String.format("Thêm %d x [%s - %s - %s] vào giỏ hàng", soLuongThem, tenSp, mauSac, kichCo);
 
         ghiLichSu(hd, hd.getTrangThai(), "Thêm sản phẩm", ghiChu);
+        broadcastOrderUpdate(idHoaDon);
     }
 
     // =================================================================
@@ -749,6 +753,7 @@ public class HoaDonService {
             // --- GHI LỊCH SỬ THAO TÁC RÕ RÀNG ---
             String ghiChu = String.format("Khách bỏ chọn, xóa toàn bộ [%s - %s - %s] khỏi đơn", tenSp, mauSac, kichCo);
             ghiLichSu(hd, hd.getTrangThai(), "Bỏ sản phẩm", ghiChu);
+            broadcastOrderUpdate(idHoaDon);
         }
     }
 
@@ -859,5 +864,24 @@ public class HoaDonService {
                 .trangThai(hd.getTrangThai())
                 .ngayTao(hd.getNgayTao())
                 .build()).collect(Collectors.toList());
+    }
+    // Hàm này sẽ lấy data Hóa Đơn mới nhất và bắn qua WebSocket
+    public void broadcastOrderUpdate(Integer idHoaDon) {
+        try {
+            hoaDonRepo.flush();
+            hdctRepo.flush();
+            Object dataMoiNhat = this.getDetail(idHoaDon);
+
+            // 👉 THÊM DÒNG PRINT NÀY
+            System.out.println("🚀 CHUẨN BỊ PHÁT SÓNG LÊN KÊNH: /topic/order/" + idHoaDon);
+
+            messagingTemplate.convertAndSend("/topic/order/" + idHoaDon, dataMoiNhat);
+
+            // 👉 THÊM DÒNG PRINT NÀY
+            System.out.println("✅ PHÁT SÓNG THÀNH CÔNG!");
+        } catch (Exception e) {
+            System.out.println("❌ Lỗi khi phát sóng WebSocket: " + e.getMessage());
+            e.printStackTrace(); // In chi tiết lỗi ra nếu có
+        }
     }
 }

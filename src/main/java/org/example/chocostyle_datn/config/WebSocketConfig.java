@@ -18,10 +18,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws-chocostyle") // Đổi từ /ws thành /ws-chocostyle
+        // 1. Dành cho Web (Vue.js) - Giữ nguyên hoàn toàn code cũ của bạn
+        registry.addEndpoint("/ws-chocostyle")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
+
+        // 2. Dành cho Mobile (Flutter) - Thêm dòng này để kết nối WebSocket thuần
+        registry.addEndpoint("/ws-chocostyle")
+                .setAllowedOriginPatterns("*");
     }
 }
-
-

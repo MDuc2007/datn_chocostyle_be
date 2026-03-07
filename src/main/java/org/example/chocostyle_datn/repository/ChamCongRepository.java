@@ -96,4 +96,7 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
 
     @Query(value = "SELECT TOP 1 * FROM cham_cong WHERE trang_thai = 1 ORDER BY id DESC", nativeQuery = true)
     ChamCong layCaDongGanNhat();
+
+    @Query("SELECT c FROM ChamCong c WHERE c.gioCheckOut IS NULL")
+    List<ChamCong> findTatCaCaDangMo();
 }
