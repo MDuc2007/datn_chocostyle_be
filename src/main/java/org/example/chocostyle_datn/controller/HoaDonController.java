@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,8 @@ public class HoaDonController {
 
     @Autowired
     private HoaDonService hoaDonService;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
     @Autowired
     private HoaDonRepository hoaDonRepository;
     @Autowired
@@ -236,6 +239,21 @@ public class HoaDonController {
             return ResponseEntity.ok("Cập nhật giá thành công!");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    // ==========================================
+    // API TIẾP SÓNG REALTIME (VUE -> SPRING BOOT -> FLUTTER)
+    // ==========================================
+    @PostMapping("/sync-realtime/{id}")
+    public ResponseEntity<?> syncCartToMobile(
+            @PathVariable Integer id,
+            @RequestBody Object cartData) { // Hứng nguyên cục JSON từ Web Vue
+        try {
+            // Cầm cục JSON đó, ném thẳng sang kênh WebSocket của Flutter
+            messagingTemplate.convertAndSend("/topic/order/" + id, cartData);
+            return ResponseEntity.ok("Đã đồng bộ realtime sang App thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi đồng bộ: " + e.getMessage());
         }
     }
 }
