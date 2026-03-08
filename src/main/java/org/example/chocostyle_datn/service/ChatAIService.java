@@ -61,63 +61,143 @@ public class ChatAIService {
 
     public String chat(String message) {
 
-        String msg = message.toLowerCase().trim();
+        String msg = normalize(message);
 
         String size = extractSize(msg);
-        Long maxPrice = extractMaxPrice(msg);
+        String color = extractColor(msg);
+        Long price = extractMaxPrice(msg);
+        String name = extractProductName(msg);
 
-        if (size != null || maxPrice != null) {
-            return handleDynamicFilter(size, maxPrice);
+        if(size != null || color != null || price != null || name != null){
+            return searchProduct(size,color,price,name);
         }
 
-        if (msg.contains("dưới") && maxPrice != null) {
-            return handlePriceRange(0L, maxPrice);
-        }
-
-        if (msg.contains("trên") && maxPrice != null) {
-            return handlePriceRange(maxPrice, Long.MAX_VALUE);
-        }
-
-        // ===== GIÁ =====
-        if (containsAny(msg,
-                "giá", "bao nhiêu tiền", "bao nhiêu", "giá tiền", "price", "tiền")) {
-            return handlePrice();
-        }
-
-        // ===== TỒN KHO / SIZE =====
-        if (containsAny(msg,
-                "còn hàng", "còn không", "hết hàng", "size", "còn size",
-                "còn sản phẩm", "còn áo", "tồn kho")) {
-            return handleStock();
-        }
-
-        // ===== VOUCHER =====
-        if (containsAny(msg,
-                "voucher", "giảm giá", "khuyến mãi", "ưu đãi",
-                "sale", "mã giảm giá", "chương trình")) {
+        if (containsAny(msg,"voucher","giam gia","sale","khuyen mai")){
             return handleVoucher();
         }
 
-        // ===== ĐƠN HÀNG =====
-        if (containsAny(msg,
-                "đơn hàng", "hóa đơn", "hd", "mã đơn", "kiểm tra đơn",
-                "trạng thái đơn")) {
+        if (containsAny(msg,"don hang","hoa don","hd")){
             return handleOrder(msg);
         }
 
-        // ===== SẢN PHẨM =====
-        if (containsAny(msg,
-                "áo", "sản phẩm", "mặt hàng", "shop có gì",
-                "bán gì", "có gì", "xem hàng", "xem sản phẩm",
-                "loại áo", "mẫu áo")) {
-            return handleProduct();
-        }
-
-        if (msg.contains("top") || msg.contains("gợi ý") || msg.contains("bán chạy")) {
+        if (containsAny(msg,"goi y","ban chay","top")){
             return handleTopProducts();
         }
 
-        return "Shop chuyên áo khoác nam. Bạn có thể hỏi về sản phẩm, giá bán, voucher hoặc đơn hàng nhé.";
+        return "Shop có áo khoác nam nhiều mẫu. Bạn có thể hỏi ví dụ:\n"
+                +"• áo khoác xanh size m\n"
+                +"• áo bomber đen dưới 500k\n"
+                +"• shop có voucher không";
+    }
+
+    private String extractColor(String msg){
+
+        if(msg.contains("xanh")) return "xanh";
+        if(msg.contains("den")) return "den";
+        if(msg.contains("trang")) return "trang";
+        if(msg.contains("do")) return "do";
+        if(msg.contains("vang")) return "vang";
+
+        return null;
+    }
+
+    private String extractProductName(String msg){
+
+        if(msg.contains("bomber")) return "bomber";
+        if(msg.contains("hoodie")) return "hoodie";
+        if(msg.contains("khoac")) return "khoac";
+
+        return null;
+    }
+
+    private int levenshtein(String a, String b){
+
+        int[][] dp = new int[a.length()+1][b.length()+1];
+
+        for(int i=0;i<=a.length();i++) dp[i][0]=i;
+        for(int j=0;j<=b.length();j++) dp[0][j]=j;
+
+        for(int i=1;i<=a.length();i++){
+            for(int j=1;j<=b.length();j++){
+
+                int cost = a.charAt(i-1)==b.charAt(j-1)?0:1;
+
+                dp[i][j] = Math.min(
+                        Math.min(dp[i-1][j]+1,dp[i][j-1]+1),
+                        dp[i-1][j-1]+cost
+                );
+            }
+        }
+
+        return dp[a.length()][b.length()];
+    }
+
+    private String searchProduct(String size,String color,Long price,String name){
+
+        List<ChiTietSanPham> list = chiTietRepo.getAllActive();
+
+        List<ChiTietSanPham> result = list.stream()
+
+                .filter(sp->{
+
+                    boolean ok=true;
+
+                    if(size!=null){
+                        ok &= sp.getIdKichCo().getTenKichCo()
+                                .equalsIgnoreCase(size);
+                    }
+
+                    if(color!=null){
+                        ok &= normalize(sp.getIdMauSac().getTenMauSac())
+                                .contains(color);
+                    }
+
+                    if(name!=null){
+
+                        String ten = normalize(sp.getIdSanPham().getTenSp());
+
+                        if(!ten.contains(name)){
+
+                            int distance = levenshtein(ten,name);
+
+                            ok &= distance<=3;
+                        }
+                    }
+
+                    if(price!=null){
+
+                        ok &= sp.getGiaBan()
+                                .compareTo(BigDecimal.valueOf(price))<=0;
+                    }
+
+                    return ok;
+
+                })
+                .limit(3)
+                .toList();
+
+        if(result.isEmpty()){
+            return "Shop chưa tìm thấy sản phẩm phù hợp ạ.";
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Shop tìm thấy sản phẩm phù hợp:\n\n");
+
+        for(ChiTietSanPham sp:result){
+
+            sb.append("• ")
+                    .append(sp.getIdSanPham().getTenSp())
+                    .append(" | ")
+                    .append(sp.getIdMauSac().getTenMauSac())
+                    .append(" | Size ")
+                    .append(sp.getIdKichCo().getTenKichCo())
+                    .append(" | ")
+                    .append(vnFormat.format(sp.getGiaBan()))
+                    .append("đ\n");
+        }
+
+        return sb.toString();
     }
 
     private String handleDynamicFilter(String size, Long maxPrice) {
@@ -390,5 +470,48 @@ public class ChatAIService {
         }
 
         return sb.toString();
+    }
+
+    private String normalize(String msg) {
+
+        msg = msg.toLowerCase().trim();
+
+        msg = msg.replace("á", "a")
+                .replace("à", "a")
+                .replace("ả", "a")
+                .replace("ã", "a")
+                .replace("ạ", "a");
+
+        msg = msg.replace("é", "e")
+                .replace("è", "e")
+                .replace("ẻ", "e")
+                .replace("ẽ", "e")
+                .replace("ẹ", "e");
+
+        msg = msg.replace("í", "i")
+                .replace("ì", "i")
+                .replace("ỉ", "i")
+                .replace("ĩ", "i")
+                .replace("ị", "i");
+
+        msg = msg.replace("ó", "o")
+                .replace("ò", "o")
+                .replace("ỏ", "o")
+                .replace("õ", "o")
+                .replace("ọ", "o");
+
+        msg = msg.replace("ú", "u")
+                .replace("ù", "u")
+                .replace("ủ", "u")
+                .replace("ũ", "u")
+                .replace("ụ", "u");
+
+        msg = msg.replace("đ", "d");
+
+        msg = msg.replace("khoc", "khoac");
+        msg = msg.replace("xnah", "xanh");
+        msg = msg.replace("bom er", "bomber");
+
+        return msg;
     }
 }

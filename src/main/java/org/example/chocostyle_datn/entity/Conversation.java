@@ -7,7 +7,11 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "conversations")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Conversation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,4 +24,6 @@ public class Conversation {
     @ManyToOne
     @JoinColumn(name = "nhan_vien_id")
     private NhanVien nhanVien;   // Người dùng B (Nhân viên hỗ trợ)
+    @Column(name = "trang_thai")
+    private String trangThai; // Sẽ chứa các giá trị: "BOT", "WAITING", "ACTIVE"
 }

@@ -256,4 +256,5 @@ public class HoaDonController {
             return ResponseEntity.internalServerError().body("Lỗi đồng bộ: " + e.getMessage());
         }
     }
+
 }

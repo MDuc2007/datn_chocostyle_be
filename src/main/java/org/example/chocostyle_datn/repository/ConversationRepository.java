@@ -17,4 +17,6 @@ public interface ConversationRepository extends JpaRepository<Conversation, Inte
     List<Conversation> findByNhanVien(NhanVien nv);
 
     Optional<Conversation> findTopByKhachHangOrderByIdDesc(KhachHang khachHang);
+
+    List<Conversation> findByNhanVienIsNullAndTrangThai(String trangThai);
 }
