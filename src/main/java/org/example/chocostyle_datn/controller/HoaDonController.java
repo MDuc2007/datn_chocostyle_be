@@ -256,5 +256,15 @@ public class HoaDonController {
             return ResponseEntity.internalServerError().body("Lỗi đồng bộ: " + e.getMessage());
         }
     }
+    @PostMapping("/{id}/thanh-toan-thu-cong")
+    public ResponseEntity<?> thanhToanThuCong(@PathVariable Integer id, @RequestBody java.util.Map<String, String> body) {
+        try {
+            // hoaDonService đã có sẵn trong HoaDonController
+            hoaDonService.xacNhanThanhToanThuCong(id, body.get("ghiChu"));
+            return ResponseEntity.ok("Xác nhận thanh toán thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
 }
