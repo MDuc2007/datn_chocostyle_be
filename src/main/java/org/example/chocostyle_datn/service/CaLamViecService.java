@@ -1,5 +1,7 @@
 package org.example.chocostyle_datn.service;
+
 import org.example.chocostyle_datn.entity.CaLamViec;
+import org.example.chocostyle_datn.model.Request.CaLamViecRequest;
 import org.example.chocostyle_datn.repository.CaLamViecRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -8,25 +10,20 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
-
 @Service
 public class CaLamViecService {
 
-
     @Autowired
     private CaLamViecRepository repo;
-
 
     // 1. Lấy danh sách ca làm việc
     public List<CaLamViec> getAll() {
         return repo.findAll(Sort.by(Sort.Direction.DESC, "idCa"));
     }
-
 
     // 2. Lấy chi tiết ca
     public CaLamViec getById(Integer id) {
@@ -34,49 +31,77 @@ public class CaLamViecService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy ca làm việc với ID: " + id));
     }
 
+    // === HÀM BẢO VỆ DỮ LIỆU & LOGIC NGHIỆP VỤ ===
+    private void validateLogic(CaLamViecRequest req, Integer idCa) {
+        // 1. Cắt khoảng trắng thừa
+        String tenCaClean = req.getTenCa().trim();
+        req.setTenCa(tenCaClean);
 
-    // 3. Tạo mới ca làm việc
-    public CaLamViec create(CaLamViec ca) {
-        // Tự động gen mã ca: CA + số lượng hiện tại + 1
+        // 2. Kiểm tra logic giờ giấc
+        if (req.getGioBatDau().isAfter(req.getGioKetThuc()) || req.getGioBatDau().equals(req.getGioKetThuc())) {
+            throw new RuntimeException("Giờ bắt đầu phải diễn ra trước giờ kết thúc!");
+        }
+
+        // 3. Thời gian ca làm việc tối thiểu phải là 30 phút
+        long minutes = java.time.Duration.between(req.getGioBatDau(), req.getGioKetThuc()).toMinutes();
+        if (minutes < 30) {
+            throw new RuntimeException("Tổng thời gian ca làm việc tối thiểu phải là 30 phút!");
+        }
+
+        // 4. Kiểm tra trùng lặp Tên Ca
+        if (idCa == null) { // Nếu là Thêm mới
+            if (repo.existsByTenCa(tenCaClean)) {
+                throw new RuntimeException("Tên ca làm việc '" + tenCaClean + "' đã tồn tại trong hệ thống!");
+            }
+        } else { // Nếu là Cập nhật
+            if (repo.existsByTenCaAndIdCaNot(tenCaClean, idCa)) {
+                throw new RuntimeException("Tên ca làm việc '" + tenCaClean + "' đã tồn tại trong hệ thống!");
+            }
+        }
+
+        // 5. Kiểm tra trùng lặp KHUNG GIỜ y hệt với ca khác
+        List<CaLamViec> allShifts = repo.findAll();
+        for (CaLamViec ca : allShifts) {
+            if (idCa != null && ca.getIdCa().equals(idCa)) continue; // Bỏ qua chính nó khi sửa
+
+            if (ca.getGioBatDau().equals(req.getGioBatDau()) && ca.getGioKetThuc().equals(req.getGioKetThuc())) {
+                throw new RuntimeException("Khung giờ này đã bị trùng y hệt với ca: " + ca.getTenCa());
+            }
+        }
+    }
+
+    // 3. Tạo mới ca làm việc (Đổi tham số sang Request)
+    public CaLamViec create(CaLamViecRequest request) {
+        // Kiểm tra toàn bộ logic trước khi lưu
+        validateLogic(request, null);
+
+        CaLamViec ca = new CaLamViec();
         ca.setMaCa(generateNextMaCa());
-        ca.setTrangThai(1); // Mặc định hoạt động
+        ca.setTenCa(request.getTenCa());
+        ca.setGioBatDau(request.getGioBatDau());
+        ca.setGioKetThuc(request.getGioKetThuc());
+        ca.setTrangThai(request.getTrangThai() != null ? request.getTrangThai() : 1); // Mặc định hoạt động
         ca.setNgayTao(LocalDateTime.now());
-        // Check trùng tên
-        if (repo.existsByTenCa(ca.getTenCa())) {
-            throw new RuntimeException("Tên ca làm việc '" + ca.getTenCa() + "' đã tồn tại trong hệ thống!");
-        }
-        // Kiểm tra logic giờ giấc
-        if (ca.getGioBatDau().isAfter(ca.getGioKetThuc())) {
-            throw new RuntimeException("Giờ bắt đầu không thể sau giờ kết thúc");
-        }
-
 
         return repo.save(ca);
     }
 
+    // 4. Cập nhật ca làm việc (Đổi tham số sang Request)
+    public CaLamViec update(Integer id, CaLamViecRequest request) {
+        // Kiểm tra toàn bộ logic trước khi cập nhật
+        validateLogic(request, id);
 
-    // 4. Cập nhật ca làm việc
-    public CaLamViec update(Integer id, CaLamViec caDetails) {
         CaLamViec ca = getById(id);
-
-
-        ca.setTenCa(caDetails.getTenCa());
-        ca.setGioBatDau(caDetails.getGioBatDau());
-        ca.setGioKetThuc(caDetails.getGioKetThuc());
-        ca.setTrangThai(caDetails.getTrangThai());
+        ca.setTenCa(request.getTenCa());
+        ca.setGioBatDau(request.getGioBatDau());
+        ca.setGioKetThuc(request.getGioKetThuc());
+        if (request.getTrangThai() != null) {
+            ca.setTrangThai(request.getTrangThai());
+        }
         ca.setNgayCapNhat(LocalDateTime.now());
-        // Check trùng tên
-        if (repo.existsByTenCaAndIdCaNot(caDetails.getTenCa(), id)) {
-            throw new RuntimeException("Tên ca làm việc '" + ca.getTenCa() + "' đã tồn tại trong hệ thống!");
-        }
-        if (ca.getGioBatDau().isAfter(ca.getGioKetThuc())) {
-            throw new RuntimeException("Giờ bắt đầu không thể sau giờ kết thúc");
-        }
-
 
         return repo.save(ca);
     }
-
 
     // 5. Thay đổi trạng thái (Xóa mềm)
     public void delete(Integer id) {
@@ -85,12 +110,12 @@ public class CaLamViecService {
         repo.save(ca);
     }
 
-
     // Hàm tự động tạo mã ca: CA001, CA002...
     private String generateNextMaCa() {
         long count = repo.count();
         return String.format("CA%03d", count + 1);
     }
+
     // BỔ SUNG XỬ LÝ NULL ĐỂ FIX LỖI ÉP KIỂU CỦA SQL SERVER
     public Page<CaLamViec> searchCaLamViec(Integer trangThai, LocalTime gioBatDau, LocalTime gioKetThuc, int page, int size) {
         // Lưu ý: Dùng Native Query nên phải sort theo đúng tên cột trong DB là "id_ca"
@@ -103,4 +128,3 @@ public class CaLamViecService {
         return repo.searchCaLamViec(trangThai, startStr, endStr, pageable);
     }
 }
-
