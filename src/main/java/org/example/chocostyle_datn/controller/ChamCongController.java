@@ -85,6 +85,7 @@ public class ChamCongController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
     @GetMapping("/so-du-ca-truoc")
     public ResponseEntity<?> getSoDuCaTruoc() {
         return ResponseEntity.ok(service.laySoDuCaTruoc());
