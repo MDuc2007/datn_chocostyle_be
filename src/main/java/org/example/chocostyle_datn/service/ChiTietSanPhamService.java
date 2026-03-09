@@ -149,7 +149,6 @@ public class ChiTietSanPhamService {
     }
 
 
-
     public void changeStatusChiTietSanPham(
             Integer sanPhamId,
             Integer trangThai,
@@ -238,10 +237,11 @@ public class ChiTietSanPhamService {
         Integer phanTramGiam = 0;
 
         if (ctsp.getId() != null) {
-            Optional<ChiTietDotGiamGia> activeDiscountOpt = chiTietDotGiamGiaRepository.findActiveDiscountBySpctId(ctsp.getId());
+            List<ChiTietDotGiamGia> discounts =
+                    chiTietDotGiamGiaRepository.findActiveDiscountBySpctId(ctsp.getId());
 
-            if (activeDiscountOpt.isPresent()) {
-                ChiTietDotGiamGia activeDiscount = activeDiscountOpt.get();
+            if (!discounts.isEmpty()) {
+                ChiTietDotGiamGia activeDiscount = discounts.get(0);
                 DotGiamGia dgg = activeDiscount.getIdDotGiamGia();
 
                 if (dgg != null && dgg.getGiaTriGiam() != null) {
@@ -260,4 +260,5 @@ public class ChiTietSanPhamService {
 
         return res;
     }
+
 }
