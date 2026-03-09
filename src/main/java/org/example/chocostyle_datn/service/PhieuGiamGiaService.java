@@ -426,39 +426,57 @@ public class PhieuGiamGiaService {
         int trangThaiHienThi;
 
         if (pgg.getTrangThai() == 0) {
-            trangThaiHienThi = 0; // Ngừng
+            trangThaiHienThi = 0;
         } else if (today.isBefore(pgg.getNgayBatDau())) {
-            trangThaiHienThi = 2; // Sắp diễn ra
+            trangThaiHienThi = 2;
         } else if (today.isAfter(pgg.getNgayKetThuc())) {
-            trangThaiHienThi = 3; // Đã kết thúc
+            trangThaiHienThi = 3;
         } else {
-            trangThaiHienThi = 1; // Đang hoạt động
+            trangThaiHienThi = 1;
         }
 
-        return new PhieuGiamGiaResponse(
-                pgg.getId(),
-                pgg.getMaPgg(),
-                pgg.getTenPgg(),
-                pgg.getKieuApDung(),
-                pgg.getLoaiGiam(),
-                pgg.getGiaTri(),
-                pgg.getGiaTriToiDa(),
-                pgg.getDieuKienDonHang(),
-                pgg.getNgayBatDau(),
-                pgg.getNgayKetThuc(),
-                pgg.getSoLuong(),
-                pgg.getSoLuongDaDung(),
-                trangThaiHienThi
-        );
+        PhieuGiamGiaResponse res = new PhieuGiamGiaResponse();
+
+        res.setId(pgg.getId());
+        res.setMaPgg(pgg.getMaPgg());
+        res.setTenPgg(pgg.getTenPgg());
+        res.setKieuApDung(pgg.getKieuApDung());
+        res.setLoaiGiam(pgg.getLoaiGiam());
+        res.setGiaTri(pgg.getGiaTri());
+        res.setGiaTriToiDa(pgg.getGiaTriToiDa());
+        res.setDieuKienDonHang(pgg.getDieuKienDonHang());
+        res.setNgayBatDau(pgg.getNgayBatDau());
+        res.setNgayKetThuc(pgg.getNgayKetThuc());
+        res.setSoLuong(pgg.getSoLuong());
+        res.setSoLuongDaDung(pgg.getSoLuongDaDung());
+        res.setTrangThai(trangThaiHienThi);
+
+        return res;
     }
 
-
     public PhieuGiamGiaResponse getPGGById(Integer id) {
+
         PhieuGiamGia pgg = phieuGiamGiaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu giảm giá"));
 
+        PhieuGiamGiaResponse res = toResponse(pgg);
 
-        return toResponse(pgg);
+        List<PhieuGiamGiaKhachHang> list =
+                pggKhRepository.findByPhieuGiamGiaId(id);
+
+        List<Integer> khIds = list.stream()
+                .map(x -> x.getKhachHang().getId())
+                .toList();
+
+        List<Integer> daSuDungIds = list.stream()
+                .filter(PhieuGiamGiaKhachHang::getDaSuDung)
+                .map(x -> x.getKhachHang().getId())
+                .toList();
+
+        res.setKhachHangIds(khIds);
+        res.setKhachHangDaSuDungIds(daSuDungIds);
+
+        return res;
     }
 
     // Trong PhieuGiamGiaService.java

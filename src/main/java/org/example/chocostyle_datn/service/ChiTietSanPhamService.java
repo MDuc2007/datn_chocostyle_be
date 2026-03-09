@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.chocostyle_datn.entity.*;
 import org.example.chocostyle_datn.model.Request.ChiTietSanPhamRequest;
 import org.example.chocostyle_datn.model.Response.ChiTietSanPhamResponse;
-import org.example.chocostyle_datn.model.Response.SanPhamResponse;
 import org.example.chocostyle_datn.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,7 +13,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +29,6 @@ public class ChiTietSanPhamService {
     private final KieuDangRepository kieuDangRepository;
     private final ChiTietSanPhamRepository chiTietSanPhamRepository;
 
-    // Đã thêm ChiTietDotGiamGiaRepository
     private final ChiTietDotGiamGiaRepository chiTietDotGiamGiaRepository;
 
     /* ================= GET ================= */
@@ -49,7 +46,6 @@ public class ChiTietSanPhamService {
         return mapToResponse(ctsp);
     }
 
-    // 👉 THÊM HÀM MỚI: LẤY CÁC SẢN PHẨM ĐANG CÓ ĐỢT GIẢM GIÁ (SALE)
     public Page<ChiTietSanPhamResponse> getSaleProducts(Pageable pageable) {
         return chiTietDotGiamGiaRepository.findActiveSaleProducts(pageable)
                 .map(this::mapToResponse);
@@ -62,10 +58,9 @@ public class ChiTietSanPhamService {
 
         ChiTietSanPham ctsp = new ChiTietSanPham();
 
-        ctsp.setIdSanPham(
-                sanPhamRepository.findById(data.getIdSanPham())
-                        .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"))
-        );
+        SanPham sp = sanPhamRepository.findById(data.getIdSanPham())
+                .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
+        ctsp.setIdSanPham(sp);
 
         ctsp.setSoLuongTon(data.getSoLuongTon());
         autoUpdateTrangThai(ctsp);
@@ -85,6 +80,9 @@ public class ChiTietSanPhamService {
                 hinhAnhSanPhamRepository.save(img);
             }
         }
+
+        // Cập nhật trạng thái sản phẩm cha
+        updateParentSanPhamStatus(sp.getId());
 
         return mapToResponse(ctsp);
     }
@@ -117,13 +115,21 @@ public class ChiTietSanPhamService {
             }
         }
 
+        // Cập nhật trạng thái sản phẩm cha
+        updateParentSanPhamStatus(ctsp.getIdSanPham().getId());
+
         return mapToResponse(ctsp);
     }
 
     /* ================= DELETE ================= */
 
     public void delete(Integer id) {
-        repository.deleteById(id);
+        ChiTietSanPham ctsp = repository.findById(id).orElse(null);
+        if (ctsp != null) {
+            Integer spId = ctsp.getIdSanPham().getId();
+            repository.deleteById(id);
+            updateParentSanPhamStatus(spId);
+        }
     }
 
     public Page<ChiTietSanPhamResponse> getAll(
@@ -148,7 +154,6 @@ public class ChiTietSanPhamService {
         ).map(this::mapToResponse);
     }
 
-
     public void changeStatusChiTietSanPham(
             Integer sanPhamId,
             Integer trangThai,
@@ -158,11 +163,13 @@ public class ChiTietSanPhamService {
         ChiTietSanPham sp = chiTietSanPhamRepository.findById(sanPhamId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
 
-        if (sp.getSoLuongTon() == 0) {
-            throw new IllegalArgumentException("Sản phẩm đã hết hàng, không thể thay đổi trạng thái");
+        // Tính null an toàn và so sánh <= 0
+        int sl = sp.getSoLuongTon() == null ? 0 : sp.getSoLuongTon();
+        if (sl <= 0 && trangThai == 1) {
+            throw new IllegalArgumentException("Sản phẩm đã hết hàng, không thể thay đổi trạng thái sang đang bán");
         }
 
-        if (trangThai != 1 && trangThai != 2) {
+        if (trangThai != 1 && trangThai != 2 && trangThai != 0) {
             throw new IllegalArgumentException("Trạng thái không hợp lệ");
         }
 
@@ -171,8 +178,9 @@ public class ChiTietSanPhamService {
         sp.setNguoiCapNhat(nguoiCapNhat);
 
         chiTietSanPhamRepository.save(sp);
-    }
 
+        updateParentSanPhamStatus(sp.getIdSanPham().getId());
+    }
     public List<ChiTietSanPham> getDataExport(List<Integer> ids, Integer productId) {
 
         if (ids != null && !ids.isEmpty()) {
@@ -186,13 +194,33 @@ public class ChiTietSanPhamService {
         return repository.findAll();
     }
 
-
+    // 🔴 SỬA LỖI 1: Tự động đổi về Hết hàng (0) nếu tồn kho <= 0
     private void autoUpdateTrangThai(ChiTietSanPham ctsp) {
         if (ctsp.getSoLuongTon() == null || ctsp.getSoLuongTon() <= 0) {
             ctsp.setTrangThai(0);
         } else {
+            // Không sửa nếu nó đang bị buộc ngưng bán
+            if (ctsp.getTrangThai() != null && ctsp.getTrangThai() == 2) return;
             ctsp.setTrangThai(1);
         }
+    }
+
+    // 🔴 HÀM MỚI: Đồng bộ trạng thái Sản Phẩm cha khi sửa Chi Tiết
+    private void updateParentSanPhamStatus(Integer sanPhamId) {
+        SanPham sp = sanPhamRepository.findById(sanPhamId).orElse(null);
+        if (sp == null) return;
+
+        List<ChiTietSanPham> ctList = chiTietSanPhamRepository.findByIdSanPham_Id(sanPhamId);
+        int totalQuantity = ctList.stream()
+                .mapToInt(ct -> ct.getSoLuongTon() == null ? 0 : ct.getSoLuongTon())
+                .sum();
+
+        if (totalQuantity <= 0) {
+            sp.setTrangThai(0); // Hết hàng
+        } else if (sp.getTrangThai() != null && sp.getTrangThai() != 2) {
+            sp.setTrangThai(1); // Đang bán
+        }
+        sanPhamRepository.save(sp);
     }
 
 
@@ -204,10 +232,19 @@ public class ChiTietSanPhamService {
 
         res.setId(ctsp.getId());
         res.setMaChiTietSanPham(ctsp.getMaChiTietSanPham());
-        res.setSoLuongTon(ctsp.getSoLuongTon());
+
+        int sl = ctsp.getSoLuongTon() == null ? 0 : ctsp.getSoLuongTon();
+        res.setSoLuongTon(sl);
+
+        // Cập nhật trạng thái tự động để trả về FE
+        Integer trangThai = ctsp.getTrangThai();
+        if (trangThai != null && trangThai != 2) {
+            trangThai = sl <= 0 ? 0 : 1;
+        }
+        res.setTrangThai(trangThai);
+
         res.setGiaNhap(ctsp.getGiaNhap());
         res.setGiaBan(ctsp.getGiaBan());
-        res.setTrangThai(ctsp.getTrangThai());
 
         res.setTenMauSac(ctsp.getIdMauSac().getTenMauSac());
         res.setTenKichCo(ctsp.getIdKichCo().getTenKichCo());
@@ -231,7 +268,6 @@ public class ChiTietSanPhamService {
                         .toList()
         );
 
-        // 👉 TÍNH TOÁN GIẢM GIÁ TỰ ĐỘNG NẾU CÓ KHUYẾN MÃI
         BigDecimal giaGoc = ctsp.getGiaBan();
         BigDecimal giaSauGiam = giaGoc;
         Integer phanTramGiam = 0;
@@ -260,5 +296,4 @@ public class ChiTietSanPhamService {
 
         return res;
     }
-
 }

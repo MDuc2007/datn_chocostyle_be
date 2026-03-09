@@ -302,23 +302,20 @@ public class SanPhamService {
         SanPham sp = sanPhamRepo.findById(sanPhamId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
 
-        // 1️⃣ Cập nhật trạng thái sản phẩm
         sp.setTrangThai(trangThai);
         sp.setNgayCapNhat(LocalDateTime.now());
         sp.setNguoiCapNhat(nguoiCapNhat);
         sanPhamRepo.save(sp);
 
-        // 2️⃣ Cập nhật biến thể
         List<ChiTietSanPham> ctList = chiTietRepo.findByIdSanPham(sp);
 
         for (ChiTietSanPham ct : ctList) {
 
             if (trangThai == 2) {
-                // 🔴 Ngừng bán → tất cả biến thể = 2
                 ct.setTrangThai(2);
             } else {
-                // 🟢 Mở bán → dựa vào tồn kho
-                if (ct.getSoLuongTon() > 0) {
+                // Sửa chống lỗi NullPointerException và so sánh <= 0
+                if (ct.getSoLuongTon() != null && ct.getSoLuongTon() > 0) {
                     ct.setTrangThai(1);
                 } else {
                     ct.setTrangThai(0);
@@ -360,7 +357,6 @@ public class SanPhamService {
 
         chiTietRepo.save(ct);
 
-        // 🔥🔥🔥 QUAN TRỌNG: UPDATE TRẠNG THÁI SẢN PHẨM CHA
         SanPham sp = ct.getIdSanPham();
 
         List<ChiTietSanPham> ctList = chiTietRepo.findByIdSanPham(sp);
@@ -369,10 +365,11 @@ public class SanPhamService {
                 .mapToInt(c -> c.getSoLuongTon() == null ? 0 : c.getSoLuongTon())
                 .sum();
 
-        if (totalQuantity == 0) {
-            sp.setTrangThai(0); // Hết hàng
-        } else if (sp.getTrangThai() != 2) {
-            sp.setTrangThai(1); // Đang bán
+        // Đổi == 0 thành <= 0
+        if (totalQuantity <= 0) {
+            sp.setTrangThai(0);
+        } else if (sp.getTrangThai() != null && sp.getTrangThai() != 2) {
+            sp.setTrangThai(1);
         }
 
         sanPhamRepo.save(sp);
@@ -405,12 +402,14 @@ public class SanPhamService {
         dto.setMaSp(sp.getMaSp());
         dto.setTenSp(sp.getTenSp());
         dto.setMoTa(sp.getMoTa());
+
         int totalQuantity = chiTietRepo.findByIdSanPham(sp).stream()
                 .mapToInt(ct -> ct.getSoLuongTon() == null ? 0 : ct.getSoLuongTon())
                 .sum();
 
-        if (sp.getTrangThai() != 2) { // không đụng nếu đang ngừng bán
-            if (totalQuantity == 0) {
+        if (sp.getTrangThai() != null && sp.getTrangThai() != 2) {
+            // Ép trạng thái về 0 nếu số lượng <= 0 ngay lúc đọc
+            if (totalQuantity <= 0) {
                 sp.setTrangThai(0);
             } else {
                 sp.setTrangThai(1);
@@ -426,12 +425,11 @@ public class SanPhamService {
         dto.setQrCode(sp.getQrCode());
         dto.setQrImage(sp.getQrImage());
 
-        dto.setTenChatLieu(sp.getIdChatLieu().getTenChatLieu());
-        dto.setTenXuatXu(sp.getIdXuatXu().getTenXuatXu());
+        dto.setTenChatLieu(sp.getIdChatLieu() != null ? sp.getIdChatLieu().getTenChatLieu() : null);
+        dto.setTenXuatXu(sp.getIdXuatXu() != null ? sp.getIdXuatXu().getTenXuatXu() : null);
 
         List<ChiTietSanPham> ctList = chiTietRepo.findByIdSanPham(sp);
 
-        // 🔥 GROUP BY MA CTSP
         Map<String, List<ChiTietSanPham>> grouped =
                 ctList.stream()
                         .collect(Collectors.groupingBy(ChiTietSanPham::getMaChiTietSanPham));
@@ -445,28 +443,30 @@ public class SanPhamService {
                     res.setMaChiTietSanPham(first.getMaChiTietSanPham());
                     res.setGiaBan(first.getGiaBan());
                     res.setGiaNhap(first.getGiaNhap());
-                    res.setTrangThai(first.getTrangThai());
 
-                    // ✅ TỔNG SỐ LƯỢNG
-                    res.setSoLuongTon(
-                            list.stream()
-                                    .mapToInt(ChiTietSanPham::getSoLuongTon)
-                                    .sum()
-                    );
+                    int soLuong = list.stream()
+                            .mapToInt(ct -> ct.getSoLuongTon() == null ? 0 : ct.getSoLuongTon())
+                            .sum();
 
-                    // ✅ MÀU
+                    res.setSoLuongTon(soLuong);
+
+                    // Tự động map trạng thái biến thể khi trả về Frontend
+                    if (first.getTrangThai() != null && first.getTrangThai() == 2) {
+                        res.setTrangThai(2);
+                    } else {
+                        res.setTrangThai(soLuong <= 0 ? 0 : 1);
+                    }
+
                     res.setMauSacList(
                             list.stream()
                                     .map(ct -> new MauSacResponse(
                                             ct.getIdMauSac().getTenMauSac(),
-                                            ct.getIdMauSac().getRgb()   // 🔥 lấy rgb
+                                            ct.getIdMauSac().getRgb()
                                     ))
                                     .distinct()
                                     .toList()
                     );
 
-
-                    // ✅ SIZE
                     res.setKichCoList(
                             list.stream()
                                     .map(ct -> ct.getIdKichCo().getTenKichCo())
@@ -474,7 +474,6 @@ public class SanPhamService {
                                     .toList()
                     );
 
-                    // ✅ ẢNH
                     List<String> images = hinhAnhRepo
                             .findByChiTietSanPham_Id(first.getId())
                             .stream()
@@ -489,12 +488,11 @@ public class SanPhamService {
 
         dto.setBienTheList(bienTheResponses);
 
-        // 🔹 THÔNG TIN CHUNG
         if (!ctList.isEmpty()) {
             ChiTietSanPham ct = ctList.get(0);
-            dto.setTenLoaiAo(ct.getIdLoaiAo().getTenLoai());
-            dto.setTenKieuDang(ct.getIdKieuDang().getTenKieuDang());
-            dto.setTenPhongCachMac(ct.getIdPhongCachMac().getTenPhongCach());
+            dto.setTenLoaiAo(ct.getIdLoaiAo() != null ? ct.getIdLoaiAo().getTenLoai() : null);
+            dto.setTenKieuDang(ct.getIdKieuDang() != null ? ct.getIdKieuDang().getTenKieuDang() : null);
+            dto.setTenPhongCachMac(ct.getIdPhongCachMac() != null ? ct.getIdPhongCachMac().getTenPhongCach() : null);
         }
 
         return dto;
@@ -524,10 +522,11 @@ public class SanPhamService {
                 .mapToInt(ct -> ct.getSoLuongTon() == null ? 0 : ct.getSoLuongTon())
                 .sum();
 
-        if (totalQuantity == 0) {
-            sp.setTrangThai(0); // Hết hàng
-        } else if (sp.getTrangThai() != 2) {
-            sp.setTrangThai(1); // Đang bán (nếu không bị ngừng bán)
+        // Đổi == 0 thành <= 0
+        if (totalQuantity <= 0) {
+            sp.setTrangThai(0);
+        } else if (sp.getTrangThai() != null && sp.getTrangThai() != 2) {
+            sp.setTrangThai(1);
         }
 
         sanPhamRepo.save(sp);
