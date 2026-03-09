@@ -1,5 +1,6 @@
 package org.example.chocostyle_datn.service;
 
+import jakarta.validation.Valid;
 import org.example.chocostyle_datn.entity.NhanVien;
 import org.example.chocostyle_datn.model.Request.NhanVienRequest;
 import org.example.chocostyle_datn.model.Response.NhanVienResponse;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
 
 
 import java.text.Normalizer;
@@ -51,7 +53,7 @@ public class NhanVienService {
     }
 
     // --- 3. THÊM MỚI (CÓ VALIDATE) ---
-    public NhanVienResponse createNhanVien(NhanVienRequest request) {
+    public NhanVienResponse createNhanVien(@Valid NhanVienRequest request) {
         // 1. Validate trùng lặp
         if (repo.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email này đã tồn tại trong hệ thống!");
@@ -92,7 +94,7 @@ public class NhanVienService {
     }
 
     // --- 4. CẬP NHẬT (CÓ VALIDATE TRỪ CHÍNH NÓ) ---
-    public NhanVienResponse updateNhanVien(Integer id, NhanVienRequest request) {
+    public NhanVienResponse updateNhanVien(@PathVariable Integer id, @Valid NhanVienRequest request) {
         NhanVien nv = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên: " + id));
 
@@ -116,9 +118,9 @@ public class NhanVienService {
     // --- LOGIC MAP DỮ LIỆU & GHÉP ĐỊA CHỈ (QUAN TRỌNG) ---
     private void mapRequestToEntity(NhanVienRequest req, NhanVien nv) {
         // 1. Thông tin cơ bản
-        if (req.getHoTen() != null) nv.setHoTen(req.getHoTen());
-        if (req.getEmail() != null) nv.setEmail(req.getEmail());
-        if (req.getSdt() != null) nv.setSoDienThoai(req.getSdt());
+        if (req.getHoTen() != null) nv.setHoTen(req.getHoTen().trim());
+        if (req.getEmail() != null) nv.setEmail(req.getEmail().trim());
+        if (req.getSdt() != null) nv.setSoDienThoai(req.getSdt().trim());
 //        if (req.getCccd() != null) nv.setCccd(req.getCccd());
         if (req.getGioiTinh() != null) nv.setGioiTinh(req.getGioiTinh());
         if (req.getNgaySinh() != null) nv.setNgaySinh(req.getNgaySinh());
@@ -128,7 +130,7 @@ public class NhanVienService {
 
 
         // 2. Lưu các trường địa chỉ thành phần
-        if (req.getDiaChiCuThe() != null) nv.setDiaChiCuThe(req.getDiaChiCuThe());
+        if (req.getDiaChiCuThe() != null) nv.setDiaChiCuThe(req.getDiaChiCuThe().trim());
 
         // Lưu ID (để bind Combobox)
         if (req.getTinhThanhId() != null) nv.setTinhThanhId(req.getTinhThanhId());

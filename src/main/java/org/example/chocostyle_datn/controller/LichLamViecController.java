@@ -1,6 +1,7 @@
 package org.example.chocostyle_datn.controller;
 
 
+import jakarta.validation.Valid;
 import org.example.chocostyle_datn.entity.LichLamViec;
 import org.example.chocostyle_datn.model.Request.LichLamViecRequest;
 import org.example.chocostyle_datn.repository.LichLamViecRepository;
@@ -38,7 +39,7 @@ public class LichLamViecController {
 
     // POST: Tạo mới
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody LichLamViecRequest request) {
+    public ResponseEntity<?> create( @Valid @RequestBody LichLamViecRequest request) {
         try {
             return ResponseEntity.ok(service.createSchedule(request));
         } catch (RuntimeException e) {
@@ -49,7 +50,7 @@ public class LichLamViecController {
 
     // PUT: Cập nhật
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody LichLamViecRequest request) {
+    public ResponseEntity<?> update(@PathVariable Integer id,@Valid @RequestBody LichLamViecRequest request) {
         try {
             return ResponseEntity.ok(service.updateSchedule(id, request));
         } catch (RuntimeException e) {

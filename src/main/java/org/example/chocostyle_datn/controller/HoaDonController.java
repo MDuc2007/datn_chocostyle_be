@@ -250,7 +250,7 @@ public class HoaDonController {
             @RequestBody Object cartData) { // Hứng nguyên cục JSON từ Web Vue
         try {
             // Cầm cục JSON đó, ném thẳng sang kênh WebSocket của Flutter
-            messagingTemplate.convertAndSend("/topic/order/" + id, cartData);
+            messagingTemplate.convertAndSend("/topic/order/active", cartData);
             return ResponseEntity.ok("Đã đồng bộ realtime sang App thành công!");
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Lỗi đồng bộ: " + e.getMessage());
