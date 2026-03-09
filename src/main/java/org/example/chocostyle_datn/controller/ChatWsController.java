@@ -43,7 +43,12 @@ public class ChatWsController {
 
     @MessageMapping("/chat.send")
     public void handleChat(ChatMessageRequest request) {
+
         Message saved = chatService.saveIncomingMessage(request);
+
+        String destination = "/topic/chat/" + saved.getConversation().getId();
+
+        // gửi message của user
         ChatMessageResponse response = ChatMessageResponse.builder()
                 .id(saved.getId())
                 .conversationId(saved.getConversation().getId())
@@ -53,8 +58,31 @@ public class ChatWsController {
                 .sentAt(saved.getSentAt())
                 .senderName(getSenderName(saved.getSenderId(), saved.getSenderType()))
                 .build();
-        String destination = "/topic/chat/" + saved.getConversation().getId();
+
         messagingTemplate.convertAndSend(destination, response);
+
+        // 🔴 kiểm tra message BOT vừa được tạo
+        Optional<Message> lastMsg =
+                messageRepository.findTopByConversationOrderBySentAtDesc(saved.getConversation());
+
+        if (lastMsg.isPresent()) {
+            Message botMsg = lastMsg.get();
+
+            if ("BOT".equals(botMsg.getSenderType())) {
+
+                ChatMessageResponse botResponse = ChatMessageResponse.builder()
+                        .id(botMsg.getId())
+                        .conversationId(botMsg.getConversation().getId())
+                        .senderId(botMsg.getSenderId())
+                        .senderType(botMsg.getSenderType())
+                        .content(botMsg.getContent())
+                        .sentAt(botMsg.getSentAt())
+                        .senderName("ChocoBot")
+                        .build();
+
+                messagingTemplate.convertAndSend(destination, botResponse);
+            }
+        }
     }
 
     private String getSenderName(Integer id, String type) {

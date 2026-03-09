@@ -23,11 +23,16 @@ public class ChatAIController {
 
     @PostMapping
     public Map<String, Object> chat(@RequestBody Map<String, Object> request) {
+
         Map<String, Object> response = new HashMap<>();
 
         String message = (String) request.get("message");
-        Integer conversationId = (Integer) request.get("conversationId");
-        Integer senderId = (Integer) request.get("senderId");
+
+        Number conversationIdNum = (Number) request.get("conversationId");
+        Number senderIdNum = (Number) request.get("senderId");
+
+        Integer conversationId = conversationIdNum != null ? conversationIdNum.intValue() : null;
+        Integer senderId = senderIdNum != null ? senderIdNum.intValue() : null;
 
         if (message == null || message.trim().isEmpty()) {
             response.put("success", false);
@@ -35,18 +40,17 @@ public class ChatAIController {
             return response;
         }
 
-        // 1. Lưu tin nhắn của Khách hàng vào Database
         if (conversationId != null && senderId != null) {
-            ChatMessageRequest userReq = new ChatMessageRequest(conversationId, senderId, message, "KHACH_HANG");
+            ChatMessageRequest userReq =
+                    new ChatMessageRequest(conversationId, senderId, message, "KHACH_HANG");
             chatService.saveIncomingMessage(userReq);
         }
 
-        // 2. AI sinh ra câu trả lời
-        String reply = chatAIService.chat(message);
+        String reply = chatAIService.chat(message, conversationId);
 
-        // 3. Lưu tin nhắn của AI vào Database (Dùng senderId = 0 đại diện cho AI)
         if (conversationId != null) {
-            ChatMessageRequest aiReq = new ChatMessageRequest(conversationId, 0, reply, "AI");
+            ChatMessageRequest aiReq =
+                    new ChatMessageRequest(conversationId, 0, reply, "AI");
             chatService.saveIncomingMessage(aiReq);
         }
 
