@@ -180,8 +180,6 @@ public class HoaDonService {
             // Đồng thời cập nhật lại id_nhan_vien là người thực hiện bấm nút xác nhận
             hd.setIdNhanVien(getNhanVienDangLogin());
         }
-
-        // Logic hoàn kho khi Hủy đơn (Trạng thái 5)
         if (req.getTrangThaiMoi() == 5 && hd.getTrangThai() != 0) {
             // Chỉ hoàn kho nếu đơn đã từng được xác nhận (đã trừ kho trước đó)
             List<HoaDonChiTiet> chiTiets = hdctRepo.findByIdHoaDon_Id(id);
@@ -439,9 +437,10 @@ public class HoaDonService {
                 ChiTietSanPham sp = spctRepo.findByIdForUpdate(item.getIdChiTietSanPham())
                         .orElseThrow(() -> new RuntimeException("Sản phẩm không tồn tại"));
 
-                if (sp.getSoLuongTon() < item.getSoLuong()) {
-                    throw new RuntimeException("Sản phẩm " + sp.getMaChiTietSanPham() + " không đủ số lượng!");
-                }
+//                if (sp.getSoLuongTon() < item.getSoLuong()) {
+//                    throw new RuntimeException("Sản phẩm " + sp.getMaChiTietSanPham() + " không đủ số lượng!");
+//                }
+
 
                 spctRepo.save(sp);
 

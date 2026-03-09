@@ -102,9 +102,7 @@ public class ChatAIService {
         Long price = extractMaxPrice(msg);
         String name = extractProductName(msg);
 
-        if (size != null || color != null || price != null || name != null) {
-            return searchProduct(size, color, price, name);
-        }
+
         // ===== Voucher =====
         if (containsAny(msg, "voucher", "ma giam gia", "ma giam", "code giam", "code", "phieu giam gia", "uu dai", "khuyen mai")) {
             return handleVoucher();
@@ -120,34 +118,58 @@ public class ChatAIService {
             return handleOrder(msg);
         }
 
-        // ===== Hỏi giá sản phẩm cụ thể =====
-        if (containsAny(msg, "gia bao nhieu", "bao nhieu tien", "gia sao", "xin gia", "nhieu tien")) {
-
-            // Tách lấy phần tên sản phẩm (xóa các từ thừa để lấy Keyword cốt lõi)
-            String targetName = msg.replace("gia bao nhieu", "")
-                    .replace("bao nhieu tien", "")
-                    .replace("gia sao", "")
-                    .replace("xin gia", "")
-                    .replace("san pham", "")
-                    .replace("ao", "")
-                    .trim();
-
-            // Nếu khách có nhập tên sản phẩm đi kèm (VD: "áo khoác da giá bao nhiêu")
-            if (!targetName.isEmpty()) {
-                return searchProduct(null, null, null, targetName);
-            }
-
-            // Nếu khách chỉ hỏi trống không "giá bao nhiêu?", gọi hàm handlePrice bạn đã viết sẵn
-            return handlePrice();
-        }
-
         // ===== Gợi ý sản phẩm =====
         if (containsAny(msg, "goi y", "ban chay", "top")) {
             return handleTopProducts();
         }
+// ===== Hỏi giá sản phẩm =====
+        // ===== Hỏi giá sản phẩm =====
+        if (containsAny(msg, "gia", "bao nhieu", "bao tien", "price")) {
 
+            if (name != null) {
+                return handleProductPrice(name);
+            } else {
+                return "Anh/chị muốn hỏi giá sản phẩm nào ạ? Ví dụ: giá áo bomber hoặc giá hoodie.";
+            }
+        }
+        if (size != null || color != null || price != null || name != null) {
+            return searchProduct(size, color, price, name);
+        }
         // ===== Fallback =====
         return "Shop có áo khoác nam nhiều mẫu. Bạn có thể hỏi ví dụ:\n" + "• áo khoác xanh size m\n" + "• áo bomber đen dưới 500k\n" + "• shop có voucher không\n" + "• cao 1m7 mặc size gì";
+    }
+
+    private String handleProductPrice(String msg) {
+
+        List<ChiTietSanPham> list = chiTietRepo.getAllActive();
+
+        List<ChiTietSanPham> result = list.stream()
+                .filter(sp -> normalize(msg)
+                        .contains(normalize(sp.getIdSanPham().getTenSp())))
+                .limit(5)
+                .toList();
+
+        if (result.isEmpty()) {
+            return "Shop chưa tìm thấy sản phẩm bạn hỏi.";
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Thông tin sản phẩm:\n\n");
+
+        for (ChiTietSanPham sp : result) {
+            sb.append("• ")
+                    .append(sp.getIdSanPham().getTenSp())
+                    .append(" | ")
+                    .append(sp.getIdMauSac().getTenMauSac())
+                    .append(" | Size ")
+                    .append(sp.getIdKichCo().getTenKichCo())
+                    .append(" | ")
+                    .append(vnFormat.format(sp.getGiaBan()))
+                    .append("đ\n");
+        }
+
+        return sb.toString();
     }
 
     private String suggestSize(double height, int weight) {
@@ -217,6 +239,25 @@ public class ChatAIService {
             }
         }
 
+        int r = c1[0] - c2[0];
+        int g = c1[1] - c2[1];
+        int b = c1[2] - c2[2];
+
+        return Math.sqrt(r * r + g * g + b * b);
+    }
+
+    private String extractProductName(String msg) {
+        if (msg.contains("bomber")) return "bomber";
+        if (msg.contains("hoodie")) return "hoodie";
+        if (msg.contains("gio")) return "gio";
+        if (msg.contains("du")) return "du";
+        if (msg.contains("denim") || msg.contains("jean")) return "denim";
+        if (msg.contains("ni")) return "ni";
+        if (msg.contains("phao")) return "phao";
+        if (msg.contains("cardigan")) return "cardigan";
+        if (msg.contains("blazer")) return "blazer";
+        if (msg.contains("varsity")) return "varsity";
+        if (msg.contains("khoac")) return "khoac";
         return null;
     }
 
@@ -225,32 +266,26 @@ public class ChatAIService {
         msg = normalize(msg);
 
         // đỏ
-        if (msg.contains("do") || msg.contains("red"))
-            return new int[]{255, 0, 0};
+        if (msg.contains("do") || msg.contains("red")) return new int[]{255, 0, 0};
 
         // đen
-        if (msg.contains("den") || msg.contains("black"))
-            return new int[]{0, 0, 0};
+        if (msg.contains("den") || msg.contains("black")) return new int[]{0, 0, 0};
 
         // trắng
-        if (msg.contains("trang") || msg.contains("white"))
-            return new int[]{255, 255, 255};
+        if (msg.contains("trang") || msg.contains("white")) return new int[]{255, 255, 255};
 
         // vàng
-        if (msg.contains("vang") || msg.contains("yellow"))
-            return new int[]{255, 255, 0};
+        if (msg.contains("vang") || msg.contains("yellow")) return new int[]{255, 255, 0};
 
         // xanh lá
-        if (msg.contains("xanh la") || msg.contains("la"))
-            return new int[]{0, 128, 0};
+        if (msg.contains("xanh la") || msg.contains("la")) return new int[]{0, 128, 0};
 
         // xanh dương
         if (msg.contains("xanh duong") || msg.contains("blue") || msg.contains("xanh da troi"))
             return new int[]{0, 0, 255};
 
         // xanh chung
-        if (msg.contains("xanh"))
-            return new int[]{0, 120, 200};
+        if (msg.contains("xanh")) return new int[]{0, 120, 200};
 
         return null;
     }
@@ -345,11 +380,7 @@ public class ChatAIService {
 
                                 String[] parts = rgbString.split(",");
 
-                                int[] rgbProduct = new int[]{
-                                        Integer.parseInt(parts[0].trim()),
-                                        Integer.parseInt(parts[1].trim()),
-                                        Integer.parseInt(parts[2].trim())
-                                };
+                                int[] rgbProduct = new int[]{Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()), Integer.parseInt(parts[2].trim())};
 
                                 double distance = colorDistance(rgbProduct, color);
 
@@ -387,22 +418,17 @@ public class ChatAIService {
             // Nếu user có nhập giá -> tìm sản phẩm gần giá nhất
             if (price != null) {
 
-                List<ChiTietSanPham> nearest = list.stream()
-                        .sorted((sp1, sp2) -> {
+                List<ChiTietSanPham> nearest = list.stream().sorted((sp1, sp2) -> {
 
-                            BigDecimal diff1 = sp1.getGiaBan().subtract(BigDecimal.valueOf(price)).abs();
-                            BigDecimal diff2 = sp2.getGiaBan().subtract(BigDecimal.valueOf(price)).abs();
+                    BigDecimal diff1 = sp1.getGiaBan().subtract(BigDecimal.valueOf(price)).abs();
+                    BigDecimal diff2 = sp2.getGiaBan().subtract(BigDecimal.valueOf(price)).abs();
 
-                            return diff1.compareTo(diff2);
-                        })
-                        .limit(3)
-                        .toList();
+                    return diff1.compareTo(diff2);
+                }).limit(3).toList();
 
                 StringBuilder sb = new StringBuilder();
 
-                sb.append("Shop hiện chưa có sản phẩm dưới ")
-                        .append(vnFormat.format(price))
-                        .append("đ.\n\n");
+                sb.append("Shop hiện chưa có sản phẩm dưới ").append(vnFormat.format(price)).append("đ.\n\n");
 
                 sb.append("Nhưng đây là vài sản phẩm có giá gần nhất:\n\n");
 
@@ -411,18 +437,7 @@ public class ChatAIService {
                     Integer productId = sp.getIdSanPham().getId();
                     String link = "/home/product/" + productId;
 
-                    sb.append("• ")
-                            .append(sp.getIdSanPham().getTenSp())
-                            .append(" | ")
-                            .append(sp.getIdMauSac().getTenMauSac())
-                            .append(" | Size ")
-                            .append(sp.getIdKichCo().getTenKichCo())
-                            .append(" | ")
-                            .append(vnFormat.format(sp.getGiaBan()))
-                            .append("đ\n")
-                            .append("Xem sản phẩm: ")
-                            .append(link)
-                            .append("\n\n");
+                    sb.append("• ").append(sp.getIdSanPham().getTenSp()).append(" | ").append(sp.getIdMauSac().getTenMauSac()).append(" | Size ").append(sp.getIdKichCo().getTenKichCo()).append(" | ").append(vnFormat.format(sp.getGiaBan())).append("đ\n").append("Xem sản phẩm: ").append(link).append("\n\n");
                 }
 
                 return sb.toString();
@@ -438,14 +453,7 @@ public class ChatAIService {
 
             for (SanPhamBanChayResponse sp : bestSeller) {
 
-                sb.append("• ")
-                        .append(sp.getTenSanPham())
-                        .append(" | ")
-                        .append(vnFormat.format(sp.getGiaBan()))
-                        .append("đ\n")
-                        .append("Đã bán: ")
-                        .append(sp.getSoLuongDaBan())
-                        .append("\n\n");
+                sb.append("• ").append(sp.getTenSanPham()).append(" | ").append(vnFormat.format(sp.getGiaBan())).append("đ\n").append("Đã bán: ").append(sp.getSoLuongDaBan()).append("\n\n");
             }
 
             return sb.toString();
@@ -568,20 +576,6 @@ public class ChatAIService {
         return sb.toString();
     }
 
-    private String handlePrice() {
-
-        List<ChiTietSanPham> list = chiTietRepo.getAllActive();
-
-        if (list.isEmpty()) {
-            return "Hiện tại shop chưa có sản phẩm đang kinh doanh ạ.";
-        }
-
-        BigDecimal min = list.stream().map(ChiTietSanPham::getGiaBan).min(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
-
-        BigDecimal max = list.stream().map(ChiTietSanPham::getGiaBan).max(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
-
-        return randomIntro() + "\nGiá áo khoác hiện dao động từ " + vnFormat.format(min) + "đ đến " + vnFormat.format(max) + "đ.";
-    }
 
     private String handleStock() {
 

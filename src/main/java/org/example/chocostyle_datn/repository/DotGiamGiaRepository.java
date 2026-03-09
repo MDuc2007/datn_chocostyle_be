@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public interface DotGiamGiaRepository extends JpaRepository<DotGiamGia,Integer> {
     @Query("""
@@ -38,4 +39,11 @@ public interface DotGiamGiaRepository extends JpaRepository<DotGiamGia,Integer> 
           AND d.id <> :id
     """)
     boolean existsTenIgnoreCaseForUpdate(String ten, Integer id);
+    @Query("""
+    SELECT d FROM DotGiamGia d
+    WHERE d.trangThai = 1
+      AND CURRENT_DATE BETWEEN d.ngayBatDau AND d.ngayKetThuc
+    ORDER BY d.ngayBatDau DESC
+""")
+    List<DotGiamGia> findActiveDotGiamGia();
 }
