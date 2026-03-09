@@ -138,6 +138,9 @@ public class HoaDonService {
     // =================================================================
     // 2. CẬP NHẬT TRẠNG THÁI (PUT)
     // =================================================================
+    // =================================================================
+    // 2. CẬP NHẬT TRẠNG THÁI (PUT)
+    // =================================================================
     @Transactional
     public void updateStatus(Integer id, UpdateTrangThaiRequest req) {
         HoaDon hd = hoaDonRepo.findById(id).orElseThrow(() -> new RuntimeException("Hóa đơn không tồn tại"));
@@ -145,6 +148,20 @@ public class HoaDonService {
         if (hd.getTrangThai() == 5) {
             throw new RuntimeException("Hóa đơn đã hủy, không thể cập nhật!");
         }
+
+        // --- BẮT ĐẦU ĐOẠN CODE THÊM MỚI: Kiểm tra thanh toán trước khi Hoàn thành ---
+        if (req.getTrangThaiMoi() == 4 && (hd.getLoaiDon() == 0 || hd.getLoaiDon() == 3)) {
+            List<ThanhToan> tts = thanhToanRepo.findByIdHoaDon_Id(id);
+            BigDecimal tongDaThu = tts.stream()
+                    .filter(t -> t.getTrangThai() == 1) // Chỉ tính giao dịch thành công
+                    .map(t -> t.getLoaiGiaoDich() != null && t.getLoaiGiaoDich() == 2 ? t.getSoTien().negate() : t.getSoTien()) // Nếu là hoàn tiền thì trừ đi
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            if (tongDaThu.compareTo(hd.getTongTienThanhToan()) < 0) {
+                throw new RuntimeException("Đơn hàng chưa được thanh toán đủ. Vui lòng xác nhận thanh toán trước khi hoàn thành!");
+            }
+        }
+        // --- KẾT THÚC ĐOẠN CODE THÊM MỚI ---
 
         // Logic quan trọng: Trừ kho khi chuyển sang trạng thái 1 (Xác nhận)
         if (req.getTrangThaiMoi() == 1 && hd.getTrangThai() == 0) {
@@ -1116,5 +1133,53 @@ public class HoaDonService {
             System.out.println("❌ Lỗi khi phát sóng WebSocket: " + e.getMessage());
             e.printStackTrace(); // In chi tiết lỗi ra nếu có
         }
+    }
+
+    // =================================================================
+    // 13. XÁC NHẬN THANH TOÁN THỦ CÔNG (CHO NHÂN VIÊN)
+    // =================================================================
+    @Transactional
+    public void xacNhanThanhToanThuCong(Integer idHoaDon, String ghiChu) {
+        HoaDon hd = hoaDonRepo.findById(idHoaDon)
+                .orElseThrow(() -> new RuntimeException("Hóa đơn không tồn tại"));
+
+        // Tính tổng tiền đã thu
+        List<ThanhToan> tts = thanhToanRepo.findByIdHoaDon_Id(idHoaDon);
+        BigDecimal tongDaThu = tts.stream()
+                .filter(t -> t.getTrangThai() == 1)
+                .map(t -> t.getLoaiGiaoDich() != null && t.getLoaiGiaoDich() == 2 ? t.getSoTien().negate() : t.getSoTien())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Tính tiền còn thiếu
+        BigDecimal soTienCanThu = hd.getTongTienThanhToan().subtract(tongDaThu);
+
+        if (soTienCanThu.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Đơn hàng này đã được thanh toán đủ!");
+        }
+
+        // Lấy phương thức thanh toán Tiền mặt (Mặc định ID = 1)
+        PhuongThucThanhToan pttt = ptttRepo.findById(1)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phương thức thanh toán Tiền mặt (ID=1)"));
+
+        // Tạo bản ghi ThanhToan mới
+        ThanhToan tt = new ThanhToan();
+        tt.setIdHoaDon(hd);
+        tt.setIdPttt(pttt);
+        tt.setSoTien(soTienCanThu);
+        tt.setLoaiGiaoDich(1); // 1: Thanh toán
+        tt.setTrangThai(1); // 1: Thành công
+        tt.setThoiGianThanhToan(LocalDateTime.now());
+        tt.setThoiGianTao(LocalDateTime.now());
+        tt.setMaGiaoDich("CASH-" + System.currentTimeMillis());
+        tt.setGhiChu(ghiChu != null && !ghiChu.isEmpty() ? ghiChu : "Nhân viên xác nhận thu tiền khách hàng");
+
+        thanhToanRepo.save(tt);
+
+        // Cập nhật ngày thanh toán cho hóa đơn luôn
+        hd.setNgayThanhToan(LocalDateTime.now());
+        hoaDonRepo.save(hd);
+
+        // Ghi lịch sử hóa đơn
+        ghiLichSu(hd, hd.getTrangThai(), "Xác nhận thanh toán", "Đã thu: " + soTienCanThu + "đ. Ghi chú: " + (ghiChu != null ? ghiChu : ""));
     }
 }

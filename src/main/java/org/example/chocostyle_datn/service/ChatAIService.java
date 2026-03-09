@@ -239,6 +239,25 @@ public class ChatAIService {
             }
         }
 
+        int r = c1[0] - c2[0];
+        int g = c1[1] - c2[1];
+        int b = c1[2] - c2[2];
+
+        return Math.sqrt(r * r + g * g + b * b);
+    }
+
+    private String extractProductName(String msg) {
+        if (msg.contains("bomber")) return "bomber";
+        if (msg.contains("hoodie")) return "hoodie";
+        if (msg.contains("gio")) return "gio";
+        if (msg.contains("du")) return "du";
+        if (msg.contains("denim") || msg.contains("jean")) return "denim";
+        if (msg.contains("ni")) return "ni";
+        if (msg.contains("phao")) return "phao";
+        if (msg.contains("cardigan")) return "cardigan";
+        if (msg.contains("blazer")) return "blazer";
+        if (msg.contains("varsity")) return "varsity";
+        if (msg.contains("khoac")) return "khoac";
         return null;
     }
 
