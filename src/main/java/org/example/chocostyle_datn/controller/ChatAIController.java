@@ -1,38 +1,49 @@
 package org.example.chocostyle_datn.controller;
 
+
 import org.example.chocostyle_datn.model.Request.ChatMessageRequest;
-import org.example.chocostyle_datn.service.ChatAIService;
 import org.example.chocostyle_datn.service.ChatService;
+import org.example.chocostyle_datn.service.GeminiService;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.util.HashMap;
 import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/chat")
 @CrossOrigin(origins = "*")
 public class ChatAIController {
 
-    private final ChatAIService chatAIService;
-    private final ChatService chatService; // Inject thêm ChatService
 
-    public ChatAIController(ChatAIService chatAIService, ChatService chatService) {
-        this.chatAIService = chatAIService;
+    private final GeminiService geminiService;
+    private final ChatService chatService;
+
+
+    public ChatAIController(GeminiService geminiService, ChatService chatService) {
+        this.geminiService = geminiService;
         this.chatService = chatService;
     }
+
 
     @PostMapping
     public Map<String, Object> chat(@RequestBody Map<String, Object> request) {
 
+
         Map<String, Object> response = new HashMap<>();
 
+
         String message = (String) request.get("message");
+
 
         Number conversationIdNum = (Number) request.get("conversationId");
         Number senderIdNum = (Number) request.get("senderId");
 
+
         Integer conversationId = conversationIdNum != null ? conversationIdNum.intValue() : null;
         Integer senderId = senderIdNum != null ? senderIdNum.intValue() : null;
+
 
         if (message == null || message.trim().isEmpty()) {
             response.put("success", false);
@@ -40,23 +51,32 @@ public class ChatAIController {
             return response;
         }
 
+
+        // lưu tin nhắn khách
         if (conversationId != null && senderId != null) {
             ChatMessageRequest userReq =
                     new ChatMessageRequest(conversationId, senderId, message, "KHACH_HANG");
             chatService.saveIncomingMessage(userReq);
         }
 
-        String reply = chatAIService.chat(message, conversationId);
 
+        // gọi Gemini
+        String reply = geminiService.hoiGemini(message, senderId);
+
+
+        // lưu tin nhắn AI
         if (conversationId != null) {
             ChatMessageRequest aiReq =
                     new ChatMessageRequest(conversationId, 0, reply, "AI");
             chatService.saveIncomingMessage(aiReq);
         }
 
+
         response.put("success", true);
         response.put("reply", reply);
+
 
         return response;
     }
 }
+

@@ -50,18 +50,15 @@ public class MauSacService {
         if (isDuplicate && !oldCompare.equals(newCompare)) {
             throw new DuplicateException("Tên màu sắc đã tồn tại");
         }
-        e.setId(id);
 
-        // giữ dữ liệu cũ
-        e.setMaMauSac(old.getMaMauSac());
-        e.setNgayTao(old.getNgayTao());
-        e.setNguoiTao(old.getNguoiTao());
+        // Cập nhật các trường mới VÀO OBJECT CŨ
+        old.setTenMauSac(e.getTenMauSac());
+        old.setRgb(e.getRgb());
+        old.setNgayCapNhat(LocalDate.now());
+        old.setNguoiCapNhat(e.getNguoiCapNhat());
 
-        // cập nhật mới
-        e.setNgayCapNhat(LocalDate.now());
-        e.setNguoiCapNhat(e.getNguoiCapNhat()); // từ request
-
-        return repo.save(e);
+        // Lưu object cũ (lúc này đã chứa dữ liệu mới)
+        return repo.save(old);
     }
     public MauSac doiTrangThai(Integer id, String nguoiCapNhat) {
         MauSac mauSac = repo.findById(id).orElseThrow();
