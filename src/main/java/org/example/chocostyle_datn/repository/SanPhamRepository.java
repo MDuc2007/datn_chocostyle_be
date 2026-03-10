@@ -1,5 +1,6 @@
 package org.example.chocostyle_datn.repository;
 
+
 import org.example.chocostyle_datn.entity.ChiTietSanPham;
 import org.example.chocostyle_datn.entity.SanPham;
 import org.example.chocostyle_datn.model.Response.SanPhamHomeListResponse;
@@ -9,19 +10,22 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+
 import java.util.List;
 import java.util.Optional;
+
 
 public interface SanPhamRepository extends JpaRepository<SanPham, Integer> {
     @Query("select max(sp.maSp) from SanPham sp")
     String findMaxMa();
 
+
     @Query("""
 SELECT sp FROM SanPham sp
 WHERE (
-    :keyword IS NULL OR :keyword = ''
-    OR sp.tenSp LIKE %:keyword%
-    OR sp.maSp LIKE %:keyword%
+   :keyword IS NULL OR :keyword = ''
+   OR sp.tenSp LIKE %:keyword%
+   OR sp.maSp LIKE %:keyword%
 )
 AND (:status IS NULL OR sp.trangThai = :status)
 AND (:idChatLieu IS NULL OR sp.idChatLieu.id = :idChatLieu)
@@ -37,21 +41,25 @@ AND (:idXuatXu IS NULL OR sp.idXuatXu.id = :idXuatXu)
 
 
 
-    @Query("""
-            SELECT COUNT(sp) > 0
-            FROM SanPham sp
-            WHERE LOWER(REPLACE(sp.tenSp, ' ', ''))
-                  = LOWER(REPLACE(:ten, ' ', ''))
-            """)
-    boolean existsByTenIgnoreSpace(@Param("ten") String ten);
+
+
 
     @Query("""
-            SELECT sp FROM SanPham sp
-            WHERE (:keyword IS NULL OR sp.tenSp LIKE %:keyword%)
-            AND (:status IS NULL OR sp.trangThai = :status)
-            AND (:idChatLieu IS NULL OR sp.idChatLieu.id = :idChatLieu)
-            AND (:idXuatXu IS NULL OR sp.idXuatXu.id = :idXuatXu)
-            """)
+           SELECT COUNT(sp) > 0
+           FROM SanPham sp
+           WHERE LOWER(REPLACE(sp.tenSp, ' ', ''))
+                 = LOWER(REPLACE(:ten, ' ', ''))
+           """)
+    boolean existsByTenIgnoreSpace(@Param("ten") String ten);
+
+
+    @Query("""
+           SELECT sp FROM SanPham sp
+           WHERE (:keyword IS NULL OR sp.tenSp LIKE %:keyword%)
+           AND (:status IS NULL OR sp.trangThai = :status)
+           AND (:idChatLieu IS NULL OR sp.idChatLieu.id = :idChatLieu)
+           AND (:idXuatXu IS NULL OR sp.idXuatXu.id = :idXuatXu)
+           """)
     List<SanPham> searchSanPhamNoPage(
             String keyword,
             Integer status,
@@ -59,47 +67,51 @@ AND (:idXuatXu IS NULL OR sp.idXuatXu.id = :idXuatXu)
             Integer idXuatXu
     );
 
+
     Optional<SanPham> findByQrCode(String qrCode);
 
+
     @Query(value = """
-                SELECT TOP 5
-                    sp.id_sp           AS id,
-                    sp.ten_sp          AS tenSp,
-                    sp.hinh_anh        AS hinhAnh,
-                    MIN(ctsp.gia_ban)  AS giaMin,
-                    MAX(ctsp.gia_ban)  AS giaMax,
-                    SUM(hdct.so_luong) AS soLuongDaBan,
-                    MAX(dgg.gia_tri_giam) AS phanTramGiam 
-                FROM hoa_don_chi_tiet hdct
-                JOIN hoa_don hd ON hdct.id_hoa_don = hd.id_hoa_don
-                JOIN chi_tiet_san_pham ctsp ON hdct.id_spct = ctsp.id_spct
-                JOIN san_pham sp ON ctsp.id_san_pham = sp.id_sp
-                LEFT JOIN chi_tiet_dot_giam_gia cdgg ON cdgg.id_spct = ctsp.id_spct AND cdgg.trang_thai = 1
-                LEFT JOIN dot_giam_gia dgg ON dgg.id_dot_giam_gia = cdgg.id_dot_giam_gia AND dgg.trang_thai = 1
-                WHERE hd.trang_thai = 4
-                GROUP BY sp.id_sp, sp.ten_sp, sp.hinh_anh
-                ORDER BY soLuongDaBan DESC
-            """, nativeQuery = true)
+               SELECT TOP 5
+                   sp.id_sp           AS id,
+                   sp.ten_sp          AS tenSp,
+                   sp.hinh_anh        AS hinhAnh,
+                   MIN(ctsp.gia_ban)  AS giaMin,
+                   MAX(ctsp.gia_ban)  AS giaMax,
+                   SUM(hdct.so_luong) AS soLuongDaBan,
+                   MAX(dgg.gia_tri_giam) AS phanTramGiam
+               FROM hoa_don_chi_tiet hdct
+               JOIN hoa_don hd ON hdct.id_hoa_don = hd.id_hoa_don
+               JOIN chi_tiet_san_pham ctsp ON hdct.id_spct = ctsp.id_spct
+               JOIN san_pham sp ON ctsp.id_san_pham = sp.id_sp
+               LEFT JOIN chi_tiet_dot_giam_gia cdgg ON cdgg.id_spct = ctsp.id_spct AND cdgg.trang_thai = 1
+               LEFT JOIN dot_giam_gia dgg ON dgg.id_dot_giam_gia = cdgg.id_dot_giam_gia AND dgg.trang_thai = 1
+               WHERE hd.trang_thai = 4
+               GROUP BY sp.id_sp, sp.ten_sp, sp.hinh_anh
+               ORDER BY soLuongDaBan DESC
+           """, nativeQuery = true)
     List<SanPhamBanChayProjection> getSanPhamBanChay();
 
 
+
+
     @Query("""
-                SELECT new org.example.chocostyle_datn.model.Response.SanPhamHomeListResponse(
-                    sp.id,
-                    sp.tenSp,
-                    sp.hinhAnh,
-                    MIN(ct.giaBan),
-                    MAX(ct.giaBan),
-                    CAST(null AS long), 
-                    MAX(dgg.giaTriGiam)
-                )
-                FROM SanPham sp
-                JOIN ChiTietSanPham ct ON ct.idSanPham.id = sp.id
-                LEFT JOIN ChiTietDotGiamGia cdgg ON cdgg.idSpct.id = ct.id AND cdgg.trangThai = 1
-                LEFT JOIN DotGiamGia dgg ON dgg.id = cdgg.idDotGiamGia.id AND dgg.trangThai = 1
-                WHERE sp.trangThai = 1
-                GROUP BY sp.id, sp.tenSp, sp.hinhAnh
-            """)
+               SELECT new org.example.chocostyle_datn.model.Response.SanPhamHomeListResponse(
+                   sp.id,
+                   sp.tenSp,
+                   sp.hinhAnh,
+                   MIN(ct.giaBan),
+                   MAX(ct.giaBan),
+                   CAST(null AS long),
+                   MAX(dgg.giaTriGiam)
+               )
+               FROM SanPham sp
+               JOIN ChiTietSanPham ct ON ct.idSanPham.id = sp.id
+               LEFT JOIN ChiTietDotGiamGia cdgg ON cdgg.idSpct.id = ct.id AND cdgg.trangThai = 1
+               LEFT JOIN DotGiamGia dgg ON dgg.id = cdgg.idDotGiamGia.id AND dgg.trangThai = 1
+               WHERE sp.trangThai = 1
+               GROUP BY sp.id, sp.tenSp, sp.hinhAnh
+           """)
     List<SanPhamHomeListResponse> getDanhSachSanPham();
     @Query("""
 SELECT DISTINCT sp
@@ -113,4 +125,16 @@ AND sp.trangThai = 1
             @Param("minPrice") Integer minPrice,
             @Param("maxPrice") Integer maxPrice
     );
+    @Query("""
+SELECT DISTINCT sp
+FROM SanPham sp
+JOIN ChiTietSanPham ct ON ct.idSanPham.id = sp.id
+WHERE sp.trangThai = 1
+AND (
+   LOWER(sp.tenSp) LIKE LOWER(CONCAT('%', :keyword, '%'))
+   OR LOWER(sp.maSp) LIKE LOWER(CONCAT('%', :keyword, '%'))
+)
+""")
+    List<SanPham> searchSanPhamForAI(@Param("keyword") String keyword);
 }
+
