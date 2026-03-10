@@ -1,6 +1,8 @@
 package org.example.chocostyle_datn.controller;
 
+import jakarta.validation.Valid;
 import org.example.chocostyle_datn.entity.CaLamViec;
+import org.example.chocostyle_datn.model.Request.CaLamViecRequest;
 import org.example.chocostyle_datn.service.CaLamViecService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -46,19 +48,19 @@ public class CaLamViecController {
 
     // Thêm mới ca
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody CaLamViec ca) {
+    public ResponseEntity<?> create(@Valid @RequestBody CaLamViecRequest request) {
         try {
-            return ResponseEntity.ok(service.create(ca));
+            return ResponseEntity.ok(service.create(request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage()); // Hoặc cấu trúc JSON như Global Exception
         }
     }
 
     // Cập nhật ca
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Integer id, @RequestBody CaLamViec ca) {
+    public ResponseEntity<?> update(@PathVariable Integer id, @Valid @RequestBody CaLamViecRequest request) {
         try {
-            return ResponseEntity.ok(service.update(id, ca));
+            return ResponseEntity.ok(service.update(id, request));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

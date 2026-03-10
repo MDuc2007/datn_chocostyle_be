@@ -101,4 +101,16 @@ AND (:idXuatXu IS NULL OR sp.idXuatXu.id = :idXuatXu)
                 GROUP BY sp.id, sp.tenSp, sp.hinhAnh
             """)
     List<SanPhamHomeListResponse> getDanhSachSanPham();
+    @Query("""
+SELECT DISTINCT sp
+FROM SanPham sp
+JOIN ChiTietSanPham ct ON ct.idSanPham.id = sp.id
+WHERE (:minPrice IS NULL OR ct.giaBan >= :minPrice)
+AND (:maxPrice IS NULL OR ct.giaBan <= :maxPrice)
+AND sp.trangThai = 1
+""")
+    List<SanPham> findSanPhamTheoGia(
+            @Param("minPrice") Integer minPrice,
+            @Param("maxPrice") Integer maxPrice
+    );
 }
