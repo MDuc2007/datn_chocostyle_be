@@ -77,11 +77,16 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         KhachHang khachHang;
         if (khachHangOptional.isPresent()) {
-            // Nếu tìm thấy -> Cập nhật thông tin mới nhất
+
             khachHang = khachHangOptional.get();
             khachHang.setAuthProvider(provider);
             khachHang.setProviderId(id);
-            khachHang.setAvatar(avatar); // Cập nhật avatar nếu họ đổi bên Google
+
+            // CHỈ SET AVATAR KHI CHƯA CÓ
+            if (khachHang.getAvatar() == null || khachHang.getAvatar().trim().isEmpty()) {
+                khachHang.setAvatar(avatar);
+            }
+
             khachHangRepository.save(khachHang);
         } else {
             // Nếu chưa thấy -> Tạo tài khoản mới

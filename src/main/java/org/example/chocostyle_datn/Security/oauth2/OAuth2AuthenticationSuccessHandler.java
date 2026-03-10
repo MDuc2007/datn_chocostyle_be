@@ -23,7 +23,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private JwtTokenProvider tokenProvider;
     @Autowired
     private KhachHangRepository khachHangRepository;
-
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
                                         HttpServletResponse response,
@@ -57,12 +56,17 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 return; // Dừng luồng, KHÔNG cấp JWT Token nữa
             }
 
-            // Tùy chọn: Nếu tài khoản cũ chưa có Avatar, lấy luôn Avatar của Google đắp vào
-            if (khachHang.getAvatar() == null || khachHang.getAvatar().isEmpty()) {
+            // 👉 BƯỚC 2: KIỂM TRA VÀ BẢO VỆ AVATAR CŨ
+            // Chỉ lấy ảnh Google đắp vào NẾU cột avatar trong DB đang rỗng (null hoặc khoảng trắng)
+            if (khachHang.getAvatar() == null ||
+                    khachHang.getAvatar().trim().isEmpty() ||
+                    khachHang.getAvatar().startsWith("http")) {
+
                 if (avatar != null) {
                     khachHang.setAvatar(avatar);
                     khachHangRepository.save(khachHang);
                 }
+                // NẾU KHÔNG RỖNG (Tức là đã có ảnh Base64 tự up, hoặc ảnh cũ) -> TUYỆT ĐỐI KHÔNG LÀM GÌ CẢ (Giữ nguyên)
             }
         } else {
             // TRƯỜNG HỢP B: Chưa có tài khoản -> Tự động đăng ký mới luôn
@@ -84,14 +88,14 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // 3. 🔥 TẠO JWT (Chỉ chạy đến đây nếu tài khoản KHÔNG BỊ KHÓA)
         String token = tokenProvider.generateToken(email, role);
 
-        // 4. 🔥 TRẢ ĐỦ THÔNG TIN VỀ FRONTEND NẾU THÀNH CÔNG
+        // 4. 🔥 TRẢ THÔNG TIN VỀ FRONTEND NẾU THÀNH CÔNG
+        // QUAN TRỌNG: TUYỆT ĐỐI KHÔNG TRUYỀN AVATAR LÊN URL Ở ĐÂY NỮA (TRÁNH LỖI QUÁ TẢI URL VÀ ĐỨT GÃY BASE64)
         String targetUrl = UriComponentsBuilder
                 .fromUriString("http://localhost:5173/oauth2/redirect")
                 .queryParam("token", token)
                 .queryParam("role", role)
                 .queryParam("id", khachHang.getId())
                 .queryParam("tenKhachHang", khachHang.getTenKhachHang())
-                .queryParam("avatar", khachHang.getAvatar() != null ? khachHang.getAvatar() : "")
                 .build()
                 .toUriString();
 

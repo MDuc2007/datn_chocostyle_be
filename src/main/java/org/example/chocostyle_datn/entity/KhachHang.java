@@ -77,7 +77,7 @@ public class KhachHang {
     private LocalDate ngayCapNhat;
 
 
-    @Column(name = "avatar")
+    @Column(name = "avatar", columnDefinition = "NVARCHAR(MAX)")
     private String avatar;
 
 
