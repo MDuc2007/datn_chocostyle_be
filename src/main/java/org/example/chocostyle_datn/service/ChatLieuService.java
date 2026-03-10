@@ -53,16 +53,11 @@ public class ChatLieuService {
 
         e.setId(id);
 
-        // giữ dữ liệu cũ
-        e.setMaChatLieu(old.getMaChatLieu());
-        e.setNgayTao(old.getNgayTao());
-        e.setNguoiTao(old.getNguoiTao());
+        old.setTenChatLieu(e.getTenChatLieu());
+        old.setNgayCapNhat(LocalDate.now());
+        old.setNguoiCapNhat(e.getNguoiCapNhat());
 
-        // cập nhật
-        e.setNgayCapNhat(LocalDate.now());
-        e.setNguoiCapNhat(e.getNguoiCapNhat());
-
-        return repo.save(e);
+        return repo.save(old);
     }
 
     public ChatLieu doiTrangThai(Integer id, String nguoiCapNhat) {

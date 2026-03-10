@@ -57,16 +57,11 @@ public class PhongCachMacService {
         }
         e.setId(id);
 
-        // giữ nguyên dữ liệu cũ
-        e.setMaPhongCachMac(old.getMaPhongCachMac());
-        e.setNgayTao(old.getNgayTao());
-        e.setNguoiTao(old.getNguoiTao());
+        old.setTenPhongCach(e.getTenPhongCach());
+        old.setNgayCapNhat(LocalDate.now());
+        old.setNguoiCapNhat(e.getNguoiCapNhat());
 
-        // cập nhật mới
-        e.setNgayCapNhat(LocalDate.now());
-        e.setNguoiCapNhat(e.getNguoiCapNhat()); // từ request
-
-        return repo.save(e);
+        return repo.save(old);
     }
 
     public PhongCachMac doiTrangThai(Integer id, String nguoiCapNhat) {

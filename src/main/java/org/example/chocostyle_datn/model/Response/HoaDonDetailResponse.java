@@ -35,6 +35,7 @@ public class HoaDonDetailResponse {
     private List<HoaDonSanPhamResponse> sanPhamList;
     private List<HoaDonLichSuResponse> lichSuList;
     private List<HoaDonThanhToanResponse> thanhToanList;
+    private String maVoucher;
     //tesst
 
 }
