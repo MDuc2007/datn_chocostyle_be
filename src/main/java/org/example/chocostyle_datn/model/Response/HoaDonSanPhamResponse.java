@@ -16,6 +16,7 @@ public class HoaDonSanPhamResponse {
     private Integer soLuong;
     private BigDecimal donGia;
     private BigDecimal thanhTien;
+    private String hinhAnh;
     //tesst
 
 }

@@ -58,16 +58,11 @@ public class KieuDangService {
 
         e.setId(id);
 
-        // giữ dữ liệu cũ
-        e.setMaKieuDang(old.getMaKieuDang());
-        e.setNgayTao(old.getNgayTao());
-        e.setNguoiTao(old.getNguoiTao());
+        old.setTenKieuDang(e.getTenKieuDang());
+        old.setNgayCapNhat(LocalDate.now());
+        old.setNguoiCapNhat(e.getNguoiCapNhat());
 
-        // cập nhật
-        e.setNgayCapNhat(LocalDate.now());
-        e.setNguoiCapNhat(e.getNguoiCapNhat());
-
-        return repo.save(e);
+        return repo.save(old);
     }
 
     public KieuDang doiTrangThai(Integer id, String nguoiCapNhat) {

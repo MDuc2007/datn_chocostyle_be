@@ -53,16 +53,11 @@ public class XuatXuService {
 
         e.setId(id);
 
-        // giữ nguyên dữ liệu cũ
-        e.setMaXuatXu(old.getMaXuatXu());
-        e.setNgayTao(old.getNgayTao());
-        e.setNguoiTao(old.getNguoiTao());
+        old.setTenXuatXu(e.getTenXuatXu());
+        old.setNgayCapNhat(LocalDate.now());
+        old.setNguoiCapNhat(e.getNguoiCapNhat());
 
-        // cập nhật mới
-        e.setNgayCapNhat(LocalDate.now());
-        e.setNguoiCapNhat(e.getNguoiCapNhat()); // từ request
-
-        return repo.save(e);
+        return repo.save(old);
     }
 
     public XuatXu doiTrangThai(Integer id, String nguoiCapNhat) {

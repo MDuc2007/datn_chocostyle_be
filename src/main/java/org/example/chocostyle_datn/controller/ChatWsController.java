@@ -44,11 +44,30 @@ public class ChatWsController {
     @MessageMapping("/chat.send")
     public void handleChat(ChatMessageRequest request) {
 
-        Message saved = chatService.saveIncomingMessage(request);
+        Conversation conv = conversationRepository.findById(request.getConversationId())
+                .orElseThrow(() -> new RuntimeException("Hội thoại không tồn tại"));
+
+        Message saved;
+
+        // 🔴 SỬA LỖI 2: Nếu khách đã chuyển sang WAITING hoặc ACTIVE (gặp nhân viên)
+        // -> Chặn gọi ChatService (vì ChatService gọi Gemini), mà tự lưu tin nhắn thủ công.
+        if ("WAITING".equals(conv.getTrangThai()) || "ACTIVE".equals(conv.getTrangThai())) {
+            Message msg = Message.builder()
+                    .conversation(conv)
+                    .senderId(request.getSenderId())
+                    .senderType(request.getSenderType())
+                    .content(request.getContent())
+                    .sentAt(java.time.LocalDateTime.now())
+                    .build();
+            saved = messageRepository.save(msg);
+        } else {
+            // Đang nói chuyện với BOT -> Giao cho ChatService để AI trả lời
+            saved = chatService.saveIncomingMessage(request);
+        }
 
         String destination = "/topic/chat/" + saved.getConversation().getId();
 
-        // gửi message của user
+        // gửi message của user/nhân viên
         ChatMessageResponse response = ChatMessageResponse.builder()
                 .id(saved.getId())
                 .conversationId(saved.getConversation().getId())
@@ -61,26 +80,28 @@ public class ChatWsController {
 
         messagingTemplate.convertAndSend(destination, response);
 
-        // 🔴 kiểm tra message BOT vừa được tạo
-        Optional<Message> lastMsg =
-                messageRepository.findTopByConversationOrderBySentAtDesc(saved.getConversation());
+        // 🔴 SỬA LỖI 2 (tt): Chỉ kiểm tra và gửi tin nhắn BOT nếu trạng thái đang là BOT
+        if ("BOT".equals(conv.getTrangThai())) {
+            Optional<Message> lastMsg =
+                    messageRepository.findTopByConversationOrderBySentAtDesc(saved.getConversation());
 
-        if (lastMsg.isPresent()) {
-            Message botMsg = lastMsg.get();
+            if (lastMsg.isPresent()) {
+                Message botMsg = lastMsg.get();
 
-            if ("BOT".equals(botMsg.getSenderType())) {
+                if ("BOT".equals(botMsg.getSenderType())) {
 
-                ChatMessageResponse botResponse = ChatMessageResponse.builder()
-                        .id(botMsg.getId())
-                        .conversationId(botMsg.getConversation().getId())
-                        .senderId(botMsg.getSenderId())
-                        .senderType(botMsg.getSenderType())
-                        .content(botMsg.getContent())
-                        .sentAt(botMsg.getSentAt())
-                        .senderName("ChocoBot")
-                        .build();
+                    ChatMessageResponse botResponse = ChatMessageResponse.builder()
+                            .id(botMsg.getId())
+                            .conversationId(botMsg.getConversation().getId())
+                            .senderId(botMsg.getSenderId())
+                            .senderType(botMsg.getSenderType())
+                            .content(botMsg.getContent())
+                            .sentAt(botMsg.getSentAt())
+                            .senderName("ChocoBot")
+                            .build();
 
-                messagingTemplate.convertAndSend(destination, botResponse);
+                    messagingTemplate.convertAndSend(destination, botResponse);
+                }
             }
         }
     }
@@ -95,13 +116,11 @@ public class ChatWsController {
         }
     }
 
-    // 🔴 SỬA: Chỉ lấy danh sách khách hàng ĐÃ BẤM YÊU CẦU ("WAITING")
     @GetMapping("/waiting-list")
     public List<Conversation> getWaitingList() {
         return conversationRepository.findByNhanVienIsNullAndTrangThai("WAITING");
     }
 
-    // 🔴 THÊM MỚI: API để khách hàng bấm nút gọi nhân viên
     @PutMapping("/{id}/request-staff")
     public ResponseEntity<?> requestStaff(@PathVariable Integer id) {
         Conversation conv = conversationRepository.findById(id)
@@ -127,19 +146,17 @@ public class ChatWsController {
 
         NhanVien nv = nhanVienRepository.findById(staffId).orElseThrow();
         conv.setNhanVien(nv);
-        conv.setTrangThai("ACTIVE"); // Đổi trạng thái thành ACTIVE
+        conv.setTrangThai("ACTIVE");
         Conversation saved = conversationRepository.save(conv);
 
-        // 🔴 1. Tạo tin nhắn hệ thống lưu vào Database
         Message sysMsg = Message.builder()
                 .conversation(saved)
-                .senderId(nv.getId()) // ID nhân viên
-                .senderType("SYSTEM") // Đánh dấu là tin nhắn từ Hệ thống
+                .senderId(nv.getId())
+                .senderType("SYSTEM")
                 .content("Nhân viên " + nv.getHoTen() + " đã tham gia cuộc trò chuyện. Bạn có thể bắt đầu trao đổi.")
                 .build();
         Message savedSysMsg = messageRepository.save(sysMsg);
 
-        // 🔴 2. Bắn tin nhắn hệ thống này ra kênh chat chính
         ChatMessageResponse response = ChatMessageResponse.builder()
                 .id(savedSysMsg.getId())
                 .conversationId(saved.getId())
@@ -151,11 +168,11 @@ public class ChatWsController {
                 .build();
         messagingTemplate.convertAndSend("/topic/chat/" + saved.getId(), response);
 
-        // Báo cho danh sách chờ của nhân viên cập nhật
         messagingTemplate.convertAndSend("/topic/chat/reload-waiting", "RELOAD");
 
         return saved;
     }
+
     @GetMapping("/{id}/messages")
     public List<ChatMessageResponse> getMessages(@PathVariable Integer id,
                                                  @RequestParam(defaultValue = "0") int page,
@@ -181,20 +198,19 @@ public class ChatWsController {
         Integer khachHangId = (Integer) req.get("khachHangId");
         KhachHang kh = khachHangRepository.findById(khachHangId).orElseThrow();
 
-        // Tìm hội thoại hiện tại (chưa kết thúc/đang chờ/đang chat bot)
         List<Conversation> existingConvs = conversationRepository.findAll().stream()
                 .filter(c -> c.getKhachHang().getId().equals(khachHangId) &&
                         ("BOT".equals(c.getTrangThai()) || "WAITING".equals(c.getTrangThai()) || c.getNhanVien() != null))
                 .toList();
 
         if (!existingConvs.isEmpty()) {
-            return ResponseEntity.ok(existingConvs.get(existingConvs.size() - 1)); // Trả về cái mới nhất
+            return ResponseEntity.ok(existingConvs.get(existingConvs.size() - 1));
         }
 
         Conversation newConv = Conversation.builder()
                 .khachHang(kh)
                 .nhanVien(null)
-                .trangThai("BOT") // 🔴 Mặc định là BOT, không báo cho Staff ngay
+                .trangThai("BOT")
                 .build();
 
         Conversation saved = conversationRepository.save(newConv);

@@ -59,6 +59,9 @@ public class HoaDonService {
     // =================================================================
     // 1. LẤY CHI TIẾT (GET DETAIL)
     // =================================================================
+    // =================================================================
+    // 1. LẤY CHI TIẾT (GET DETAIL)
+    // =================================================================
     @Transactional(readOnly = true)
     public HoaDonDetailResponse getDetail(Integer id) {
         HoaDon hd = hoaDonRepo.findById(id)
@@ -69,8 +72,28 @@ public class HoaDonService {
         List<ThanhToan> thanhToans = thanhToanRepo.findByIdHoaDon_Id(id);
 
         String tenNhanVien = "Không xác định";
+        String nguoiThucHienTemp = "Hệ thống"; // Dùng biến tạm để thay đổi
+
+        // BƯỚC 1: XỬ LÝ LẤY TÊN VÀ QUYỀN CỦA NGƯỜI THỰC HIỆN
         if (hd.getIdNhanVien() != null) {
             tenNhanVien = hd.getIdNhanVien().getHoTen();
+
+            String vaiTro = hd.getIdNhanVien().getVaiTro();
+            // Kiểm tra xem vai trò có phải Admin không
+            if (vaiTro != null && vaiTro.toUpperCase().contains("ADMIN")) {
+                nguoiThucHienTemp = "Admin";
+            } else {
+                // Nếu là nhân viên, lấy Mã Nhân Viên (hoặc getId() nếu bạn muốn hiện số)
+                nguoiThucHienTemp = hd.getIdNhanVien().getMaNv();
+            }
+        }
+
+        // BƯỚC QUAN TRỌNG: Gán vào biến final để truyền vào Lambda (Fix lỗi báo đỏ)
+        final String finalNguoiThucHien = nguoiThucHienTemp;
+
+        String maVoucher = "";
+        if (hd.getIdPhieuGiamGia() != null) {
+            maVoucher = hd.getIdPhieuGiamGia().getMaPgg();
         }
 
         return HoaDonDetailResponse.builder()
@@ -88,14 +111,17 @@ public class HoaDonService {
                 .phiShip(hd.getPhiVanChuyen() != null ? hd.getPhiVanChuyen() : BigDecimal.ZERO)
                 .giamGia(hd.getSoTienGiam() != null ? hd.getSoTienGiam() : BigDecimal.ZERO)
                 .tongThanhToan(hd.getTongTienThanhToan())
+                .maVoucher(maVoucher)
                 .sanPhamList(hdcts.stream().map(ct -> {
                     String tenSp = "Sản phẩm ẩn/Đã xóa";
                     String tenMau = "-";
                     String tenSize = "-";
+                    String hinhAnh = "";
 
                     if (ct.getIdSpct() != null) {
                         if (ct.getIdSpct().getIdSanPham() != null) {
                             tenSp = ct.getIdSpct().getIdSanPham().getTenSp();
+                            hinhAnh = ct.getIdSpct().getIdSanPham().getHinhAnh();
                         }
                         if (ct.getIdSpct().getIdMauSac() != null) {
                             tenMau = ct.getIdSpct().getIdMauSac().getTenMauSac();
@@ -106,8 +132,9 @@ public class HoaDonService {
                     }
 
                     return HoaDonSanPhamResponse.builder()
-                            .idSpct(ct.getIdSpct() != null ? ct.getIdSpct().getId() : null) // <--- BẮT BUỘC THÊM DÒNG NÀY ĐỂ FRONTEND CÓ ID
+                            .idSpct(ct.getIdSpct() != null ? ct.getIdSpct().getId() : null)
                             .tenSanPham(tenSp)
+                            .hinhAnh(hinhAnh)
                             .mauSac(tenMau)
                             .kichCo(tenSize)
                             .soLuong(ct.getSoLuong())
@@ -115,19 +142,21 @@ public class HoaDonService {
                             .thanhTien(ct.getThanhTien())
                             .build();
                 }).collect(Collectors.toList()))
+
+                // BƯỚC 2: Truyền biến finalNguoiThucHien vào
                 .lichSuList(lichSus.stream().map(ls -> HoaDonLichSuResponse.builder()
                         .trangThai(ls.getTrangThai())
                         .hanhDong(ls.getHanhDong())
                         .ghiChu(ls.getGhiChu())
                         .thoiGian(ls.getThoiGian() != null ? ls.getThoiGian().toString() : "")
-                        .nguoiThucHien("Hệ thống")
+                        .nguoiThucHien(finalNguoiThucHien) // <--- Fix lỗi đỏ ở đây
                         .build()).collect(Collectors.toList()))
+
                 .thanhToanList(thanhToans.stream().map(tt -> HoaDonThanhToanResponse.builder()
                         .phuongThuc((tt.getIdPttt() != null) ? tt.getIdPttt().getTenPttt() : "Khác")
                         .soTien(tt.getSoTien())
                         .trangThai(tt.getTrangThai())
                         .thoiGian(tt.getThoiGianThanhToan() != null ? tt.getThoiGianThanhToan().toString() : "")
-                        // Gán thêm loại giao dịch để FE biết hoàn tiền hay thu tiền
                         .loaiGiaoDich(tt.getLoaiGiaoDich())
                         .ghiChu(tt.getGhiChu())
                         .maGiaoDich(tt.getMaGiaoDich())
@@ -581,27 +610,32 @@ public class HoaDonService {
     // =================================================================
     // 7. HOÀN TIỀN
     // =================================================================
+    // =================================================================
+    // 7. HOÀN TIỀN (Mặc định dùng Chuyển Khoản)
+    // =================================================================
     @Transactional
     public void hoanTien(RefundRequest req) {
         HoaDon hd = hoaDonRepo.findById(req.getIdHoaDon())
                 .orElseThrow(() -> new RuntimeException("Hóa đơn không tồn tại"));
 
-        PhuongThucThanhToan pttt = ptttRepo.findById(1)
-                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy phương thức thanh toán (ID=1)"));
+        // Đã sửa: findById(2) để lấy phương thức Chuyển khoản thay vì Tiền mặt (1)
+        PhuongThucThanhToan pttt = ptttRepo.findById(2)
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy phương thức thanh toán Chuyển khoản (ID=2)"));
 
         ThanhToan refund = new ThanhToan();
         refund.setIdHoaDon(hd);
-        refund.setIdPttt(pttt);
+        refund.setIdPttt(pttt); // Gắn phương thức chuyển khoản vào giao dịch
         refund.setSoTien(req.getSoTien());
-        refund.setLoaiGiaoDich(2);
-        refund.setTrangThai(1);
+        refund.setLoaiGiaoDich(2); // 2 = Hoàn tiền
+        refund.setTrangThai(1); // 1 = Thành công
         refund.setThoiGianThanhToan(LocalDateTime.now());
         refund.setGhiChu(req.getGhiChu());
         refund.setMaGiaoDich("REFUND-" + System.currentTimeMillis());
 
         thanhToanRepo.save(refund);
 
-        ghiLichSu(hd, hd.getTrangThai(), "Hoàn tiền cho khách",
+        // Cập nhật lại nội dung ghi lịch sử cho rõ ràng hơn
+        ghiLichSu(hd, hd.getTrangThai(), "Hoàn tiền cho khách (Chuyển khoản)",
                 "Hoàn " + req.getSoTien() + " - Lý do: " + req.getGhiChu());
     }
 

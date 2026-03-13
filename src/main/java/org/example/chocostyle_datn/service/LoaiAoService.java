@@ -55,16 +55,11 @@ public class LoaiAoService {
         }
         e.setId(id);
 
-        // giữ dữ liệu cũ
-        e.setMaLoai(old.getMaLoai());
-        e.setNgayTao(old.getNgayTao());
-        e.setNguoiTao(old.getNguoiTao());
+        old.setTenLoai(e.getTenLoai());
+        old.setNgayCapNhat(LocalDate.now());
+        old.setNguoiCapNhat(e.getNguoiCapNhat());
 
-        // cập nhật mới
-        e.setNgayCapNhat(LocalDate.now());
-        e.setNguoiCapNhat(e.getNguoiCapNhat()); // từ request
-
-        return repo.save(e);
+        return repo.save(old);
     }
 
     public LoaiAo doiTrangThai(Integer id, String nguoiCapNhat) {
