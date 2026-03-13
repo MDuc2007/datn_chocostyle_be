@@ -1,10 +1,6 @@
 package org.example.chocostyle_datn.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -38,7 +34,6 @@ public class ChamCong {
     @Column(name = "trang_thai")
     private Integer trangThai;
 
-    // 👉 THÊM 2 CỘT NÀY ĐỂ LƯU TIỀN KẾT TOÁN CUỐI CA
     @Column(name = "tien_mat_cuoi_ca")
     private Double tienMatCuoiCa;
 
@@ -53,11 +48,13 @@ public class ChamCong {
 
     @Column(name = "ghi_chu")
     private String ghiChu;
+
     @Column(name = "tong_doanh_thu")
     private Double tongDoanhThu;
 
     @Column(name = "tien_chenh_lech")
     private Double tienChenhLech;
+
     @Column(name = "doanh_thu_tien_mat")
     private Double doanhThuTienMat;
 
@@ -70,6 +67,14 @@ public class ChamCong {
     @Column(name = "chenh_lech_ck")
     private Double chenhLechCk;
 
+    // 👉 THÊM 2 CỘT LƯU THÔNG TIN NGƯỜI THAO TÁC MỞ/ĐÓNG CA
+    @Column(name = "ten_nguoi_mo_ca")
+    private String tenNguoiMoCa;
+
+    @Column(name = "ten_nguoi_dong_ca")
+    private String tenNguoiDongCa;
+
+
     public Integer getSoLuongHoaDon() {
         return soLuongHoaDon;
     }
@@ -80,6 +85,7 @@ public class ChamCong {
 
     @Column(name = "so_luong_hoa_don")
     private Integer soLuongHoaDon;
+
     // ===== Getter & Setter =====
 
     public Integer getId() {
@@ -130,7 +136,6 @@ public class ChamCong {
         this.trangThai = trangThai;
     }
 
-    // 👉 THÊM GETTER & SETTER CHO 2 BIẾN TIỀN
     public Double getTienMatCuoiCa() {
         return tienMatCuoiCa;
     }
@@ -217,5 +222,22 @@ public class ChamCong {
 
     public void setChenhLechCk(Double chenhLechCk) {
         this.chenhLechCk = chenhLechCk;
+    }
+
+    // 👉 GETTER SETTER CHO NGƯỜI MỞ / ĐÓNG CA
+    public String getTenNguoiMoCa() {
+        return tenNguoiMoCa;
+    }
+
+    public void setTenNguoiMoCa(String tenNguoiMoCa) {
+        this.tenNguoiMoCa = tenNguoiMoCa;
+    }
+
+    public String getTenNguoiDongCa() {
+        return tenNguoiDongCa;
+    }
+
+    public void setTenNguoiDongCa(String tenNguoiDongCa) {
+        this.tenNguoiDongCa = tenNguoiDongCa;
     }
 }

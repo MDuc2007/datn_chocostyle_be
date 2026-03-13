@@ -122,6 +122,12 @@ public class ChamCongService {
         chamCong.setTrangThai(3);
         chamCong.setTienMatDauCa(tienMatDauCa);
         chamCong.setTienChuyenKhoanDauCa(tienCkDauCa);
+
+        // 👉 LƯU TÊN NGƯỜI MỞ CA (Sử dụng getHoTen() của Entity NhanVien)
+        chamCong.setTenNguoiMoCa(nv.getHoTen());
+
+        System.out.println("🔴 [DEBUG MỞ CA] Tên nhân viên lấy được từ DB là: " + nv.getHoTen());
+
         // Lưu chấm công
         ChamCong savedChamCong = chamCongRepository.save(chamCong);
 
@@ -161,14 +167,19 @@ public class ChamCongService {
             throw new RuntimeException("Không tìm thấy ca làm đang mở của bạn hôm nay!");
         }
 
-        // 4️⃣ CHẶN CHECK-OUT SỚM
-        if (now.isBefore(ca.getCaLamViec().getGioKetThuc())) {
-            throw new RuntimeException("Chưa đến giờ kết thúc ca!");
-        }
+        /* * 4️⃣ ĐÃ ẨN KIỂM TRA CHẶN CHECK-OUT SỚM THEO YÊU CẦU
+         * Cho phép nhân viên chốt ca bất cứ lúc nào, dù chưa đến giờ kết thúc ca.
+         */
+        // if (now.isBefore(ca.getCaLamViec().getGioKetThuc())) {
+        //     throw new RuntimeException("Chưa đến giờ kết thúc ca!");
+        // }
 
         if (chamCong.getTrangThai() != 3) {
             throw new RuntimeException("Ca làm việc này chưa được mở hoặc đã kết thúc!");
         }
+
+        NhanVien nvDongCa = nhanVienRepository.findById(idNv)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
 
         // 5️⃣ Cập nhật giờ ra và số tiền kết toán
         chamCong.setGioCheckOut(now);
@@ -176,6 +187,10 @@ public class ChamCongService {
         chamCong.setTienMatCuoiCa(tienMat);
         chamCong.setTienChuyenKhoanCuoiCa(tienChuyenKhoan);
         chamCong.setGhiChu(ghiChu);
+
+        // 👉 LƯU TÊN NGƯỜI ĐÓNG CA (Sử dụng getHoTen() của Entity NhanVien)
+        chamCong.setTenNguoiDongCa(nvDongCa.getHoTen());
+
         // 2. TÍNH DOANH THU TÁCH BIỆT (Tiền mặt & Chuyển khoản)
         java.time.LocalDateTime startDateTime = java.time.LocalDateTime.of(chamCong.getNgay(), chamCong.getGioCheckIn());
         java.time.LocalDateTime endDateTime = java.time.LocalDateTime.now();
@@ -185,7 +200,6 @@ public class ChamCongService {
 
         Integer soHd = chamCongRepository.countHoaDonTrongCa(idNv, startDateTime, endDateTime);
         chamCong.setSoLuongHoaDon(soHd);
-
 
         chamCong.setDoanhThuTienMat(dtTienMat);
         chamCong.setDoanhThuCk(dtChuyenKhoan);
@@ -211,15 +225,15 @@ public class ChamCongService {
 
         return savedChamCong;
     }
-    // HÀM LẤY DANH SÁCH GIAO CA (Đã fix lỗi chuỗi rỗng)
+    // HÀM LẤY DANH SÁCH GIAO CA (Đã fix triệt để lỗi ép kiểu ngày tháng SQL Server)
     public List<GiaoCaResponse> getDanhSachGiaoCa(String keyword, String fromDate, String toDate) {
 
-        // 1. Ép các chuỗi rỗng ("") thành null để SQL Server không bị lỗi ép kiểu
-        String kw = (keyword != null && !keyword.trim().isEmpty()) ? keyword : null;
-        String fd = (fromDate != null && !fromDate.trim().isEmpty()) ? fromDate : null;
-        String td = (toDate != null && !toDate.trim().isEmpty()) ? toDate : null;
+        // 👉 MẸO FIX LỖI 400 TỪ SQL SERVER: Không dùng null nữa!
+        String kw = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : "";
+        String fd = (fromDate != null && !fromDate.trim().isEmpty()) ? fromDate.trim() : "1900-01-01";
+        String td = (toDate != null && !toDate.trim().isEmpty()) ? toDate.trim() : "2100-01-01";
 
-        // 2. Truyền các biến đã xử lý xuống Repository
+        // Truyền các biến đã xử lý xuống Repository
         List<Map<String, Object>> results = chamCongRepository.getDanhSachGiaoCa(kw, fd, td);
 
         List<GiaoCaResponse> responses = new ArrayList<>();
@@ -245,7 +259,6 @@ public class ChamCongService {
 
             dto.setTienMat(tienMat);
             dto.setTienChuyenKhoan(tienCk);
-//            dto.setTongDoanhThu(doanhThu);
             dto.setTienMatDauCa(Double.valueOf(row.get("tienMatDauCa").toString()));
             dto.setTienChuyenKhoanDauCa(Double.valueOf(row.get("tienChuyenKhoanDauCa").toString()));
             dto.setTongDoanhThu(Double.valueOf(row.get("tongDoanhThu").toString()));
@@ -256,6 +269,11 @@ public class ChamCongService {
             dto.setChenhLechTienMat(Double.valueOf(row.get("chenhLechTienMat").toString()));
             dto.setChenhLechCk(Double.valueOf(row.get("chenhLechCk").toString()));
             dto.setSoLuongHoaDon(row.get("soLuongHoaDon") != null ? Integer.valueOf(row.get("soLuongHoaDon").toString()) : 0);
+
+            // DỮ LIỆU TÊN NGƯỜI ĐÓNG MỞ TỪ QUERY
+            dto.setNguoiMoCa((String) row.get("tenNguoiMoCa"));
+            dto.setNguoiDongCa((String) row.get("tenNguoiDongCa"));
+
             if (dto.getTrangThai() == 3) {
                 dto.setTienChenh((tienMat + tienCk) - doanhThu);
             } else {
@@ -311,6 +329,9 @@ public class ChamCongService {
                     cc.setTienMatCuoiCa(0.0);
                     cc.setTienChuyenKhoanCuoiCa(0.0);
                     cc.setGhiChu("Hệ thống tự động đóng ca do nhân viên quên Check-out quá 30 phút.");
+
+                    // 👉 LƯU NGƯỜI ĐÓNG LÀ HỆ THỐNG
+                    cc.setTenNguoiDongCa("Hệ thống tự động");
 
                     // Tính toán doanh thu như bình thường
                     LocalDateTime startDateTime = LocalDateTime.of(cc.getNgay(), cc.getGioCheckIn());

@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,10 +35,11 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
             "ISNULL(cc.doanh_thu_ck, 0) as doanhThuCk, " +
             "ISNULL(cc.chenh_lech_tien_mat, 0) as chenhLechTienMat, " +
             "ISNULL(cc.chenh_lech_ck, 0) as chenhLechCk, " +
+            "ISNULL(cc.ten_nguoi_mo_ca, N'Chưa xác định') as tenNguoiMoCa, " +
+            "ISNULL(cc.ten_nguoi_dong_ca, N'Chưa đóng') as tenNguoiDongCa, " + // 👉 BẠN VỪA THIẾU DẤU PHẨY Ở ĐÂY NÈ
             "ISNULL(cc.so_luong_hoa_don, 0) as soLuongHoaDon " +
             "FROM cham_cong cc " +
             "JOIN nhan_vien nv ON cc.id_nhan_vien = nv.id_nv " +
-            // 👉 THAY THẾ LEFT JOIN BẰNG OUTER APPLY ĐỂ LỌC ĐÚNG 1 CA CHUẨN XÁC
             "OUTER APPLY ( " +
             "    SELECT TOP 1 c.ten_ca, c.ma_ca " +
             "    FROM lich_lam_viec l " +
@@ -92,6 +92,7 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
     Double calculateDoanhThuChuyenKhoan(@Param("idNv") Integer idNv,
                                         @Param("startDateTime") java.time.LocalDateTime startDateTime,
                                         @Param("endDateTime") java.time.LocalDateTime endDateTime);
+
     @Query("SELECT c FROM ChamCong c WHERE c.nhanVien.id = :idNv AND c.ngay = :ngay ORDER BY c.id DESC")
     List<ChamCong> findDanhSachChamCongHomNay(@Param("idNv") Integer idNv, @Param("ngay") LocalDate ngay);
 
