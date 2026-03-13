@@ -157,10 +157,12 @@ public class ChamCongService {
             throw new RuntimeException("Không tìm thấy ca làm đang mở của bạn hôm nay!");
         }
 
-        // 4️⃣ CHẶN CHECK-OUT SỚM
-        if (now.isBefore(ca.getCaLamViec().getGioKetThuc())) {
-            throw new RuntimeException("Chưa đến giờ kết thúc ca!");
-        }
+        /* * 4️⃣ ĐÃ ẨN KIỂM TRA CHẶN CHECK-OUT SỚM THEO YÊU CẦU
+         * Cho phép nhân viên chốt ca bất cứ lúc nào, dù chưa đến giờ kết thúc ca.
+         */
+        // if (now.isBefore(ca.getCaLamViec().getGioKetThuc())) {
+        //     throw new RuntimeException("Chưa đến giờ kết thúc ca!");
+        // }
 
         if (chamCong.getTrangThai() != 3) {
             throw new RuntimeException("Ca làm việc này chưa được mở hoặc đã kết thúc!");

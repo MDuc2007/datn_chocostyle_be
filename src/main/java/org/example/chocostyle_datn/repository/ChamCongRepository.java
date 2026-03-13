@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,10 +34,12 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
             "ISNULL(cc.doanh_thu_tien_mat, 0) as doanhThuTienMat, " +
             "ISNULL(cc.doanh_thu_ck, 0) as doanhThuCk, " +
             "ISNULL(cc.chenh_lech_tien_mat, 0) as chenhLechTienMat, " +
-            "ISNULL(cc.chenh_lech_ck, 0) as chenhLechCk " +
+            "ISNULL(cc.chenh_lech_ck, 0) as chenhLechCk, " +
+            // 👉 THÊM 2 CỘT MỚI VÀO ĐÂY ĐỂ HIỂN THỊ TÊN NGƯỜI MỞ/ĐÓNG CA
+            "ISNULL(cc.ten_nguoi_mo_ca, N'Chưa xác định') as tenNguoiMoCa, " +
+            "ISNULL(cc.ten_nguoi_dong_ca, N'Chưa đóng') as tenNguoiDongCa " +
             "FROM cham_cong cc " +
             "JOIN nhan_vien nv ON cc.id_nhan_vien = nv.id_nv " +
-            // 👉 THAY THẾ LEFT JOIN BẰNG OUTER APPLY ĐỂ LỌC ĐÚNG 1 CA CHUẨN XÁC
             "OUTER APPLY ( " +
             "    SELECT TOP 1 c.ten_ca, c.ma_ca " +
             "    FROM lich_lam_viec l " +
@@ -53,6 +54,7 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
     List<Map<String, Object>> getDanhSachGiaoCa(@Param("keyword") String keyword,
                                                 @Param("fromDate") String fromDate,
                                                 @Param("toDate") String toDate);
+
     @Query(value = "SELECT ISNULL(SUM(tong_tien_thanh_toan), 0) FROM hoa_don " +
             "WHERE id_nhan_vien = :idNv " +
             "AND ngay_tao >= :startDateTime " +
@@ -91,6 +93,7 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
     Double calculateDoanhThuChuyenKhoan(@Param("idNv") Integer idNv,
                                         @Param("startDateTime") java.time.LocalDateTime startDateTime,
                                         @Param("endDateTime") java.time.LocalDateTime endDateTime);
+
     @Query("SELECT c FROM ChamCong c WHERE c.nhanVien.id = :idNv AND c.ngay = :ngay ORDER BY c.id DESC")
     List<ChamCong> findDanhSachChamCongHomNay(@Param("idNv") Integer idNv, @Param("ngay") LocalDate ngay);
 

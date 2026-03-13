@@ -26,4 +26,8 @@ public class GiaoCaResponse {
     private Double doanhThuCk;
     private Double chenhLechTienMat;
     private Double chenhLechCk;
+
+    // 👉 THÊM 2 BIẾN NÀY ĐỂ TRẢ VỀ CHO FRONTEND
+    private String nguoiMoCa;
+    private String nguoiDongCa;
 }
