@@ -55,7 +55,9 @@ public class HoaDonService {
     private ChiTietDotGiamGiaRepository chiTietDotGiamGiaRepo;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
-
+    @Autowired
+    @org.springframework.context.annotation.Lazy
+    private ChamCongService chamCongService;
     // =================================================================
     // 1. LẤY CHI TIẾT (GET DETAIL)
     // =================================================================
@@ -486,6 +488,7 @@ public class HoaDonService {
         String actionName = loaiDon == 1 ? "Xác nhận đặt hàng" : "Tạo đơn giao hàng tại quầy";
         String note = loaiDon == 1 ? "Khách hàng hoàn tất mua tại quầy" : "Tạo đơn POS - chờ xác nhận để giao hàng";
         ghiLichSu(hd, hd.getTrangThai(), actionName, note);
+        chamCongService.capNhatDoanhThuCaHienTai(hd.getIdNhanVien().getId());
         broadcastOrderUpdate(idHoaDon);
     }
 
@@ -600,7 +603,7 @@ public class HoaDonService {
 
             ghiLichSu(hd, 1, "Thanh toán Online", "VNPAY Success: " + maGiaoDichVnp);
             hoaDonRepo.save(hd);
-
+            chamCongService.capNhatDoanhThuCaHienTai(hd.getIdNhanVien().getId());
             // [QUAN TRỌNG]: Đã xóa đoạn gửi mail ở đây
             // Lý do: Mail đã được gửi lúc tạo đơn (taoHoaDonMoi) rồi.
             // Tránh gửi 2 lần và tránh lỗi hd.getEmail() không tồn tại.
@@ -1212,8 +1215,8 @@ public class HoaDonService {
         // Cập nhật ngày thanh toán cho hóa đơn luôn
         hd.setNgayThanhToan(LocalDateTime.now());
         hoaDonRepo.save(hd);
-
         // Ghi lịch sử hóa đơn
         ghiLichSu(hd, hd.getTrangThai(), "Xác nhận thanh toán", "Đã thu: " + soTienCanThu + "đ. Ghi chú: " + (ghiChu != null ? ghiChu : ""));
+        chamCongService.capNhatDoanhThuCaHienTai(hd.getIdNhanVien().getId());
     }
 }
