@@ -179,6 +179,10 @@ public class ChamCongService {
         Double dtTienMat = chamCongRepository.calculateDoanhThuTienMat(idNv, startDateTime, endDateTime);
         Double dtChuyenKhoan = chamCongRepository.calculateDoanhThuChuyenKhoan(idNv, startDateTime, endDateTime);
 
+        Integer soHd = chamCongRepository.countHoaDonTrongCa(idNv, startDateTime, endDateTime);
+        chamCong.setSoLuongHoaDon(soHd);
+
+
         chamCong.setDoanhThuTienMat(dtTienMat);
         chamCong.setDoanhThuCk(dtChuyenKhoan);
         chamCong.setTongDoanhThu(dtTienMat + dtChuyenKhoan); // Tổng doanh thu bằng 2 túi cộng lại
@@ -247,6 +251,7 @@ public class ChamCongService {
             dto.setDoanhThuCk(Double.valueOf(row.get("doanhThuCk").toString()));
             dto.setChenhLechTienMat(Double.valueOf(row.get("chenhLechTienMat").toString()));
             dto.setChenhLechCk(Double.valueOf(row.get("chenhLechCk").toString()));
+            dto.setSoLuongHoaDon(row.get("soLuongHoaDon") != null ? Integer.valueOf(row.get("soLuongHoaDon").toString()) : 0);
             if (dto.getTrangThai() == 3) {
                 dto.setTienChenh((tienMat + tienCk) - doanhThu);
             } else {
@@ -307,6 +312,9 @@ public class ChamCongService {
                     LocalDateTime startDateTime = LocalDateTime.of(cc.getNgay(), cc.getGioCheckIn());
                     Double dtTienMat = chamCongRepository.calculateDoanhThuTienMat(cc.getNhanVien().getId(), startDateTime, now);
                     Double dtChuyenKhoan = chamCongRepository.calculateDoanhThuChuyenKhoan(cc.getNhanVien().getId(), startDateTime, now);
+
+                    Integer soHd = chamCongRepository.countHoaDonTrongCa(cc.getNhanVien().getId(), startDateTime, now);
+                    cc.setSoLuongHoaDon(soHd);
 
                     cc.setDoanhThuTienMat(dtTienMat);
                     cc.setDoanhThuCk(dtChuyenKhoan);
