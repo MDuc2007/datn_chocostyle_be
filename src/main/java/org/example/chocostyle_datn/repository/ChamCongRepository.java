@@ -35,9 +35,8 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
             "ISNULL(cc.doanh_thu_ck, 0) as doanhThuCk, " +
             "ISNULL(cc.chenh_lech_tien_mat, 0) as chenhLechTienMat, " +
             "ISNULL(cc.chenh_lech_ck, 0) as chenhLechCk, " +
-            // 👉 THÊM 2 CỘT MỚI VÀO ĐÂY ĐỂ HIỂN THỊ TÊN NGƯỜI MỞ/ĐÓNG CA
             "ISNULL(cc.ten_nguoi_mo_ca, N'Chưa xác định') as tenNguoiMoCa, " +
-            "ISNULL(cc.ten_nguoi_dong_ca, N'Chưa đóng') as tenNguoiDongCa " +
+            "ISNULL(cc.ten_nguoi_dong_ca, N'Chưa đóng') as tenNguoiDongCa, " + // 👉 BẠN VỪA THIẾU DẤU PHẨY Ở ĐÂY NÈ
             "ISNULL(cc.so_luong_hoa_don, 0) as soLuongHoaDon " +
             "FROM cham_cong cc " +
             "JOIN nhan_vien nv ON cc.id_nhan_vien = nv.id_nv " +
@@ -55,7 +54,6 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
     List<Map<String, Object>> getDanhSachGiaoCa(@Param("keyword") String keyword,
                                                 @Param("fromDate") String fromDate,
                                                 @Param("toDate") String toDate);
-
     @Query(value = "SELECT ISNULL(SUM(tong_tien_thanh_toan), 0) FROM hoa_don " +
             "WHERE id_nhan_vien = :idNv " +
             "AND ngay_tao >= :startDateTime " +
