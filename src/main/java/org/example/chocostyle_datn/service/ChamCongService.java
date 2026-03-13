@@ -32,34 +32,30 @@ public class ChamCongService {
         this.nhanVienRepository = nhanVienRepository;
     }
 
-    // 🔎 Hàm Lấy ca thông minh (Đã chuẩn hóa theo: 1=Đóng, 2=Chờ, 3=Đang làm)
+    // 🔎 Hàm Lấy ca thông minh (Đã nâng cấp: Dùng chung két tiền)
     public ChamCong getChamCongHomNay(Integer idNv) {
         LocalDate today = LocalDate.now();
-        List<ChamCong> list = chamCongRepository.findDanhSachChamCongHomNay(idNv, today);
 
-        // 1. NẾU CÓ PHIẾU ĐANG LÀM DỞ: Ưu tiên trả về để nhân viên tiếp tục bán hàng
-        if (list != null && !list.isEmpty()) {
-            for (ChamCong cc : list) {
-                if (cc.getGioCheckOut() == null) {
-                    return cc; // Trả về ca có trạng thái 3 (Đang làm)
-                }
-            }
+        // 1. KIỂM TRA TOÀN BỘ CỬA HÀNG ĐÃ CÓ AI MỞ CA CHƯA?
+        List<ChamCong> caDangMoList = chamCongRepository.findCaDangMoCuaCuaHang(today);
+        if (!caDangMoList.isEmpty()) {
+            // 👉 NẾU CÓ NGƯỜI MỞ RỒI (Vd NV 1 mở) -> TRẢ VỀ LUÔN PHIẾU ĐÓ CHO NV 2
+            // Để Frontend của NV 2 thấy là đã mở ca và ẩn form nhập tiền đi
+            return caDangMoList.get(0);
         }
 
-        // 2. KIỂM TRA LỊCH LÀM VIỆC: Xem Quản lý có phân ca mới không?
+        // 2. NẾU CHƯA AI MỞ CA: Kiểm tra xem NV này có được phân ca hôm nay không?
         List<LichLamViec> lichs = lichLamViecRepository.checkCaHomNay(idNv, today);
         if (!lichs.isEmpty()) {
             LichLamViec caHienTai = lichs.get(0);
-
-            // 👉 ĐÂY LÀ CHÌA KHÓA: Nếu lịch đang ở trạng thái 2 (ĐANG MỞ / CHỜ LÀM)
+            // 👉 Nếu lịch đang ở trạng thái 2 (Chờ làm) -> Bật form nhập tiền mở ca
             if (caHienTai.getTrangThai() == 2) {
-                // Có ca mới tinh chưa Check-in! Trả về rỗng để Frontend mở form Nhập tiền
                 return null;
             }
         }
 
-        // 3. NẾU KHÔNG CÓ CA MỚI CHỜ LÀM: Trả về phiếu chấm công vừa đóng gần nhất
-        // (Để hiển thị giao diện Tổng kết Ca đã đóng và 2 nút Chỉ xem / Đăng xuất)
+        // 3. Nếu không có ca chờ mở, trả về ca đóng gần nhất (để xem sao kê)
+        List<ChamCong> list = chamCongRepository.findDanhSachChamCongHomNay(idNv, today);
         if (list != null && !list.isEmpty()) {
             return list.get(0);
         }
@@ -67,15 +63,14 @@ public class ChamCongService {
         return null;
     }
 
-    // 🚀 CHECK-IN
-    public ChamCong checkIn(Integer idNv,Double tienMatDauCa, Double tienCkDauCa) {
+    // 🚀 CHECK-IN (MỞ CA)
+    public ChamCong checkIn(Integer idNv, Double tienMatDauCa, Double tienCkDauCa) {
 
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
 
         // 1️⃣ Kiểm tra có ca hôm nay không
-        List<LichLamViec> lich =
-                lichLamViecRepository.checkCaHomNay(idNv, today);
+        List<LichLamViec> lich = lichLamViecRepository.checkCaHomNay(idNv, today);
 
         if (lich.isEmpty()) {
             throw new RuntimeException("Hôm nay bạn không có ca làm!");
@@ -87,30 +82,27 @@ public class ChamCongService {
         LocalTime gioKetThuc = ca.getCaLamViec().getGioKetThuc();
         LocalTime gioMoCaSom = gioBatDau.minusMinutes(30); // Cho phép check-in sớm 30p
 
-        // 2️⃣ VÀ 3️⃣: KIỂM TRA GIỜ CHECK-IN CHO CẢ CA NGÀY VÀ ĐÊM
+        // 2️⃣ Kiểm tra giờ
         boolean isThoiGianHopLe = false;
-
         if (gioBatDau.isBefore(gioKetThuc)) {
-            // Ca ban ngày
             isThoiGianHopLe = now.isAfter(gioMoCaSom) && now.isBefore(gioKetThuc);
         } else {
-            // Ca qua đêm
             isThoiGianHopLe = now.isAfter(gioMoCaSom) || now.isBefore(gioKetThuc);
         }
         if (!isThoiGianHopLe) {
             throw new RuntimeException("Hiện tại không nằm trong thời gian cho phép vào ca!");
         }
-        // 4️⃣ Kiểm tra xem có ca nào đang làm dở chưa đóng không
-        ChamCong caDangMo = getChamCongHomNay(idNv);
-        if (caDangMo != null) {
-            throw new RuntimeException("Bạn đang có một ca chưa kết thúc. Vui lòng đóng ca cũ trước khi vào ca mới!");
+
+        // 3️⃣ Kiểm tra xem có ca nào đang mở không (chống mở đúp)
+        List<ChamCong> caDangMoList = chamCongRepository.findCaDangMoCuaCuaHang(today);
+        if (!caDangMoList.isEmpty()) {
+            throw new RuntimeException("Cửa hàng đã có người mở ca rồi, bạn không cần mở lại!");
         }
 
-        // 5️⃣ Lấy nhân viên
         NhanVien nv = nhanVienRepository.findById(idNv)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
 
-        // 6️⃣ Tạo bản ghi chấm công
+        // 4️⃣ Tạo bản ghi chấm công
         ChamCong chamCong = new ChamCong();
         chamCong.setNhanVien(nv);
         chamCong.setNgay(today);
@@ -118,16 +110,11 @@ public class ChamCongService {
         chamCong.setTrangThai(3);
         chamCong.setTienMatDauCa(tienMatDauCa);
         chamCong.setTienChuyenKhoanDauCa(tienCkDauCa);
-
-        // 👉 LƯU TÊN NGƯỜI MỞ CA (Sử dụng getHoTen() của Entity NhanVien)
         chamCong.setTenNguoiMoCa(nv.getHoTen());
 
-        System.out.println("🔴 [DEBUG MỞ CA] Tên nhân viên lấy được từ DB là: " + nv.getHoTen());
-
-        // Lưu chấm công
         ChamCong savedChamCong = chamCongRepository.save(chamCong);
 
-        // 👉 ĐỒNG BỘ LỊCH LÀM VIỆC (Đổi trạng thái lịch thành Đang làm = 3)
+        // Đổi trạng thái lịch thành Đang làm = 3
         LichLamViec caHienTai = lich.get(0);
         caHienTai.setTrangThai(3);
         lichLamViecRepository.save(caHienTai);
@@ -135,93 +122,79 @@ public class ChamCongService {
         return savedChamCong;
     }
 
-    // Sửa lại hàm checkOut để nhận thêm tiền
+    // 🚀 CHECK-OUT (ĐÓNG CA & GỘP TIỀN TOÀN CỬA HÀNG)
     public ChamCong checkOut(Integer idNv, Double tienMat, Double tienChuyenKhoan, String ghiChu) {
 
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
 
-        // 1️⃣ & 2️⃣ Lấy đúng cái ca ĐANG MỞ của ngày hôm nay ra để đóng
+        // 1️⃣ Lấy đúng ca ĐANG MỞ của cửa hàng ra để đóng
         ChamCong chamCong = getChamCongHomNay(idNv);
-        if (chamCong == null) {
-            throw new RuntimeException("Bạn chưa check-in hoặc không có ca nào đang mở!");
-        }
-
-        // 3️⃣ Lấy ca làm hôm nay (Sử dụng hàm mới để lấy lịch bỏ qua trạng thái)
-        List<LichLamViec> tatCaLichHomNay = lichLamViecRepository.findByNhanVien_IdAndNgayLamViec(idNv, today);
-        LichLamViec ca = null;
-
-        // Tìm xem trong ngày hôm nay có cái lịch nào đang ở trạng thái 3 (Đang làm) không
-        for (LichLamViec l : tatCaLichHomNay) {
-            if (l.getTrangThai() == 3) {
-                ca = l;
-                break;
-            }
-        }
-
-        if (ca == null) {
-            throw new RuntimeException("Không tìm thấy ca làm đang mở của bạn hôm nay!");
-        }
-
-        /* * 4️⃣ ĐÃ ẨN KIỂM TRA CHẶN CHECK-OUT SỚM THEO YÊU CẦU
-         * Cho phép nhân viên chốt ca bất cứ lúc nào, dù chưa đến giờ kết thúc ca.
-         */
-        // if (now.isBefore(ca.getCaLamViec().getGioKetThuc())) {
-        //     throw new RuntimeException("Chưa đến giờ kết thúc ca!");
-        // }
-
-        if (chamCong.getTrangThai() != 3) {
-            throw new RuntimeException("Ca làm việc này chưa được mở hoặc đã kết thúc!");
+        if (chamCong == null || chamCong.getTrangThai() != 3) {
+            throw new RuntimeException("Cửa hàng hiện không có ca nào đang mở để kết thúc!");
         }
 
         NhanVien nvDongCa = nhanVienRepository.findById(idNv)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nhân viên"));
 
-        // 5️⃣ Cập nhật giờ ra và số tiền kết toán
+        // 2️⃣ Cập nhật giờ ra và số tiền kết toán
         chamCong.setGioCheckOut(now);
         chamCong.setTrangThai(1);
         chamCong.setTienMatCuoiCa(tienMat);
         chamCong.setTienChuyenKhoanCuoiCa(tienChuyenKhoan);
         chamCong.setGhiChu(ghiChu);
+        chamCong.setTenNguoiDongCa(nvDongCa.getHoTen()); // Lưu người chốt ca
 
-        // 👉 LƯU TÊN NGƯỜI ĐÓNG CA (Sử dụng getHoTen() của Entity NhanVien)
-        chamCong.setTenNguoiDongCa(nvDongCa.getHoTen());
-
-        // 2. TÍNH DOANH THU TÁCH BIỆT (Tiền mặt & Chuyển khoản)
+        // 3️⃣ TÍNH DOANH THU CHUNG CỦA TOÀN BỘ NHÂN VIÊN TRONG CA
         java.time.LocalDateTime startDateTime = java.time.LocalDateTime.of(chamCong.getNgay(), chamCong.getGioCheckIn());
         java.time.LocalDateTime endDateTime = java.time.LocalDateTime.now();
 
-        Double dtTienMat = chamCongRepository.calculateDoanhThuTienMat(idNv, startDateTime, endDateTime);
-        Double dtChuyenKhoan = chamCongRepository.calculateDoanhThuChuyenKhoan(idNv, startDateTime, endDateTime);
+        Double dtTienMat = chamCongRepository.calculateDoanhThuTienMatChung(startDateTime, endDateTime);
+        Double dtChuyenKhoan = chamCongRepository.calculateDoanhThuChuyenKhoanChung(startDateTime, endDateTime);
+        Integer soHd = chamCongRepository.countHoaDonTrongCaChung(startDateTime, endDateTime);
 
-        Integer soHd = chamCongRepository.countHoaDonTrongCa(idNv, startDateTime, endDateTime);
         chamCong.setSoLuongHoaDon(soHd);
-
         chamCong.setDoanhThuTienMat(dtTienMat);
         chamCong.setDoanhThuCk(dtChuyenKhoan);
-        chamCong.setTongDoanhThu(dtTienMat + dtChuyenKhoan); // Tổng doanh thu bằng 2 túi cộng lại
+        chamCong.setTongDoanhThu(dtTienMat + dtChuyenKhoan);
 
-        // 3. TÍNH CHÊNH LỆCH CHO TỪNG TÚI TIỀN
+        // 4️⃣ TÍNH CHÊNH LỆCH KÉT
         Double dauCaMat = chamCong.getTienMatDauCa() != null ? chamCong.getTienMatDauCa() : 0.0;
         Double dauCaCk = chamCong.getTienChuyenKhoanDauCa() != null ? chamCong.getTienChuyenKhoanDauCa() : 0.0;
 
-        // Công thức: Chênh lệch = Thực tế nhập vào - (Đầu ca + Doanh thu)
         Double chenhLechMat = tienMat - (dauCaMat + dtTienMat);
         Double chenhLechCk = tienChuyenKhoan - (dauCaCk + dtChuyenKhoan);
 
         chamCong.setChenhLechTienMat(chenhLechMat);
         chamCong.setChenhLechCk(chenhLechCk);
-        chamCong.setTienChenhLech(chenhLechMat + chenhLechCk); // Vẫn lưu tổng chênh lệch để dễ nhìn lướt
-        // Lưu chấm công
+        chamCong.setTienChenhLech(chenhLechMat + chenhLechCk);
+
         ChamCong savedChamCong = chamCongRepository.save(chamCong);
 
-        // 👉 ĐỒNG BỘ LỊCH LÀM VIỆC (Đóng lịch lại thành 1 = Đã hoàn thành)
-        ca.setTrangThai(1);
-        lichLamViecRepository.save(ca);
+        // 5️⃣ ĐÓNG LỊCH LÀM VIỆC CỦA NGƯỜI MỞ CA
+        List<LichLamViec> lichNguoiMo = lichLamViecRepository.findByNhanVien_IdAndNgayLamViec(chamCong.getNhanVien().getId(), today);
+        for (LichLamViec l : lichNguoiMo) {
+            if (l.getTrangThai() == 3 || l.getTrangThai() == 2) {
+                l.setTrangThai(1); // 1 = Đã hoàn thành
+                lichLamViecRepository.save(l);
+            }
+        }
+
+        // 6️⃣ ĐÓNG LUÔN LỊCH LÀM VIỆC CỦA NGƯỜI ĐÓNG CA (Nếu người đóng khác người mở)
+        if (!chamCong.getNhanVien().getId().equals(idNv)) {
+            List<LichLamViec> lichNguoiDong = lichLamViecRepository.findByNhanVien_IdAndNgayLamViec(idNv, today);
+            for (LichLamViec l : lichNguoiDong) {
+                if (l.getTrangThai() == 3 || l.getTrangThai() == 2) {
+                    l.setTrangThai(1);
+                    lichLamViecRepository.save(l);
+                }
+            }
+        }
 
         return savedChamCong;
     }
-    // HÀM LẤY DANH SÁCH GIAO CA (Đã fix triệt để lỗi ép kiểu ngày tháng SQL Server)
+
+    // HÀM LẤY DANH SÁCH GIAO CA
     public List<GiaoCaResponse> getDanhSachGiaoCa(String keyword, String fromDate, String toDate) {
 
         // 👉 MẸO FIX LỖI 400 TỪ SQL SERVER: Không dùng null nữa!
@@ -229,9 +202,7 @@ public class ChamCongService {
         String fd = (fromDate != null && !fromDate.trim().isEmpty()) ? fromDate.trim() : "1900-01-01";
         String td = (toDate != null && !toDate.trim().isEmpty()) ? toDate.trim() : "2100-01-01";
 
-        // Truyền các biến đã xử lý xuống Repository
         List<Map<String, Object>> results = chamCongRepository.getDanhSachGiaoCa(kw, fd, td);
-
         List<GiaoCaResponse> responses = new ArrayList<>();
 
         for (Map<String, Object> row : results) {
@@ -248,13 +219,8 @@ public class ChamCongService {
             dto.setThoiGianDong(timeOut != null ? (timeOut + " " + ngay) : "-");
 
             dto.setTrangThai((Integer) row.get("trangThai"));
-
-            Double tienMat = Double.valueOf(row.get("tienMat").toString());
-            Double tienCk = Double.valueOf(row.get("tienChuyenKhoan").toString());
-            Double doanhThu = Double.valueOf(row.get("tongDoanhThu").toString());
-
-            dto.setTienMat(tienMat);
-            dto.setTienChuyenKhoan(tienCk);
+            dto.setTienMat(Double.valueOf(row.get("tienMat").toString()));
+            dto.setTienChuyenKhoan(Double.valueOf(row.get("tienChuyenKhoan").toString()));
             dto.setTienMatDauCa(Double.valueOf(row.get("tienMatDauCa").toString()));
             dto.setTienChuyenKhoanDauCa(Double.valueOf(row.get("tienChuyenKhoanDauCa").toString()));
             dto.setTongDoanhThu(Double.valueOf(row.get("tongDoanhThu").toString()));
@@ -266,9 +232,13 @@ public class ChamCongService {
             dto.setChenhLechCk(Double.valueOf(row.get("chenhLechCk").toString()));
             dto.setSoLuongHoaDon(row.get("soLuongHoaDon") != null ? Integer.valueOf(row.get("soLuongHoaDon").toString()) : 0);
 
-            // DỮ LIỆU TÊN NGƯỜI ĐÓNG MỞ TỪ QUERY
+            // DỮ LIỆU TÊN NGƯỜI ĐÓNG MỞ
             dto.setNguoiMoCa((String) row.get("tenNguoiMoCa"));
             dto.setNguoiDongCa((String) row.get("tenNguoiDongCa"));
+
+            Double doanhThu = Double.valueOf(row.get("tongDoanhThu").toString());
+            Double tienMat = dto.getTienMat();
+            Double tienCk = dto.getTienChuyenKhoan();
 
             if (dto.getTrangThai() == 3) {
                 dto.setTienChenh((tienMat + tienCk) - doanhThu);
@@ -280,26 +250,26 @@ public class ChamCongService {
         }
         return responses;
     }
+
     public Map<String, Double> laySoDuCaTruoc() {
         ChamCong caTruoc = chamCongRepository.layCaDongGanNhat();
         Double tienMat = (caTruoc != null && caTruoc.getTienMatCuoiCa() != null) ? caTruoc.getTienMatCuoiCa() : 0.0;
         Double tienCk = (caTruoc != null && caTruoc.getTienChuyenKhoanCuoiCa() != null) ? caTruoc.getTienChuyenKhoanCuoiCa() : 0.0;
         return Map.of("tienMat", tienMat, "tienCk", tienCk);
     }
-    // 🤖 HÀM CHẠY NGẦM: TỰ ĐỘNG ĐÓNG CA QUÁ HẠN 30 PHÚT
-    @Scheduled(fixedRate = 60000) // Chạy lặp lại mỗi 60 giây
+
+    // 🤖 HÀM CHẠY NGẦM: TỰ ĐỘNG ĐÓNG CA QUÁ HẠN
+    @Scheduled(fixedRate = 60000)
     public void tuDongDongCaQuaHan() {
-        // 1. Lấy tất cả các ca chưa check-out
         List<ChamCong> cacCaDangMo = chamCongRepository.findTatCaCaDangMo();
         LocalDateTime now = LocalDateTime.now();
 
         for (ChamCong cc : cacCaDangMo) {
-            // 2. Tìm lịch làm việc tương ứng với ca này
             List<LichLamViec> lichs = lichLamViecRepository.findByNhanVien_IdAndNgayLamViec(cc.getNhanVien().getId(), cc.getNgay());
             LichLamViec caHienTai = null;
 
             for (LichLamViec l : lichs) {
-                if (l.getTrangThai() == 3) { // 3 = Đang làm
+                if (l.getTrangThai() == 3) {
                     caHienTai = l;
                     break;
                 }
@@ -309,39 +279,30 @@ public class ChamCongService {
                 LocalTime gioKetThuc = caHienTai.getCaLamViec().getGioKetThuc();
                 LocalDateTime thoiGianKetThucCa = LocalDateTime.of(cc.getNgay(), gioKetThuc);
 
-                // Xử lý logic nếu là ca đêm (qua 12h đêm)
                 if (gioKetThuc.isBefore(caHienTai.getCaLamViec().getGioBatDau())) {
                     thoiGianKetThucCa = thoiGianKetThucCa.plusDays(1);
                 }
 
-                // 3. NẾU HIỆN TẠI ĐÃ VƯỢT QUÁ GIỜ KẾT THÚC 30 PHÚT
                 if (now.isAfter(thoiGianKetThucCa.plusMinutes(30))) {
-
-                    // Tự động set giờ ra và trạng thái
                     cc.setGioCheckOut(now.toLocalTime());
-                    cc.setTrangThai(1); // 1 = Đã đóng
-
-                    // Vì nhân viên quên chốt, hệ thống tự điền két thực tế = 0
+                    cc.setTrangThai(1);
                     cc.setTienMatCuoiCa(0.0);
                     cc.setTienChuyenKhoanCuoiCa(0.0);
                     cc.setGhiChu("Hệ thống tự động đóng ca do nhân viên quên Check-out quá 30 phút.");
-
-                    // 👉 LƯU NGƯỜI ĐÓNG LÀ HỆ THỐNG
                     cc.setTenNguoiDongCa("Hệ thống tự động");
 
-                    // Tính toán doanh thu như bình thường
                     LocalDateTime startDateTime = LocalDateTime.of(cc.getNgay(), cc.getGioCheckIn());
-                    Double dtTienMat = chamCongRepository.calculateDoanhThuTienMat(cc.getNhanVien().getId(), startDateTime, now);
-                    Double dtChuyenKhoan = chamCongRepository.calculateDoanhThuChuyenKhoan(cc.getNhanVien().getId(), startDateTime, now);
 
-                    Integer soHd = chamCongRepository.countHoaDonTrongCa(cc.getNhanVien().getId(), startDateTime, now);
+                    // 👉 TỰ ĐỘNG ĐÓNG CA CŨNG GỘP DOANH THU CHUNG
+                    Double dtTienMat = chamCongRepository.calculateDoanhThuTienMatChung(startDateTime, now);
+                    Double dtChuyenKhoan = chamCongRepository.calculateDoanhThuChuyenKhoanChung(startDateTime, now);
+                    Integer soHd = chamCongRepository.countHoaDonTrongCaChung(startDateTime, now);
+
                     cc.setSoLuongHoaDon(soHd);
-
                     cc.setDoanhThuTienMat(dtTienMat);
                     cc.setDoanhThuCk(dtChuyenKhoan);
                     cc.setTongDoanhThu(dtTienMat + dtChuyenKhoan);
 
-                    // Tính chênh lệch (Vì két thực tế = 0 nên độ lệch sẽ bị ÂM, Quản lý nhìn vào sẽ biết ngay)
                     Double dauCaMat = cc.getTienMatDauCa() != null ? cc.getTienMatDauCa() : 0.0;
                     Double dauCaCk = cc.getTienChuyenKhoanDauCa() != null ? cc.getTienChuyenKhoanDauCa() : 0.0;
 
@@ -349,14 +310,10 @@ public class ChamCongService {
                     cc.setChenhLechCk(0.0 - (dauCaCk + dtChuyenKhoan));
                     cc.setTienChenhLech(cc.getChenhLechTienMat() + cc.getChenhLechCk());
 
-                    // Lưu phiếu chấm công
                     chamCongRepository.save(cc);
 
-                    // Cập nhật lại lịch làm việc
                     caHienTai.setTrangThai(1);
                     lichLamViecRepository.save(caHienTai);
-
-                    System.out.println("⚠️ Đã tự động đóng ca cho nhân viên ID: " + cc.getNhanVien().getId());
                 }
             }
         }
