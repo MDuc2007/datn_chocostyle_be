@@ -7,8 +7,10 @@ import org.example.chocostyle_datn.model.Response.GiaoCaResponse;
 import org.example.chocostyle_datn.repository.ChamCongRepository;
 import org.example.chocostyle_datn.repository.LichLamViecRepository;
 import org.example.chocostyle_datn.repository.NhanVienRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,6 +21,8 @@ import java.util.Map;
 
 @Service
 public class ChamCongService {
+    @Autowired
+    private org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     private final ChamCongRepository chamCongRepository;
     private final LichLamViecRepository lichLamViecRepository;
@@ -316,6 +320,40 @@ public class ChamCongService {
                     lichLamViecRepository.save(caHienTai);
                 }
             }
+        }
+    }
+    // ⚡ HÀM CẬP NHẬT DOANH THU REAL-TIME TRONG CA
+    @Transactional
+    public void capNhatDoanhThuCaHienTai(Integer idNv) {
+        ChamCong cc = getChamCongHomNay(idNv);
+
+        // Nếu có ca đang mở (chưa đóng)
+        if (cc != null && cc.getGioCheckOut() == null) {
+            LocalDateTime startDateTime = LocalDateTime.of(cc.getNgay(), cc.getGioCheckIn());
+            LocalDateTime now = LocalDateTime.now();
+
+            // Tính toán lại số liệu ngay thời điểm hiện tại
+            Double dtTienMat = chamCongRepository.calculateDoanhThuTienMat(idNv, startDateTime, now);
+            Double dtChuyenKhoan = chamCongRepository.calculateDoanhThuChuyenKhoan(idNv, startDateTime, now);
+            Integer soHd = chamCongRepository.countHoaDonTrongCa(idNv, startDateTime, now);
+
+            // Cập nhật vào DB
+            cc.setDoanhThuTienMat(dtTienMat);
+            cc.setDoanhThuCk(dtChuyenKhoan);
+            cc.setTongDoanhThu(dtTienMat + dtChuyenKhoan);
+            cc.setSoLuongHoaDon(soHd);
+
+            // Tính chênh lệch tạm thời
+            Double dauCaMat = cc.getTienMatDauCa() != null ? cc.getTienMatDauCa() : 0.0;
+            Double dauCaCk = cc.getTienChuyenKhoanDauCa() != null ? cc.getTienChuyenKhoanDauCa() : 0.0;
+            cc.setChenhLechTienMat(0.0 - (dauCaMat + dtTienMat)); // Tạm thời để 0.0 vì chưa đếm két thực tế
+            cc.setChenhLechCk(0.0 - (dauCaCk + dtChuyenKhoan));
+            cc.setTienChenhLech(cc.getChenhLechTienMat() + cc.getChenhLechCk());
+
+            chamCongRepository.save(cc);
+
+            // 📢 PHÁT SÓNG WEB-SOCKET ĐỂ ADMIN TỰ ĐỘNG CẬP NHẬT MÀN HÌNH
+            messagingTemplate.convertAndSend("/topic/shift-updates", "UPDATED");
         }
     }
 }

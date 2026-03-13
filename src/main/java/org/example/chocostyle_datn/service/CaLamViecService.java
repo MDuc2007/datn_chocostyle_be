@@ -37,16 +37,16 @@ public class CaLamViecService {
         String tenCaClean = req.getTenCa().trim();
         req.setTenCa(tenCaClean);
 
-        // 2. Kiểm tra logic giờ giấc
-        if (req.getGioBatDau().isAfter(req.getGioKetThuc()) || req.getGioBatDau().equals(req.getGioKetThuc())) {
-            throw new RuntimeException("Giờ bắt đầu phải diễn ra trước giờ kết thúc!");
-        }
+//        // 2. Kiểm tra logic giờ giấc
+//        if (req.getGioBatDau().isAfter(req.getGioKetThuc()) || req.getGioBatDau().equals(req.getGioKetThuc())) {
+//            throw new RuntimeException("Giờ bắt đầu phải diễn ra trước giờ kết thúc!");
+//        }
 
-        // 3. Thời gian ca làm việc tối thiểu phải là 30 phút
-        long minutes = java.time.Duration.between(req.getGioBatDau(), req.getGioKetThuc()).toMinutes();
-        if (minutes < 30) {
-            throw new RuntimeException("Tổng thời gian ca làm việc tối thiểu phải là 30 phút!");
-        }
+//        // 3. Thời gian ca làm việc tối thiểu phải là 30 phút
+//        long minutes = java.time.Duration.between(req.getGioBatDau(), req.getGioKetThuc()).toMinutes();
+//        if (minutes < 30) {
+//            throw new RuntimeException("Tổng thời gian ca làm việc tối thiểu phải là 30 phút!");
+//        }
 
         // 4. Kiểm tra trùng lặp Tên Ca
         if (idCa == null) { // Nếu là Thêm mới
