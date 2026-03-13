@@ -74,6 +74,18 @@ public class ChamCong {
     @Column(name = "ten_nguoi_dong_ca")
     private String tenNguoiDongCa;
 
+
+    public Integer getSoLuongHoaDon() {
+        return soLuongHoaDon;
+    }
+
+    public void setSoLuongHoaDon(Integer soLuongHoaDon) {
+        this.soLuongHoaDon = soLuongHoaDon;
+    }
+
+    @Column(name = "so_luong_hoa_don")
+    private Integer soLuongHoaDon;
+
     // ===== Getter & Setter =====
 
     public Integer getId() {

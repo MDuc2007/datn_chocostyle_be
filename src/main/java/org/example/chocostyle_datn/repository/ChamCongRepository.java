@@ -38,6 +38,7 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
             // 👉 THÊM 2 CỘT MỚI VÀO ĐÂY ĐỂ HIỂN THỊ TÊN NGƯỜI MỞ/ĐÓNG CA
             "ISNULL(cc.ten_nguoi_mo_ca, N'Chưa xác định') as tenNguoiMoCa, " +
             "ISNULL(cc.ten_nguoi_dong_ca, N'Chưa đóng') as tenNguoiDongCa " +
+            "ISNULL(cc.so_luong_hoa_don, 0) as soLuongHoaDon " +
             "FROM cham_cong cc " +
             "JOIN nhan_vien nv ON cc.id_nhan_vien = nv.id_nv " +
             "OUTER APPLY ( " +
@@ -102,4 +103,11 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
 
     @Query("SELECT c FROM ChamCong c WHERE c.gioCheckOut IS NULL")
     List<ChamCong> findTatCaCaDangMo();
+
+    // 1. Hàm đếm số hóa đơn
+    @Query(value = "SELECT COUNT(*) FROM hoa_don WHERE id_nhan_vien = :idNv AND ngay_tao >= :start AND ngay_tao <= :end AND trang_thai IN (2, 4)", nativeQuery = true)
+    Integer countHoaDonTrongCa(@Param("idNv") Integer idNv, @Param("start") java.time.LocalDateTime start, @Param("end") java.time.LocalDateTime end);
+
+    // 2. Trong hàm getDanhSachGiaoCa hiện tại, bạn tìm đoạn SELECT và chèn thêm dòng này vào (nhớ có dấu phẩy):
+    // "ISNULL(cc.so_luong_hoa_don, 0) as soLuongHoaDon, " +
 }
