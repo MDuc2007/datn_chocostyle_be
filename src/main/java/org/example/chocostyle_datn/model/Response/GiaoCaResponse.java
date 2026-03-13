@@ -26,4 +26,5 @@ public class GiaoCaResponse {
     private Double doanhThuCk;
     private Double chenhLechTienMat;
     private Double chenhLechCk;
+    private Integer soLuongHoaDon;
 }

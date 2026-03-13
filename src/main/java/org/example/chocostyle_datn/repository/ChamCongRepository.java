@@ -35,7 +35,8 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
             "ISNULL(cc.doanh_thu_tien_mat, 0) as doanhThuTienMat, " +
             "ISNULL(cc.doanh_thu_ck, 0) as doanhThuCk, " +
             "ISNULL(cc.chenh_lech_tien_mat, 0) as chenhLechTienMat, " +
-            "ISNULL(cc.chenh_lech_ck, 0) as chenhLechCk " +
+            "ISNULL(cc.chenh_lech_ck, 0) as chenhLechCk, " +
+            "ISNULL(cc.so_luong_hoa_don, 0) as soLuongHoaDon " +
             "FROM cham_cong cc " +
             "JOIN nhan_vien nv ON cc.id_nhan_vien = nv.id_nv " +
             // 👉 THAY THẾ LEFT JOIN BẰNG OUTER APPLY ĐỂ LỌC ĐÚNG 1 CA CHUẨN XÁC
@@ -99,4 +100,11 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
 
     @Query("SELECT c FROM ChamCong c WHERE c.gioCheckOut IS NULL")
     List<ChamCong> findTatCaCaDangMo();
+
+    // 1. Hàm đếm số hóa đơn
+    @Query(value = "SELECT COUNT(*) FROM hoa_don WHERE id_nhan_vien = :idNv AND ngay_tao >= :start AND ngay_tao <= :end AND trang_thai IN (2, 4)", nativeQuery = true)
+    Integer countHoaDonTrongCa(@Param("idNv") Integer idNv, @Param("start") java.time.LocalDateTime start, @Param("end") java.time.LocalDateTime end);
+
+    // 2. Trong hàm getDanhSachGiaoCa hiện tại, bạn tìm đoạn SELECT và chèn thêm dòng này vào (nhớ có dấu phẩy):
+    // "ISNULL(cc.so_luong_hoa_don, 0) as soLuongHoaDon, " +
 }
