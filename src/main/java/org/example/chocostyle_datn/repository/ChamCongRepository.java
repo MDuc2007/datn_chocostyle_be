@@ -18,7 +18,7 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
 
     @Query(value = "SELECT " +
             "cc.id as id, " +
-            "nv.ho_ten as nhanVien, " +
+            "'[' + nv.ma_nv + '] ' + nv.ho_ten as nhanVien," +
             "ISNULL(clv.ten_ca, N'Không xác định') as ca, " +
             "CONVERT(varchar, cc.ngay, 103) as ngayStr, " +
             "CONVERT(varchar, cc.gio_check_in, 8) as gioCheckInStr, " +
