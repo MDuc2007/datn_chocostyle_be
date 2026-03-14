@@ -38,7 +38,6 @@ public class LichLamViecService {
 
     // 2. CREATE
     public LichLamViec createSchedule(LichLamViecRequest req) {
-        // Validate và lấy Entity ra luôn để khỏi query DB 2 lần
         Object[] entities = validateCommon(null, req);
         NhanVien nv = (NhanVien) entities[0];
         CaLamViec ca = (CaLamViec) entities[1];
@@ -57,12 +56,10 @@ public class LichLamViecService {
     public LichLamViec updateSchedule(Integer id, LichLamViecRequest req) {
         LichLamViec lich = lichRepo.findById(id).orElseThrow(() -> new RuntimeException("Lịch không tồn tại"));
 
-        // Check khóa lịch quá khứ của cái lịch CŨ trước khi sửa
         if (lich.getNgayLamViec().isBefore(LocalDate.now())) {
             throw new RuntimeException("Lịch làm việc trong quá khứ không thể sửa đổi!");
         }
 
-        // Validate cái req MỚI truyền vào
         Object[] entities = validateCommon(id, req);
         NhanVien nv = (NhanVien) entities[0];
         CaLamViec ca = (CaLamViec) entities[1];
@@ -85,7 +82,7 @@ public class LichLamViecService {
         lichRepo.delete(lich);
     }
 
-    // 5. BATCH CREATE (Sắp xếp nhiều lịch/chuỗi lịch)
+    // 5. BATCH CREATE
     @Transactional(rollbackFor = Exception.class)
     public List<LichLamViec> createBatchSchedule(List<LichLamViecRequest> requests) {
         List<LichLamViec> result = new ArrayList<>();
@@ -104,12 +101,8 @@ public class LichLamViecService {
                 lich.setGhiChu(req.getGhiChu());
                 lich.setTrangThai(req.getTrangThai() != null ? req.getTrangThai() : 1);
 
-                // Cần đảm bảo Entity LichLamViec của bạn đã có trường maLapLai
-                // lich.setMaLapLai(batchId);
-
                 result.add(lichRepo.save(lich));
             } catch (RuntimeException e) {
-                // Sẽ ném ra lỗi để rollback toàn bộ nếu 1 ngày bị lỗi trùng ca
                 throw new RuntimeException("Lỗi xếp lịch ngày " + req.getNgayLamViec() + ": " + e.getMessage());
             }
         }
@@ -119,7 +112,6 @@ public class LichLamViecService {
     // 6. DELETE SERIES
     @Transactional
     public void deleteScheduleSeries(String maLapLai) {
-        // Chỉ lấy các lịch từ hôm nay trở đi để xóa, bảo toàn lịch sử
         List<LichLamViec> list = lichRepo.findByMaLapLaiAndNgayLamViecGreaterThanEqual(maLapLai, LocalDate.now());
         if (list.isEmpty()) throw new RuntimeException("Không có chuỗi lịch hợp lệ hoặc các lịch đã diễn ra trong quá khứ!");
         lichRepo.deleteAll(list);
@@ -132,11 +124,10 @@ public class LichLamViecService {
         if (list.isEmpty()) throw new RuntimeException("Không có chuỗi lịch hợp lệ để cập nhật!");
 
         for (LichLamViec lich : list) {
-            // Validate từng lịch con (Giữ nguyên ngày cũ của nó, chỉ đổi người/ca)
             LichLamViecRequest tempReq = new LichLamViecRequest();
             tempReq.setIdNhanVien(req.getIdNhanVien());
             tempReq.setIdCa(req.getIdCa());
-            tempReq.setNgayLamViec(lich.getNgayLamViec()); // Giữ nguyên ngày của phần tử đó
+            tempReq.setNgayLamViec(lich.getNgayLamViec());
 
             Object[] entities = validateCommon(lich.getId(), tempReq);
             NhanVien nv = (NhanVien) entities[0];
@@ -151,22 +142,17 @@ public class LichLamViecService {
     }
 
 
-    // ================= VALIDATION LOGIC GỘP =================
-
-    // Trả về Object[] chứa NhanVien và CaLamViec để tiết kiệm số lần Query DB
+    // ================= VALIDATION LOGIC =================
     private Object[] validateCommon(Integer currentId, LichLamViecRequest req) {
-        // 1. Kiểm tra ngày quá khứ
         if (req.getNgayLamViec().isBefore(LocalDate.now())) {
             throw new RuntimeException("Không thể xếp lịch hoặc thao tác với ngày trong quá khứ!");
         }
 
-        // 2. Fetch Data (Chỉ fetch 1 lần)
         NhanVien nv = nvRepo.findById(req.getIdNhanVien())
                 .orElseThrow(() -> new RuntimeException("Nhân viên không tồn tại!"));
         CaLamViec caMoi = caRepo.findById(req.getIdCa())
                 .orElseThrow(() -> new RuntimeException("Ca làm việc không tồn tại!"));
 
-        // 3. Kiểm tra trạng thái làm việc (Đã lấy từ validateLogic cũ đưa vào đây)
         if (nv.getTrangThai() == null || nv.getTrangThai() == 0) {
             throw new RuntimeException("Không thể xếp lịch cho nhân viên đã nghỉ việc hoặc tài khoản bị khóa!");
         }
@@ -174,26 +160,23 @@ public class LichLamViecService {
             throw new RuntimeException("Ca làm việc này hiện đang tạm ngưng hoạt động!");
         }
 
-        // 4. Check: 1 Nhân viên không làm 2 ca trùng giờ
+        // Check: 1 Nhân viên không làm 2 ca trùng giờ
         validateEmployeeConflict(currentId, nv.getId(), caMoi, req.getNgayLamViec());
 
-        // 5. Check: 1 Ca chỉ có 1 nhân viên
-        validateShiftOccupancy(currentId, caMoi.getIdCa(), req.getNgayLamViec());
+        // 👉 ĐÃ TẮT CHECK NÀY: Giờ đây 1 ca có thể có nhiều nhân viên cùng làm
+        // validateShiftOccupancy(currentId, caMoi.getIdCa(), req.getNgayLamViec());
 
-        // Trả về entities để Controller dùng luôn
         return new Object[]{nv, caMoi};
     }
 
-    // Validate 1: Nhân viên trùng giờ (Truyền thẳng đối tượng CaMoi vào để khỏi tốn DB Query)
     private void validateEmployeeConflict(Integer currentId, Integer idNv, CaLamViec caMoi, LocalDate ngay) {
-        List<LichLamViec> existing = lichRepo.findByNhanVienAndNgay(idNv, ngay); // Đảm bảo hàm này có trong Repo
+        List<LichLamViec> existing = lichRepo.findByNhanVienAndNgay(idNv, ngay);
 
         for (LichLamViec old : existing) {
             if (currentId != null && old.getId().equals(currentId)) continue;
-            if (old.getTrangThai() == 0) continue; // Bỏ qua lịch đã hủy
+            if (old.getTrangThai() == 0) continue;
 
             CaLamViec caCu = old.getCaLamViec();
-            // Logic Overlap chuẩn: Bắt đầu mới < Kết thúc cũ AND Kết thúc mới > Bắt đầu cũ
             boolean isOverlap = caMoi.getGioBatDau().isBefore(caCu.getGioKetThuc())
                     && caMoi.getGioKetThuc().isAfter(caCu.getGioBatDau());
 
@@ -204,13 +187,13 @@ public class LichLamViecService {
         }
     }
 
-    // Validate 2: Ca đã có người làm
+    // Hàm này giữ lại nhưng không gọi đến nữa (để dành nếu sau này muốn bật lại tính năng)
     private void validateShiftOccupancy(Integer currentId, Integer idCa, LocalDate ngay) {
-        List<LichLamViec> occupiedList = lichRepo.findByCaAndNgay(idCa, ngay); // Đảm bảo hàm này có trong Repo
+        List<LichLamViec> occupiedList = lichRepo.findByCaAndNgay(idCa, ngay);
 
         for (LichLamViec item : occupiedList) {
             if (currentId != null && item.getId().equals(currentId)) continue;
-            if (item.getTrangThai() == 0) continue; // Lịch hủy coi như trống
+            if (item.getTrangThai() == 0) continue;
 
             throw new RuntimeException("Ca làm việc này đã có nhân viên ("
                     + item.getNhanVien().getHoTen() + ") đăng ký trong ngày " + ngay + ".");
@@ -218,7 +201,6 @@ public class LichLamViecService {
     }
 
     // ================= CHỨC NĂNG TÌM KIẾM =================
-
     public Page<LichLamViec> searchLichLamViec(String keyword, LocalDate fromDate, LocalDate toDate, Integer trangThai, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "ngayLamViec"));
         LocalDate start = (fromDate != null) ? fromDate : LocalDate.of(2000, 1, 1);
