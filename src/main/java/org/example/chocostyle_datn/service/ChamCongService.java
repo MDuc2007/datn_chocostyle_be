@@ -114,7 +114,7 @@ public class ChamCongService {
         chamCong.setTrangThai(3);
         chamCong.setTienMatDauCa(tienMatDauCa);
         chamCong.setTienChuyenKhoanDauCa(tienCkDauCa);
-        chamCong.setTenNguoiMoCa(nv.getHoTen());
+        chamCong.setTenNguoiMoCa("[" + nv.getMaNv() + "] " + nv.getHoTen());
 
         ChamCong savedChamCong = chamCongRepository.save(chamCong);
 
@@ -147,7 +147,7 @@ public class ChamCongService {
         chamCong.setTienMatCuoiCa(tienMat);
         chamCong.setTienChuyenKhoanCuoiCa(tienChuyenKhoan);
         chamCong.setGhiChu(ghiChu);
-        chamCong.setTenNguoiDongCa(nvDongCa.getHoTen()); // Lưu người chốt ca
+        chamCong.setTenNguoiDongCa("[" + nvDongCa.getMaNv() + "] " + nvDongCa.getHoTen());
 
         // 3️⃣ TÍNH DOANH THU CHUNG CỦA TOÀN BỘ NHÂN VIÊN TRONG CA
         java.time.LocalDateTime startDateTime = java.time.LocalDateTime.of(chamCong.getNgay(), chamCong.getGioCheckIn());
