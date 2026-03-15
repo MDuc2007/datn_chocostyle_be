@@ -173,8 +173,13 @@ public class LichLamViecService {
         List<LichLamViec> existing = lichRepo.findByNhanVienAndNgay(idNv, ngay);
 
         for (LichLamViec old : existing) {
+            // Bỏ qua nếu đang sửa chính lịch đó
             if (currentId != null && old.getId().equals(currentId)) continue;
-            if (old.getTrangThai() == 0) continue;
+
+            // 👉 ĐÃ SỬA: Bỏ qua ca Đã hủy (0) VÀ ca Đã đóng/Kết thúc (1)
+            if (old.getTrangThai() != null && (old.getTrangThai() == 0 || old.getTrangThai() == 1)) {
+                continue;
+            }
 
             CaLamViec caCu = old.getCaLamViec();
             boolean isOverlap = caMoi.getGioBatDau().isBefore(caCu.getGioKetThuc())

@@ -37,22 +37,31 @@ public class ChamCongService {
     }
 
     // 🔎 Hàm Lấy ca thông minh (Đã nâng cấp: Dùng chung két tiền)
+    // 🔎 Hàm Lấy ca thông minh (Đã nâng cấp: Dùng chung két tiền + Hỗ trợ nhiều ca 1 ngày)
     public ChamCong getChamCongHomNay(Integer idNv) {
         LocalDate today = LocalDate.now();
 
         // 1. KIỂM TRA TOÀN BỘ CỬA HÀNG ĐÃ CÓ AI MỞ CA CHƯA?
         List<ChamCong> caDangMoList = chamCongRepository.findCaDangMoCuaCuaHang(today);
         if (!caDangMoList.isEmpty()) {
-            // 👉 NẾU CÓ NGƯỜI MỞ RỒI (Vd NV 1 mở) -> TRẢ VỀ LUÔN PHIẾU ĐÓ CHO NV 2
-            // Để Frontend của NV 2 thấy là đã mở ca và ẩn form nhập tiền đi
             return caDangMoList.get(0);
         }
 
         // 2. NẾU CHƯA AI MỞ CA: Kiểm tra xem NV này có được phân ca hôm nay không?
         List<LichLamViec> lichs = lichLamViecRepository.checkCaHomNay(idNv, today);
         if (!lichs.isEmpty()) {
-            LichLamViec caHienTai = lichs.get(0);
-            // 👉 Nếu lịch đang ở trạng thái 2 (Chờ làm) -> Bật form nhập tiền mở ca
+            LichLamViec caHienTai = null;
+            // 👉 LỌC CA THÔNG MINH: Ưu tiên tìm ca Đang làm (3) hoặc Chờ làm (2)
+            for (LichLamViec l : lichs) {
+                if (l.getTrangThai() == 3 || l.getTrangThai() == 2) {
+                    caHienTai = l;
+                    break;
+                }
+            }
+            // Nếu không tìm thấy, lấy ca cuối cùng trong ngày
+            if (caHienTai == null) caHienTai = lichs.get(lichs.size() - 1);
+
+            // Nếu lịch đang ở trạng thái 2 (Chờ làm) -> Bật form nhập tiền mở ca
             if (caHienTai.getTrangThai() == 2) {
                 return null;
             }
@@ -66,7 +75,7 @@ public class ChamCongService {
 
         return null;
     }
-
+    // 🚀 CHECK-IN (MỞ CA)
     // 🚀 CHECK-IN (MỞ CA)
     public ChamCong checkIn(Integer idNv, Double tienMatDauCa, Double tienCkDauCa) {
 
@@ -80,10 +89,21 @@ public class ChamCongService {
             throw new RuntimeException("Hôm nay bạn không có ca làm!");
         }
 
-        LichLamViec ca = lich.get(0);
+        // 👉 LỌC CA THÔNG MINH: Tìm đúng ca đang ở trạng thái "Chờ làm" (2) để check-in
+        LichLamViec caHienTai = null;
+        for (LichLamViec l : lich) {
+            if (l.getTrangThai() == 2) {
+                caHienTai = l;
+                break;
+            }
+        }
 
-        LocalTime gioBatDau = ca.getCaLamViec().getGioBatDau();
-        LocalTime gioKetThuc = ca.getCaLamViec().getGioKetThuc();
+        if (caHienTai == null) {
+            throw new RuntimeException("Bạn không có ca nào đang chờ mở lúc này!");
+        }
+
+        LocalTime gioBatDau = caHienTai.getCaLamViec().getGioBatDau();
+        LocalTime gioKetThuc = caHienTai.getCaLamViec().getGioKetThuc();
         LocalTime gioMoCaSom = gioBatDau.minusMinutes(30); // Cho phép check-in sớm 30p
 
         // 2️⃣ Kiểm tra giờ
@@ -119,7 +139,6 @@ public class ChamCongService {
         ChamCong savedChamCong = chamCongRepository.save(chamCong);
 
         // Đổi trạng thái lịch thành Đang làm = 3
-        LichLamViec caHienTai = lich.get(0);
         caHienTai.setTrangThai(3);
         lichLamViecRepository.save(caHienTai);
 
@@ -263,7 +282,7 @@ public class ChamCongService {
     }
 
     // 🤖 HÀM CHẠY NGẦM: TỰ ĐỘNG ĐÓNG CA QUÁ HẠN
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRate = 10000)
     public void tuDongDongCaQuaHan() {
         List<ChamCong> cacCaDangMo = chamCongRepository.findTatCaCaDangMo();
         LocalDateTime now = LocalDateTime.now();
@@ -323,37 +342,51 @@ public class ChamCongService {
         }
     }
     // ⚡ HÀM CẬP NHẬT DOANH THU REAL-TIME TRONG CA
+    // 🚀 HÀM CẬP NHẬT DOANH THU REAL-TIME (DÙNG CHUNG CHO TOÀN CỬA HÀNG)
     @Transactional
     public void capNhatDoanhThuCaHienTai(Integer idNv) {
-        ChamCong cc = getChamCongHomNay(idNv);
+        LocalDate today = LocalDate.now();
 
-        // Nếu có ca đang mở (chưa đóng)
-        if (cc != null && cc.getGioCheckOut() == null) {
+        // 1. Lấy ra Ca đang mở của TẤT CẢ mọi người (Vì cửa hàng dùng chung 1 ca)
+        List<ChamCong> caDangMoList = chamCongRepository.findCaDangMoCuaCuaHang(today);
+        if (caDangMoList.isEmpty()) {
+            return; // Nếu không có ca nào đang mở thì không tính toán gì cả
+        }
+
+        ChamCong cc = caDangMoList.get(0); // Lấy ca đang mở ra
+
+        if (cc.getGioCheckIn() != null && cc.getGioCheckOut() == null) {
             LocalDateTime startDateTime = LocalDateTime.of(cc.getNgay(), cc.getGioCheckIn());
             LocalDateTime now = LocalDateTime.now();
 
-            // Tính toán lại số liệu ngay thời điểm hiện tại
-            Double dtTienMat = chamCongRepository.calculateDoanhThuTienMat(idNv, startDateTime, now);
-            Double dtChuyenKhoan = chamCongRepository.calculateDoanhThuChuyenKhoan(idNv, startDateTime, now);
-            Integer soHd = chamCongRepository.countHoaDonTrongCa(idNv, startDateTime, now);
+            // 👉 2. SỬA QUAN TRỌNG: Gọi hàm TÍNH CHUNG (Chung chữ "Chung" ở cuối hàm, KHÔNG truyền idNv vào)
+            Double dtTienMat = chamCongRepository.calculateDoanhThuTienMatChung(startDateTime, now);
+            Double dtChuyenKhoan = chamCongRepository.calculateDoanhThuChuyenKhoanChung(startDateTime, now);
+            Integer soHd = chamCongRepository.countHoaDonTrongCaChung(startDateTime, now);
 
-            // Cập nhật vào DB
+            // Cập nhật doanh thu tổng vào DB
             cc.setDoanhThuTienMat(dtTienMat);
             cc.setDoanhThuCk(dtChuyenKhoan);
             cc.setTongDoanhThu(dtTienMat + dtChuyenKhoan);
             cc.setSoLuongHoaDon(soHd);
 
-            // Tính chênh lệch tạm thời
+            // Tính chênh lệch tạm thời (Đầu ca + Bán được - Thực tế)
+            // Lúc này chưa đóng ca (thực tế = 0) nên nó sẽ tạm âm
             Double dauCaMat = cc.getTienMatDauCa() != null ? cc.getTienMatDauCa() : 0.0;
             Double dauCaCk = cc.getTienChuyenKhoanDauCa() != null ? cc.getTienChuyenKhoanDauCa() : 0.0;
-            cc.setChenhLechTienMat(0.0 - (dauCaMat + dtTienMat)); // Tạm thời để 0.0 vì chưa đếm két thực tế
+
+            cc.setChenhLechTienMat(0.0 - (dauCaMat + dtTienMat));
             cc.setChenhLechCk(0.0 - (dauCaCk + dtChuyenKhoan));
             cc.setTienChenhLech(cc.getChenhLechTienMat() + cc.getChenhLechCk());
 
             chamCongRepository.save(cc);
 
-            // 📢 PHÁT SÓNG WEB-SOCKET ĐỂ ADMIN TỰ ĐỘNG CẬP NHẬT MÀN HÌNH
-            messagingTemplate.convertAndSend("/topic/shift-updates", "UPDATED");
+            // Phát sóng Websocket để cập nhật màn hình giao ca
+            try {
+                messagingTemplate.convertAndSend("/topic/shift-updates", "UPDATED");
+            } catch (Exception e) {
+                System.out.println("Lỗi Websocket Giao ca: " + e.getMessage());
+            }
         }
     }
 }
