@@ -168,35 +168,61 @@ public class LichLamViecController {
         LocalTime now = LocalTime.now();
 
         // Lấy TẤT CẢ các lịch của nhân viên trong ngày hôm nay
-        // (Sử dụng hàm findByNhanVien_IdAndNgayLamViec mà chúng ta đã thêm ở bước trước)
         List<LichLamViec> lichs = lichLamViecRepository.findByNhanVien_IdAndNgayLamViec(idNv, today);
 
-        // Lặp qua các lịch hôm nay để tìm ca có khoảng thời gian hợp lệ
+        if (lichs == null || lichs.isEmpty()) {
+            return ResponseEntity.ok().body("");
+        }
+
+        // ========================================================
+        // THUẬT TOÁN TÌM CA THÔNG MINH DÀNH CHO NGƯỜI LÀM NHIỀU CA
+        // ========================================================
+
+        // 👉 ƯU TIÊN 1: Tìm ca ĐANG LÀM (Trạng thái = 3)
         for (LichLamViec l : lichs) {
-            LocalTime start = l.getCaLamViec().getGioBatDau();
-            LocalTime end = l.getCaLamViec().getGioKetThuc();
-            LocalTime earliestStart = start.minusMinutes(30); // Mở ca sớm 30 phút
-
-            boolean isHopLe = false;
-
-            // KIỂM TRA PHÂN BIỆT CA NGÀY VÀ CA ĐÊM
-            if (start.isBefore(end)) {
-                // 1. CA BAN NGÀY (VD: 08:00 - 17:00)
-                // Hợp lệ nếu: Hiện tại > 07:30 VÀ Hiện tại < 17:00
-                isHopLe = now.isAfter(earliestStart) && now.isBefore(end);
-            } else {
-                // 2. CA QUA ĐÊM (VD: 22:00 - 06:00 hôm sau)
-                // Hợp lệ nếu: (Hiện tại > 21:30 đến nửa đêm) HOẶC (Hiện tại < 06:00 sáng)
-                isHopLe = now.isAfter(earliestStart) || now.isBefore(end);
-            }
-
-            if (isHopLe) {
-                return ResponseEntity.ok(l); // Trả về ca hợp lệ
+            if (l.getTrangThai() != null && l.getTrangThai() == 3) {
+                return ResponseEntity.ok(l);
             }
         }
 
-        // Nếu không có lịch nào khớp (hoặc đã đóng ca xong hết rồi)
-        return ResponseEntity.ok().body("");
+        // 👉 ƯU TIÊN 2: Tìm ca CHỜ LÀM (Trạng thái = 2) VÀ đang nằm trong múi giờ hợp lệ
+        for (LichLamViec l : lichs) {
+            if (l.getTrangThai() != null && l.getTrangThai() == 2) {
+                LocalTime start = l.getCaLamViec().getGioBatDau();
+                LocalTime end = l.getCaLamViec().getGioKetThuc();
+                LocalTime earliestStart = start.minusMinutes(30); // Cho phép mở ca sớm 30 phút
+
+                boolean isHopLe = false;
+
+                // Xử lý ca ngày và ca qua đêm
+                if (start.isBefore(end)) {
+                    isHopLe = now.isAfter(earliestStart) && now.isBefore(end);
+                } else {
+                    isHopLe = now.isAfter(earliestStart) || now.isBefore(end);
+                }
+
+                if (isHopLe) {
+                    return ResponseEntity.ok(l); // Trả về đúng ca 2 đang chờ để nhân viên Check-in
+                }
+            }
+        }
+
+        // 👉 TRƯỜNG HỢP 3: Nếu tất cả các ca đều ĐÃ ĐÓNG (Trạng thái = 1)
+        // Trả về ca cuối cùng/mới nhất để Frontend hiển thị bảng Sao kê "Ca làm việc đã kết thúc"
+        LichLamViec caDaDong = null;
+        for (int i = lichs.size() - 1; i >= 0; i--) {
+            if (lichs.get(i).getTrangThai() != null && lichs.get(i).getTrangThai() == 1) {
+                caDaDong = lichs.get(i);
+                break;
+            }
+        }
+
+        if (caDaDong != null) {
+            return ResponseEntity.ok(caDaDong);
+        }
+
+        // Nếu không thỏa mãn gì cả, cứ trả về phần tử đầu tiên (hoặc body rỗng)
+        return ResponseEntity.ok(lichs.get(0));
     }
 
 }

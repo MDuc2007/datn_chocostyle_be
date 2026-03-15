@@ -74,12 +74,12 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
             "AND hd.ngay_tao <= :endDateTime " +
             "AND hd.trang_thai IN (2, 4) " +
             "AND tt.trang_thai = 1 " +
-            "AND pt.ma_pttt = 'TIENMAT'", nativeQuery = true)
+            "AND pt.ma_pttt = 'PT001'", nativeQuery = true)
     Double calculateDoanhThuTienMat(@Param("idNv") Integer idNv,
                                     @Param("startDateTime") java.time.LocalDateTime startDateTime,
                                     @Param("endDateTime") java.time.LocalDateTime endDateTime);
 
-    // 2. TÍNH DOANH THU CHUYỂN KHOẢN CỦA 1 NHÂN VIÊN
+    // 2. TÍNH DOANH THU CHUYỂN KHOẢN CỦA 1 NHÂN VIÊN (CHỈ CÒN PT002)
     @Query(value = "SELECT ISNULL(SUM(tt.so_tien), 0) " +
             "FROM hoa_don hd " +
             "JOIN thanh_toan tt ON hd.id_hoa_don = tt.id_hoa_don " +
@@ -89,7 +89,7 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
             "AND hd.ngay_tao <= :endDateTime " +
             "AND hd.trang_thai IN (2, 4) " +
             "AND tt.trang_thai = 1 " +
-            "AND pt.ma_pttt != 'TIENMAT'", nativeQuery = true)
+            "AND pt.ma_pttt = 'PT002'", nativeQuery = true)
     Double calculateDoanhThuChuyenKhoan(@Param("idNv") Integer idNv,
                                         @Param("startDateTime") java.time.LocalDateTime startDateTime,
                                         @Param("endDateTime") java.time.LocalDateTime endDateTime);
@@ -110,11 +110,9 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
     // CÁC HÀM MỚI PHỤC VỤ TÍNH NĂNG "DÙNG CHUNG KÉT TIỀN TOÀN CỬA HÀNG"
     // =========================================================================
 
-    // Kiểm tra xem toàn bộ cửa hàng có ai đang mở ca không?
     @Query("SELECT c FROM ChamCong c WHERE c.ngay = :ngay AND c.trangThai = 3 ORDER BY c.id DESC")
     List<ChamCong> findCaDangMoCuaCuaHang(@Param("ngay") LocalDate ngay);
 
-    // Tính TỔNG doanh thu tiền mặt của TẤT CẢ nhân viên trong ca
     @Query(value = "SELECT ISNULL(SUM(tt.so_tien), 0) " +
             "FROM hoa_don hd " +
             "JOIN thanh_toan tt ON hd.id_hoa_don = tt.id_hoa_don " +
@@ -123,11 +121,11 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
             "AND hd.ngay_tao <= :endDateTime " +
             "AND hd.trang_thai IN (2, 4) " +
             "AND tt.trang_thai = 1 " +
-            "AND pt.ma_pttt = 'TIENMAT'", nativeQuery = true)
+            "AND pt.ma_pttt = 'PT001'", nativeQuery = true)
     Double calculateDoanhThuTienMatChung(@Param("startDateTime") java.time.LocalDateTime startDateTime,
                                          @Param("endDateTime") java.time.LocalDateTime endDateTime);
 
-    // Tính TỔNG doanh thu chuyển khoản của TẤT CẢ nhân viên trong ca
+    // Tính doanh thu CHUYỂN KHOẢN CHUNG (CHỈ CÒN PT002)
     @Query(value = "SELECT ISNULL(SUM(tt.so_tien), 0) " +
             "FROM hoa_don hd " +
             "JOIN thanh_toan tt ON hd.id_hoa_don = tt.id_hoa_don " +
@@ -136,11 +134,10 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
             "AND hd.ngay_tao <= :endDateTime " +
             "AND hd.trang_thai IN (2, 4) " +
             "AND tt.trang_thai = 1 " +
-            "AND pt.ma_pttt != 'TIENMAT'", nativeQuery = true)
+            "AND pt.ma_pttt = 'PT002'", nativeQuery = true)
     Double calculateDoanhThuChuyenKhoanChung(@Param("startDateTime") java.time.LocalDateTime startDateTime,
                                              @Param("endDateTime") java.time.LocalDateTime endDateTime);
 
-    // Đếm TỔNG số hóa đơn của TẤT CẢ nhân viên
     @Query(value = "SELECT COUNT(*) FROM hoa_don WHERE ngay_tao >= :start AND ngay_tao <= :end AND trang_thai IN (2, 4)", nativeQuery = true)
     Integer countHoaDonTrongCaChung(@Param("start") java.time.LocalDateTime start, @Param("end") java.time.LocalDateTime end);
 }
