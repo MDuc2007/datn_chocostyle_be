@@ -46,7 +46,6 @@ public class GeminiService {
 
         for (int i = 0; i < apiKeys.size(); i++) {
 
-
             String key = apiKeys.get(currentIndex);
 
 
@@ -106,14 +105,18 @@ public class GeminiService {
         } else if (isProductQuestion) {
 
 
-            Map<String, String> attr = parseAttributes(tinNhanKhach);
-
+            Map<String,String> attr = parseAttributes(tinNhanKhach);
 
             log.info("AI ATTR = {}", attr);
 
-
-            duLieuSanPham = aiQueryService.searchSanPhamAI(attr.get("mauSac"), attr.get("size"), attr.get("chatLieu"), attr.get("loaiAo"), priceRange != null ? priceRange[0] : null, priceRange != null ? priceRange[1] : null);
-
+            duLieuSanPham = aiQueryService.searchSanPhamAI(
+                    attr.get("mauSac"),
+                    attr.get("size"),
+                    attr.get("chatLieu"),
+                    attr.get("loaiAo"),
+                    priceRange != null ? priceRange[0] : null,
+                    priceRange != null ? priceRange[1] : null
+            );
 
             // fallback nếu không tìm thấy
             if (duLieuSanPham == null || duLieuSanPham.isBlank()) {
@@ -123,39 +126,38 @@ public class GeminiService {
 
 
         String prompt = """
-                ### DỮ LIỆU SẢN PHẨM TỪ DATABASE
-                %s
-                
-                ### KHUYẾN MÃI
-                %s
-                
-                ### VOUCHER CHUNG
-                %s
-                
-                ### VOUCHER CỦA KHÁCH HÀNG
-                %s
-                
-                ### CÂU HỎI KHÁCH
-                %s
-                
-                ### YÊU CẦU
-                - Chỉ được trả lời dựa trên dữ liệu ở trên.
-                - Nếu có sản phẩm hãy ghi:
-                  Tên sản phẩm
-                  Giá
-                  Link sản phẩm
-                - Không được tự tạo sản phẩm mới.
-                - Nếu không có sản phẩm phù hợp hãy nói:
-                  "Shop hiện chưa có sản phẩm phù hợp".
-                
-                
-                ### GỢI Ý CÂU HỎI
-                - Shop có những sản phẩm gì?
-                - Áo khoác size L
-                - Áo khoác dưới 500k
-                - Áo khoác đang giảm giá
-                - Shop có voucher không
-                """.formatted(duLieuSanPham, duLieuDotGiamGia, duLieuVoucher, duLieuVoucherCaNhan, tinNhanKhach);
+       ### DỮ LIỆU SẢN PHẨM TỪ DATABASE
+       %s
+      
+       ### KHUYẾN MÃI
+       %s
+      
+       ### VOUCHER CHUNG
+       %s
+      
+       ### VOUCHER CỦA KHÁCH HÀNG
+       %s
+      
+       ### CÂU HỎI KHÁCH
+       %s
+      
+       ### YÊU CẦU
+       - Chỉ được trả lời dựa trên dữ liệu ở trên.
+       - Nếu có sản phẩm hãy ghi:
+         Tên sản phẩm
+         Giá
+         Link sản phẩm
+       - Không được tự tạo sản phẩm mới.
+       - Nếu không có sản phẩm phù hợp hãy nói:
+         "Shop hiện chưa có sản phẩm phù hợp".
+
+       ### GỢI Ý CÂU HỎI
+       - Shop có những sản phẩm gì?
+       - Áo khoác size L
+       - Áo khoác dưới 500k
+       - Áo khoác đang giảm giá
+       - Shop có voucher không
+       """.formatted(duLieuSanPham, duLieuDotGiamGia, duLieuVoucher, duLieuVoucherCaNhan, tinNhanKhach);
 
 
         return goiGemini(SYSTEM_PROMPT, prompt, "Xin lỗi, hiện tại shop đang bận, bạn vui lòng đợi nhân viên hỗ trợ nhé.");
@@ -356,40 +358,29 @@ public class GeminiService {
         return null;
     }
 
-
-    private Map<String, String> parseAttributes(String message) {
-
+    private Map<String,String> parseAttributes(String message){
 
         message = message.toLowerCase();
 
+        Map<String,String> map = new HashMap<>();
 
-        Map<String, String> map = new HashMap<>();
+        if(message.contains("đen")) map.put("mauSac","đen");
+        if(message.contains("trắng")) map.put("mauSac","trắng");
+        if(message.contains("xám")) map.put("mauSac","xám");
+        if(message.contains("xanh")) map.put("mauSac","xanh");
+        if(message.contains("be")) map.put("mauSac","be");
 
+        if(message.contains("size s")) map.put("size","S");
+        if(message.contains("size m")) map.put("size","M");
+        if(message.contains("size l")) map.put("size","L");
+        if(message.contains("size xl")) map.put("size","XL");
 
-        if (message.contains("đen")) map.put("mauSac", "đen");
-        if (message.contains("trắng")) map.put("mauSac", "trắng");
-        if (message.contains("xám")) map.put("mauSac", "xám");
-        if (message.contains("xanh")) map.put("mauSac", "xanh");
-        if (message.contains("be")) map.put("mauSac", "be");
-
-
-        if (message.contains("size s")) map.put("size", "S");
-        if (message.contains("size m")) map.put("size", "M");
-        if (message.contains("size l")) map.put("size", "L");
-        if (message.contains("size xl")) map.put("size", "XL");
-
-
-        if (message.contains("bomber")) map.put("loaiAo", "bomber");
-        if (message.contains("kaki")) map.put("chatLieu", "kaki");
-        if (message.contains("nỉ")) map.put("chatLieu", "nỉ");
-        if (message.contains("dù")) map.put("chatLieu", "dù");
-
+        if(message.contains("bomber")) map.put("loaiAo","bomber");
+        if(message.contains("kaki")) map.put("chatLieu","kaki");
+        if(message.contains("nỉ")) map.put("chatLieu","nỉ");
+        if(message.contains("dù")) map.put("chatLieu","dù");
 
         return map;
     }
 }
-
-
-
-
 

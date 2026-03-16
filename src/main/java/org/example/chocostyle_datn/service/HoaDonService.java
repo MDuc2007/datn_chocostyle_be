@@ -58,6 +58,8 @@ public class HoaDonService {
     @Autowired
     @org.springframework.context.annotation.Lazy
     private ChamCongService chamCongService;
+    @Autowired
+    private ThongBaoService thongBaoService;
 
     // =================================================================
     // 1. LẤY CHI TIẾT (GET DETAIL)
@@ -209,6 +211,10 @@ public class HoaDonService {
         }
 
         ghiLichSu(hd, req.getTrangThaiMoi(), actionName, req.getGhiChu());
+
+        if(req.getTrangThaiMoi() == 5){
+            thongBaoService.thongBaoHuyDon(hd.getId());
+        }
     }
 
     // =================================================================
@@ -497,6 +503,8 @@ public class HoaDonService {
 
         HoaDon savedHd = hoaDonRepo.save(hd);
 
+        thongBaoService.thongBaoDonHangMoi(savedHd.getId());
+
         // Lưu sản phẩm chi tiết
         if (req.getSanPhamChiTiet() != null) {
             for (org.example.chocostyle_datn.model.Request.CartItemRequest item : req.getSanPhamChiTiet()) {
@@ -546,6 +554,7 @@ public class HoaDonService {
 
             ghiLichSu(hd, 1, "Thanh toán Online", "VNPAY Success: " + maGiaoDichVnp);
             hoaDonRepo.save(hd);
+            thongBaoService.thongBaoThanhToan(hd.getId());
 
             // 👉 Cập nhật doanh thu Real-time
             chamCongService.capNhatDoanhThuCaHienTai(hd.getIdNhanVien().getId());
