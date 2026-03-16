@@ -222,4 +222,25 @@ public class ChatWsController {
         NhanVien nv = nhanVienRepository.findById(staffId).orElseThrow();
         return conversationRepository.findByNhanVien(nv);
     }
+
+    @PutMapping("/{id}/cancel-request")
+    public ResponseEntity<?> cancelRequest(@PathVariable Integer id) {
+
+        Conversation conv = conversationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Hội thoại không tồn tại"));
+
+        // chỉ cho hủy khi đang WAITING
+        if (!"WAITING".equals(conv.getTrangThai())) {
+            return ResponseEntity.badRequest().body("Không thể hủy yêu cầu");
+        }
+
+        conv.setTrangThai("BOT");
+        conv.setNhanVien(null);
+        conversationRepository.save(conv);
+
+        // gửi thông báo realtime cho admin/staff cập nhật danh sách
+        messagingTemplate.convertAndSend("/topic/chat/reload-waiting", "RELOAD");
+
+        return ResponseEntity.ok().build();
+    }
 }

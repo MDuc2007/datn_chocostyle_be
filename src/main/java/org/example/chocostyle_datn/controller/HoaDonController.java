@@ -25,7 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -82,6 +84,13 @@ public class HoaDonController {
     public ResponseEntity<?> taoHoaDon(@RequestBody CreateOrderRequest request) {
         try {
             Integer idHoaDon = hoaDonService.taoHoaDonMoi(request);
+            HoaDon hoaDon = hoaDonRepository.findById(idHoaDon).orElseThrow();
+            Map<String, Object> noti = new HashMap<>();
+            noti.put("title", "Đơn hàng mới");
+            System.out.println("SEND NOTIFICATION: " + hoaDon.getMaHoaDon());
+            noti.put("content", "Có đơn #" + hoaDon.getMaHoaDon());
+            noti.put("orderId", idHoaDon);
+            messagingTemplate.convertAndSend("/topic/notification", (Object) noti);
             return ResponseEntity.status(201).body("Tạo đơn thành công. ID: " + idHoaDon);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

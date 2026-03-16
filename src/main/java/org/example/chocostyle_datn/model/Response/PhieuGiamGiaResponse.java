@@ -30,6 +30,4 @@ public class PhieuGiamGiaResponse {
     private Integer trangThai;
     private List<Integer> khachHangIds;
     private List<Integer> khachHangDaSuDungIds;
-    //tesst
-
 }
