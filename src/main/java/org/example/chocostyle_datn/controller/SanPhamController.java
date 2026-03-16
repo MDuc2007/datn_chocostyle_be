@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/san-pham")
@@ -127,6 +128,15 @@ public class SanPhamController {
     @GetMapping("/best-seller")
     public ResponseEntity<List<SanPhamHomeListResponse>> getSanPhamBanChay() {
         return ResponseEntity.ok(sanPhamService.getSanPhamBanChay());
+    }
+
+    @PutMapping("/quick-update-variants")
+    public ResponseEntity<Void> quickUpdateVariants(
+            @RequestBody List<Map<String, String>> updates,
+            @RequestParam String nguoiCapNhat
+    ) {
+        sanPhamService.quickUpdateVariants(updates, nguoiCapNhat);
+        return ResponseEntity.ok().build();
     }
 
 }
