@@ -531,6 +531,33 @@ public class SanPhamService {
 
         sanPhamRepo.save(sp);
     }
+
+    @Transactional
+    public void quickUpdateVariants(List<Map<String, String>> updates, String nguoiCapNhat) {
+        for (Map<String, String> update : updates) {
+            Integer id = Integer.valueOf(update.get("id"));
+            Integer soLuong = Integer.valueOf(update.get("soLuongTon"));
+            java.math.BigDecimal giaNhap = new java.math.BigDecimal(update.get("giaNhap"));
+            java.math.BigDecimal giaBan = new java.math.BigDecimal(update.get("giaBan"));
+
+            ChiTietSanPham ct = chiTietRepo.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy biến thể"));
+
+            ct.setSoLuongTon(soLuong);
+            ct.setGiaNhap(giaNhap);
+            ct.setGiaBan(giaBan);
+
+            // Cập nhật lại trạng thái dựa trên số lượng mới
+            autoUpdateTrangThaiBienThe(ct);
+            ct.setNgayCapNhat(LocalDate.now());
+            ct.setNguoiCapNhat(nguoiCapNhat);
+
+            chiTietRepo.save(ct);
+
+            // Cập nhật trạng thái sản phẩm cha
+            autoUpdateTrangThaiSanPham(ct.getIdSanPham());
+        }
+    }
 }
 
 

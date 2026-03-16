@@ -19,19 +19,19 @@ import java.util.List;
 public interface ThongKeRepository extends JpaRepository<ChiTietSanPham, Integer> {
 
 
-    // 1. BIỂU ĐỒ DOANH THU & CHỈ SỐ TỔNG QUAN
+    // 1. BIỂU ĐỒ DOANH THU & CHỈ SỐ TỔNG QUAN (Đã trừ tiền ship)
     @Query(value = """
         SELECT 
             CONVERT(VARCHAR(10), h.ngay_tao, 120) as thoiGian, 
             
-            -- Tổng doanh thu (không tính đơn hủy)
-            SUM(h.tong_tien_thanh_toan) as doanhThu,
+            -- Tổng doanh thu (không tính đơn hủy, đã trừ ship)
+            SUM(h.tong_tien_thanh_toan - ISNULL(h.phi_van_chuyen, 0)) as doanhThu,
             
-            -- Doanh thu thực tế (Chỉ tính đơn Hoàn thành - trạng thái 4)
-            SUM(CASE WHEN h.trang_thai = 4 THEN h.tong_tien_thanh_toan ELSE 0 END) as doanhThuThucTe,
+            -- Doanh thu thực tế (Chỉ tính đơn Hoàn thành - trạng thái 4, đã trừ ship)
+            SUM(CASE WHEN h.trang_thai = 4 THEN (h.tong_tien_thanh_toan - ISNULL(h.phi_van_chuyen, 0)) ELSE 0 END) as doanhThuThucTe,
             
-            -- Doanh thu dự kiến (Tính các đơn đang xử lý - trạng thái 0, 1, 2, 3)
-            SUM(CASE WHEN h.trang_thai IN (0, 1, 2, 3) THEN h.tong_tien_thanh_toan ELSE 0 END) as doanhThuDuKien,
+            -- Doanh thu dự kiến (Tính các đơn đang xử lý - trạng thái 0, 1, 2, 3, đã trừ ship)
+            SUM(CASE WHEN h.trang_thai IN (0, 1, 2, 3) THEN (h.tong_tien_thanh_toan - ISNULL(h.phi_van_chuyen, 0)) ELSE 0 END) as doanhThuDuKien,
             
             -- Tổng số lượng đơn
             COUNT(h.id_hoa_don) as soLuongDon
