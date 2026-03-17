@@ -64,50 +64,57 @@ public class AIQueryService {
 
             // ===== THUỘC TÍNH SẢN PHẨM =====
             if (sp.getIdXuatXu() != null) {
-                result.append("Xuất xứ: ").append(sp.getIdXuatXu().getTenXuatXu()).append("\n");
+                result.append("Xuất xứ: ")
+                        .append(sp.getIdXuatXu().getTenXuatXu())
+                        .append("\n");
             }
 
 
             if (sp.getIdChatLieu() != null) {
-                result.append("Chất liệu: ").append(sp.getIdChatLieu().getTenChatLieu()).append("\n");
+                result.append("Chất liệu: ")
+                        .append(sp.getIdChatLieu().getTenChatLieu())
+                        .append("\n");
             }
 
 
             result.append("\nBiến thể:\n");
 
 
-            List<ChiTietSanPham> ctList = chiTietSanPhamRepository.findByIdSanPham_Id(sp.getId());
+            List<ChiTietSanPham> ctList =
+                    chiTietSanPhamRepository.findByIdSanPham_Id(sp.getId());
 
 
             for (ChiTietSanPham ct : ctList) {
 
+                result.append("- Màu: ")
+                        .append(ct.getIdMauSac().getTenMauSac())
 
-                result.append("- Màu: ").append(ct.getIdMauSac().getTenMauSac())
+                        .append(" | Size: ")
+                        .append(ct.getIdKichCo().getTenKichCo())
 
+                        .append(" | Loại áo: ")
+                        .append(ct.getIdLoaiAo().getTenLoai())
 
-                        .append(" | Size: ").append(ct.getIdKichCo().getTenKichCo())
+                        .append(" | Kiểu dáng: ")
+                        .append(ct.getIdKieuDang().getTenKieuDang())
 
+                        .append(" | Phong cách: ")
+                        .append(ct.getIdPhongCachMac().getTenPhongCach())
 
-                        .append(" | Loại áo: ").append(ct.getIdLoaiAo().getTenLoai())
+                        .append(" | Giá: ")
+                        .append(ct.getGiaBan())
+                        .append("đ")
 
-
-                        .append(" | Kiểu dáng: ").append(ct.getIdKieuDang().getTenKieuDang())
-
-
-                        .append(" | Phong cách: ").append(ct.getIdPhongCachMac().getTenPhongCach())
-
-
-                        .append(" | Giá: ").append(ct.getGiaBan()).append("đ")
-
-
-                        .append(" | Tồn kho: ").append(ct.getSoLuongTon())
-
+                        .append(" | Tồn kho: ")
+                        .append(ct.getSoLuongTon())
 
                         .append("\n");
             }
 
 
-            result.append("Xem sản phẩm: <a href='http://localhost:5173/home/product/").append(sp.getId()).append("' target='_blank'>Click vào đây</a>\n");
+            result.append("Xem sản phẩm: <a href='http://localhost:5173/home/product/")
+                    .append(sp.getId())
+                    .append("' target='_blank'>Click vào đây</a>\n");
 
 
             result.append("-----------------------------------\n");
@@ -119,7 +126,6 @@ public class AIQueryService {
 
         return result.toString();
     }
-
     public String getVoucherHienTai() {
 
 
@@ -275,7 +281,8 @@ public class AIQueryService {
         for (DotGiamGia d : list) {
 
 
-            List<ChiTietDotGiamGia> ctList = chiTietDotGiamGiaRepository.findById_IdDotGiamGia(d.getId());
+            List<ChiTietDotGiamGia> ctList =
+                    chiTietDotGiamGiaRepository.findById_IdDotGiamGia(d.getId());
 
 
             for (ChiTietDotGiamGia ct : ctList) {
@@ -285,7 +292,12 @@ public class AIQueryService {
                 int spId = spct.getIdSanPham().getId();
 
 
-                if (!bestDiscountPerProduct.containsKey(spId) || d.getGiaTriGiam().compareTo(bestDiscountPerProduct.get(spId).getIdDotGiamGia().getGiaTriGiam()) > 0) {
+                if (!bestDiscountPerProduct.containsKey(spId) ||
+                        d.getGiaTriGiam().compareTo(
+                                bestDiscountPerProduct.get(spId)
+                                        .getIdDotGiamGia()
+                                        .getGiaTriGiam()
+                        ) > 0) {
 
 
                     bestDiscountPerProduct.put(spId, ct);
@@ -316,10 +328,14 @@ public class AIQueryService {
             DotGiamGia d = ct.getIdDotGiamGia();
 
 
-            result.append("- ").append(sp.getTenSp()).append(" | Giá: ").append(spct.getGiaBan()).append("đ").append(" | Giảm: ").append(d.getGiaTriGiam()).append("%\n");
+            result.append("- ").append(sp.getTenSp())
+                    .append(" | Giá: ").append(spct.getGiaBan()).append("đ")
+                    .append(" | Giảm: ").append(d.getGiaTriGiam()).append("%\n");
 
 
-            result.append("Xem sản phẩm: <a href='http://localhost:5173/home/product/").append(sp.getId()).append("' target='_blank'>Xem tại đây</a>\n\n");
+            result.append("Xem sản phẩm: <a href='http://localhost:5173/home/product/")
+                    .append(sp.getId())
+                    .append("' target='_blank'>Xem tại đây</a>\n\n");
 
 
             count++;
@@ -328,7 +344,6 @@ public class AIQueryService {
 
         return result.toString();
     }
-
     public String getTatCaSanPham() {
 
 
@@ -347,16 +362,27 @@ public class AIQueryService {
 
 
             result.append("Sản phẩm: ").append(sp.getTenSp()).append("\n");
-            result.append("Xem sản phẩm: <a href='http://localhost:5173/home/product/").append(sp.getId()).append("' target='_blank'>Xem tại đây</a>\n\n");
+            result.append("Xem sản phẩm: <a href='http://localhost:5173/home/product/")
+                    .append(sp.getId())
+                    .append("' target='_blank'>Xem tại đây</a>\n\n");
 
 
-            List<ChiTietSanPham> ctList = chiTietSanPhamRepository.findByIdSanPham_Id(sp.getId());
+            List<ChiTietSanPham> ctList =
+                    chiTietSanPhamRepository.findByIdSanPham_Id(sp.getId());
 
 
             for (ChiTietSanPham ct : ctList) {
 
 
-                result.append("- Màu ").append(ct.getIdMauSac().getTenMauSac()).append(" | Size ").append(ct.getIdKichCo().getTenKichCo()).append(" | Giá ").append(ct.getGiaBan()).append(" | Tồn ").append(ct.getSoLuongTon()).append("\n");
+                result.append("- Màu ")
+                        .append(ct.getIdMauSac().getTenMauSac())
+                        .append(" | Size ")
+                        .append(ct.getIdKichCo().getTenKichCo())
+                        .append(" | Giá ")
+                        .append(ct.getGiaBan())
+                        .append(" | Tồn ")
+                        .append(ct.getSoLuongTon())
+                        .append("\n");
             }
 
 
@@ -367,113 +393,111 @@ public class AIQueryService {
         return result.toString();
     }
 
-
-    public String searchSanPhamAI(String mauSac, String size, String chatLieu, String loaiAo, Integer minPrice, Integer maxPrice) {
-
+    public String searchSanPhamAI(
+            String mauSac,
+            String size,
+            String chatLieu,
+            String loaiAo,
+            Integer minPrice,
+            Integer maxPrice){
 
         List<ChiTietSanPham> list = chiTietSanPhamRepository.findAll();
 
-
         StringBuilder result = new StringBuilder();
-
 
         int count = 0;
 
-
         Map<Integer, Boolean> daHienThi = new HashMap<>();
 
-
-        for (ChiTietSanPham ct : list) {
-
+        for(ChiTietSanPham ct : list){
 
             boolean match = true;
 
-
-            if (mauSac != null && !ct.getIdMauSac().getTenMauSac().toLowerCase().contains(mauSac)) match = false;
-
-
-            if (size != null && !ct.getIdKichCo().getTenKichCo().toLowerCase().contains(size.toLowerCase()))
+            if(mauSac != null &&
+                    !ct.getIdMauSac().getTenMauSac().toLowerCase().contains(mauSac))
                 match = false;
 
-
-            if (chatLieu != null && !ct.getIdSanPham().getIdChatLieu().getTenChatLieu().toLowerCase().contains(chatLieu))
+            if(size != null &&
+                    !ct.getIdKichCo().getTenKichCo().toLowerCase().contains(size.toLowerCase()))
                 match = false;
 
+            if(chatLieu != null &&
+                    !ct.getIdSanPham().getIdChatLieu().getTenChatLieu().toLowerCase().contains(chatLieu))
+                match = false;
 
-            if (loaiAo != null && !ct.getIdLoaiAo().getTenLoai().toLowerCase().contains(loaiAo)) match = false;
+            if(loaiAo != null &&
+                    !ct.getIdLoaiAo().getTenLoai().toLowerCase().contains(loaiAo))
+                match = false;
 
+            if(minPrice != null &&
+                    ct.getGiaBan().intValue() < minPrice)
+                match = false;
 
-            if (minPrice != null && ct.getGiaBan().intValue() < minPrice) match = false;
+            if(maxPrice != null &&
+                    ct.getGiaBan().intValue() > maxPrice)
+                match = false;
 
-
-            if (maxPrice != null && ct.getGiaBan().intValue() > maxPrice) match = false;
-
-
-            if (!match) continue;
-
+            if(!match) continue;
 
             SanPham sp = ct.getIdSanPham();
 
-
-            if (daHienThi.containsKey(sp.getId())) continue;
+            if(daHienThi.containsKey(sp.getId())) continue;
             daHienThi.put(sp.getId(), true);
-
 
             BigDecimal giaGoc = ct.getGiaBan();
 
+            List<ChiTietDotGiamGia> giamGia =
+                    chiTietDotGiamGiaRepository.findActiveDiscountBySpctId(ct.getId());
 
-            List<ChiTietDotGiamGia> giamGia = chiTietDotGiamGiaRepository.findActiveDiscountBySpctId(ct.getId());
-
-
-            result.append("Tên sản phẩm: ").append(sp.getTenSp()).append("\n");
-
+            result.append("Tên sản phẩm: ")
+                    .append(sp.getTenSp())
+                    .append("\n");
 
             BigDecimal giaSauGiam = giaGoc;
 
-
-            if (!giamGia.isEmpty()) {
-
+            if(!giamGia.isEmpty()){
 
                 DotGiamGia dot = giamGia.get(0).getIdDotGiamGia();
 
-
-                BigDecimal giam = giaGoc.multiply(dot.getGiaTriGiam()).divide(BigDecimal.valueOf(100));
-
+                BigDecimal giam = giaGoc
+                        .multiply(dot.getGiaTriGiam())
+                        .divide(BigDecimal.valueOf(100));
 
                 giaSauGiam = giaGoc.subtract(giam);
 
+                result.append("Giá gốc: ")
+                        .append(giaGoc)
+                        .append("đ | Đang giảm còn: ")
+                        .append(giaSauGiam)
+                        .append("đ\n");
+            }
+            else{
 
-                result.append("Giá gốc: ").append(giaGoc).append("đ | Đang giảm còn: ").append(giaSauGiam).append("đ\n");
-            } else {
-
-
-                result.append("Giá: ").append(giaGoc).append("đ\n");
+                result.append("Giá: ")
+                        .append(giaGoc)
+                        .append("đ\n");
             }
 
+            result.append("Màu: ")
+                    .append(ct.getIdMauSac().getTenMauSac())
+                    .append(" | Size: ")
+                    .append(ct.getIdKichCo().getTenKichCo())
+                    .append("\n");
 
-            result.append("Màu: ").append(ct.getIdMauSac().getTenMauSac()).append(" | Size: ").append(ct.getIdKichCo().getTenKichCo()).append("\n");
-
-
-            result.append("Xem sản phẩm: <a href='http://localhost:5173/home/product/").append(sp.getId()).append("' target='_blank'>Xem tại đây</a>\n\n");
-
+            result.append("Xem sản phẩm: <a href='http://localhost:5173/home/product/")
+                    .append(sp.getId())
+                    .append("' target='_blank'>Xem tại đây</a>\n\n");
 
             count++;
 
-
-            if (count >= 6) break;
+            if(count >= 6) break;
         }
 
-
-        if (result.length() == 0) {
+        if(result.length()==0){
             return "Shop chưa tìm thấy sản phẩm phù hợp.";
         }
-
 
         return result.toString();
     }
 }
-
-
-
-
 
