@@ -9,8 +9,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -26,19 +24,15 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
             """)
     LocalDate findLanMuaGanNhat(Integer khachHangId);
 
-
     @Query("SELECT h FROM HoaDon h WHERE " +
             "(:keyword IS NULL OR :keyword = '' OR h.maHoaDon LIKE %:keyword% OR h.tenKhachHang LIKE %:keyword% OR h.soDienThoai LIKE %:keyword%) " +
             "AND (:loaiDon IS NULL OR h.loaiDon = :loaiDon) " +
             "AND (:trangThai IS NULL OR h.trangThai = :trangThai) " +
             "AND (:startDate IS NULL OR CAST(h.ngayTao AS date) >= :startDate) " +
             "AND (:endDate IS NULL OR CAST(h.ngayTao AS date) <= :endDate) " +
-
-            // --- THÊM ĐÚNG 1 DÒNG NÀY ĐỂ ẨN ĐƠN NHÁP TẠI QUẦY KHỎI DANH SÁCH ---
             "AND NOT (h.loaiDon = 1 AND h.trangThai = 0) " +
-
-            // Dòng OrderBy bên dưới bạn giữ nguyên theo ý Leader của bạn nhé
-            "ORDER BY h.trangThai ASC, h.ngayTao ASC")
+            // SỬA ORDER BY Ở ĐÂY: Mới nhất đưa lên đầu
+            "ORDER BY h.ngayTao DESC")
     Page<HoaDon> findAllByFilter(@Param("keyword") String keyword,
                                  @Param("loaiDon") Integer loaiDon,
                                  @Param("trangThai") Integer trangThai,
@@ -48,7 +42,6 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
 
     // Lấy hóa đơn có ID lớn nhất để sinh mã tự động (HD001, HD002...)
     HoaDon findTopByOrderByIdDesc();
-
 
     List<HoaDon> findByLoaiDonAndTrangThaiAndNgayTaoBefore(
             Integer loaiDon,
@@ -61,5 +54,4 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
     Optional<HoaDon> findByMaHoaDon(String maHoaDon);
 
     List<HoaDon> findByIdKhachHang_IdOrderByIdAsc(Integer idKhachHang);
-
 }
