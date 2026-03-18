@@ -55,7 +55,8 @@ public class HoaDonService {
     private ChiTietDotGiamGiaRepository chiTietDotGiamGiaRepo;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
-
+    @Autowired
+    private ThongBaoService thongBaoService;
     // =================================================================
     // 1. LẤY CHI TIẾT (GET DETAIL)
     // =================================================================
@@ -233,7 +234,9 @@ public class HoaDonService {
         }
 
         hoaDonRepo.save(hd);
-
+        if (req.getTrangThaiMoi() == 5) {
+            thongBaoService.thongBaoHuyDon(hd.getId());
+        }
         // === PHÂN BIỆT AI LÀ NGƯỜI HỦY ĐƠN ĐỂ GHI LỊCH SỬ ===
         String actionName = getActionName(req.getTrangThaiMoi());
 
@@ -590,7 +593,7 @@ public class HoaDonService {
         }
 
         HoaDon savedHd = hoaDonRepo.save(hd);
-
+        thongBaoService.thongBaoDonHangMoi(savedHd.getId());
         // Lưu sản phẩm chi tiết
         if (req.getSanPhamChiTiet() != null) {
             for (org.example.chocostyle_datn.model.Request.CartItemRequest item : req.getSanPhamChiTiet()) {

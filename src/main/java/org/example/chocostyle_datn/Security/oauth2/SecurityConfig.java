@@ -147,6 +147,7 @@ public class SecurityConfig {
                                 "/images/**",              // Cho phép tải ảnh avatar/sản phẩm lên giao diện
                                 "/oauth2/**",              // Cho phép chạy luồng đăng nhập Google
                                 "/ws-chocostyle/**",       // Web socket
+                                "/topic/**",
                                 "/api/conversations/**",   // Chat
                                 "/api/vnpay/**",
                                 "/api/hoa-don/**",
