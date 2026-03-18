@@ -149,7 +149,8 @@ public class SecurityConfig {
                                 "/ws-chocostyle/**",       // Web socket
                                 "/api/conversations/**",   // Chat
                                 "/api/vnpay/**",
-                                "/api/hoa-don/**"// Thanh toán VNPay
+                                "/api/hoa-don/**",
+                                "/api/vnpay/vietqr-webhook"// Thanh toán VNPay
                         ).permitAll()
 
                         // Các API còn lại (thêm giỏ hàng, xem lịch sử đơn hàng, quản lý...) bắt buộc phải đăng nhập
