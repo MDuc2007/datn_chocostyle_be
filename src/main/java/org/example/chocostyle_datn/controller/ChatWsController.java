@@ -198,13 +198,11 @@ public class ChatWsController {
         Integer khachHangId = (Integer) req.get("khachHangId");
         KhachHang kh = khachHangRepository.findById(khachHangId).orElseThrow();
 
-        List<Conversation> existingConvs = conversationRepository.findAll().stream()
-                .filter(c -> c.getKhachHang().getId().equals(khachHangId) &&
-                        ("BOT".equals(c.getTrangThai()) || "WAITING".equals(c.getTrangThai()) || c.getNhanVien() != null))
-                .toList();
+        Optional<Conversation> lastOpt =
+                conversationRepository.findTopByKhachHangOrderByIdDesc(kh);
 
-        if (!existingConvs.isEmpty()) {
-            return ResponseEntity.ok(existingConvs.get(existingConvs.size() - 1));
+        if (lastOpt.isPresent()) {
+            return ResponseEntity.ok(lastOpt.get()); // 🔥 luôn đúng conversation mới nhất
         }
 
         Conversation newConv = Conversation.builder()
@@ -240,6 +238,41 @@ public class ChatWsController {
 
         // gửi thông báo realtime cho admin/staff cập nhật danh sách
         messagingTemplate.convertAndSend("/topic/chat/reload-waiting", "RELOAD");
+
+        return ResponseEntity.ok().build();
+    }
+    @PutMapping("/{id}/end")
+    public ResponseEntity<?> endConversation(@PathVariable Integer id) {
+
+        Conversation conv = conversationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Hội thoại không tồn tại"));
+
+        conv.setTrangThai("ENDED"); // hoặc CLOSED
+        conversationRepository.save(conv);
+
+        messagingTemplate.convertAndSend(
+                "/topic/chat/" + id,
+                (Object) Map.of(
+                        "type", "END",
+                        "message", "Cuộc trò chuyện đã kết thúc"
+                )
+        );
+
+        return ResponseEntity.ok().build();
+    }
+    @PutMapping("/{id}/timeout")
+    public ResponseEntity<?> timeoutConversation(@PathVariable Integer id) {
+
+        Conversation conv = conversationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Hội thoại không tồn tại"));
+
+        conv.setTrangThai("ENDED");
+        conversationRepository.save(conv);
+
+        messagingTemplate.convertAndSend(
+                "/topic/chat/" + id,
+                "TIMEOUT"
+        );
 
         return ResponseEntity.ok().build();
     }

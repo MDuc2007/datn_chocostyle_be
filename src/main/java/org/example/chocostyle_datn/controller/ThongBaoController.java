@@ -54,10 +54,9 @@ public class ThongBaoController {
 
     @PostMapping("/support-request")
     public void requestSupport(@RequestBody Map<String, Integer> body){
-
         Integer khachHangId = body.get("khachHangId");
-
-        thongBaoService.thongBaoSupportRequest(khachHangId);
+        Integer conversationId = body.get("conversationId");
+        thongBaoService.thongBaoSupportRequest(khachHangId, conversationId);
     }
 
     @Scheduled(cron = "0 0 3 * * *")
