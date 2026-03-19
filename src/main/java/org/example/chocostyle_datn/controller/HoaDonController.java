@@ -231,9 +231,10 @@ public class HoaDonController {
     public ResponseEntity<?> capNhatSoLuongSanPham(
             @PathVariable Integer id,
             @RequestParam Integer idSpct,
-            @RequestParam int soLuongMoi) {
+            @RequestParam int soLuongMoi,
+            @RequestParam(required = false) BigDecimal donGia) { // Thêm donGia
         try {
-            hoaDonService.capNhatSoLuongChiTiet(id, idSpct, soLuongMoi);
+            hoaDonService.capNhatSoLuongChiTiet(id, idSpct, soLuongMoi, donGia); // Truyền donGia vào service
             return ResponseEntity.ok("Cập nhật số lượng thành công!");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
