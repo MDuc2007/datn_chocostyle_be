@@ -1,3 +1,4 @@
+
 package org.example.chocostyle_datn.service;
 
 import org.example.chocostyle_datn.entity.ThongBao;
@@ -28,9 +29,8 @@ public class ThongBaoService {
         tb.setDaDoc(false);
         tb.setNgayTao(LocalDateTime.now());
 
-        thongBaoRepository.save(tb);
-
-        messagingTemplate.convertAndSend("/topic/notification", tb);
+        ThongBao saved = thongBaoRepository.save(tb);
+        messagingTemplate.convertAndSend("/topic/notification", saved);
     }
 
     public void thongBaoHuyDon(Integer orderId){
@@ -44,9 +44,8 @@ public class ThongBaoService {
         tb.setDaDoc(false);
         tb.setNgayTao(LocalDateTime.now());
 
-        thongBaoRepository.save(tb);
-
-        messagingTemplate.convertAndSend("/topic/notification", tb);
+        ThongBao saved = thongBaoRepository.save(tb);
+        messagingTemplate.convertAndSend("/topic/notification", saved);
     }
 
     public void thongBaoThanhToan(Integer orderId){
@@ -60,24 +59,22 @@ public class ThongBaoService {
         tb.setDaDoc(false);
         tb.setNgayTao(LocalDateTime.now());
 
-        thongBaoRepository.save(tb);
-
-        messagingTemplate.convertAndSend("/topic/notification", tb);
+        ThongBao saved = thongBaoRepository.save(tb);
+        messagingTemplate.convertAndSend("/topic/notification", saved);
     }
 
-    public void thongBaoSupportRequest(Integer khachHangId){
-
+    public void thongBaoSupportRequest(Integer khachHangId, Integer conversationId){
         ThongBao tb = new ThongBao();
 
         tb.setTieuDe("Khách cần hỗ trợ");
-        tb.setNoiDung("Khách #" + khachHangId + " yêu cầu hỗ trợ");
+        tb.setNoiDung("Khách #" + khachHangId + " cần hỗ trợ (Chat #" + conversationId + ")");
         tb.setLoaiThongBao("SUPPORT_REQUEST");
         tb.setDaDoc(false);
         tb.setNgayTao(LocalDateTime.now());
 
-        thongBaoRepository.save(tb);
+        ThongBao saved = thongBaoRepository.save(tb);
 
-        messagingTemplate.convertAndSend("/topic/notification", tb);
+        messagingTemplate.convertAndSend("/topic/notification", saved);
     }
 
 }

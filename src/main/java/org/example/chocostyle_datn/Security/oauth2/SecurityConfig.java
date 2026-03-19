@@ -147,9 +147,11 @@ public class SecurityConfig {
                                 "/images/**",              // Cho phép tải ảnh avatar/sản phẩm lên giao diện
                                 "/oauth2/**",              // Cho phép chạy luồng đăng nhập Google
                                 "/ws-chocostyle/**",       // Web socket
+                                "/topic/**",
                                 "/api/conversations/**",   // Chat
                                 "/api/vnpay/**",
-                                "/api/hoa-don/**"// Thanh toán VNPay
+                                "/api/hoa-don/**",
+                                "/api/vnpay/vietqr-webhook"// Thanh toán VNPay
                         ).permitAll()
 
                         // Các API còn lại (thêm giỏ hàng, xem lịch sử đơn hàng, quản lý...) bắt buộc phải đăng nhập

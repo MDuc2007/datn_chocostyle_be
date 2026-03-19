@@ -1,6 +1,5 @@
 package org.example.chocostyle_datn.model.Response;
 
-
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -31,11 +30,11 @@ public class HoaDonDetailResponse {
     private BigDecimal giamGia;
     private BigDecimal tongThanhToan;
 
+    // THÊM TRƯỜNG NÀY VÀO ĐỂ CHỨA MÃ VOUCHER
+    private String maVoucher;
+
     // 3. Các danh sách chi tiết (Sử dụng các class vừa tách)
     private List<HoaDonSanPhamResponse> sanPhamList;
     private List<HoaDonLichSuResponse> lichSuList;
     private List<HoaDonThanhToanResponse> thanhToanList;
-    private String maVoucher;
-    //tesst
-
 }

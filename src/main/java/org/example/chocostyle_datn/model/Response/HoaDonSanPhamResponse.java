@@ -10,13 +10,14 @@ import java.math.BigDecimal;
 @Builder
 public class HoaDonSanPhamResponse {
     private Integer idSpct;
+    private String maSpct;
     private String tenSanPham;
+    private String hinhAnh;
     private String mauSac;
     private String kichCo;
     private Integer soLuong;
     private BigDecimal donGia;
     private BigDecimal thanhTien;
-    private String hinhAnh;
     //tesst
 
 }

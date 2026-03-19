@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 
 
-
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
@@ -28,6 +27,7 @@ import java.util.Map;
 @RequestMapping("/api/thong-ke")
 @CrossOrigin("*") // Cho phép Vue.js gọi API không bị chặn
 public class ThongKeController {
+
 
 
     @Autowired
