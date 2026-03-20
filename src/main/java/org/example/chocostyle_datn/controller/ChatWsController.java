@@ -1,5 +1,6 @@
 package org.example.chocostyle_datn.controller;
 
+
 import org.example.chocostyle_datn.entity.Conversation;
 import org.example.chocostyle_datn.entity.KhachHang;
 import org.example.chocostyle_datn.entity.Message;
@@ -17,9 +18,11 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
 
 @RestController
 @RequestMapping("/api/conversations")
@@ -32,6 +35,7 @@ public class ChatWsController {
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
 
+
     public ChatWsController(ChatService chatService, SimpMessagingTemplate messagingTemplate, KhachHangRepository khachHangRepository, NhanVienRepository nhanVienRepository, ConversationRepository conversationRepository, MessageRepository messageRepository) {
         this.chatService = chatService;
         this.messagingTemplate = messagingTemplate;
@@ -41,13 +45,17 @@ public class ChatWsController {
         this.messageRepository = messageRepository;
     }
 
+
     @MessageMapping("/chat.send")
     public void handleChat(ChatMessageRequest request) {
+
 
         Conversation conv = conversationRepository.findById(request.getConversationId())
                 .orElseThrow(() -> new RuntimeException("Hội thoại không tồn tại"));
 
+
         Message saved;
+
 
         // 🔴 SỬA LỖI 2: Nếu khách đã chuyển sang WAITING hoặc ACTIVE (gặp nhân viên)
         // -> Chặn gọi ChatService (vì ChatService gọi Gemini), mà tự lưu tin nhắn thủ công.
@@ -65,7 +73,9 @@ public class ChatWsController {
             saved = chatService.saveIncomingMessage(request);
         }
 
+
         String destination = "/topic/chat/" + saved.getConversation().getId();
+
 
         // gửi message của user/nhân viên
         ChatMessageResponse response = ChatMessageResponse.builder()
@@ -78,17 +88,22 @@ public class ChatWsController {
                 .senderName(getSenderName(saved.getSenderId(), saved.getSenderType()))
                 .build();
 
+
         messagingTemplate.convertAndSend(destination, response);
+
 
         // 🔴 SỬA LỖI 2 (tt): Chỉ kiểm tra và gửi tin nhắn BOT nếu trạng thái đang là BOT
         if ("BOT".equals(conv.getTrangThai())) {
             Optional<Message> lastMsg =
                     messageRepository.findTopByConversationOrderBySentAtDesc(saved.getConversation());
 
+
             if (lastMsg.isPresent()) {
                 Message botMsg = lastMsg.get();
 
+
                 if ("BOT".equals(botMsg.getSenderType())) {
+
 
                     ChatMessageResponse botResponse = ChatMessageResponse.builder()
                             .id(botMsg.getId())
@@ -100,11 +115,13 @@ public class ChatWsController {
                             .senderName("ChocoBot")
                             .build();
 
+
                     messagingTemplate.convertAndSend(destination, botResponse);
                 }
             }
         }
     }
+
 
     private String getSenderName(Integer id, String type) {
         if ("KHACH_HANG".equals(type)) {
@@ -116,23 +133,28 @@ public class ChatWsController {
         }
     }
 
+
     @GetMapping("/waiting-list")
     public List<Conversation> getWaitingList() {
         return conversationRepository.findByNhanVienIsNullAndTrangThai("WAITING");
     }
+
 
     @PutMapping("/{id}/request-staff")
     public ResponseEntity<?> requestStaff(@PathVariable Integer id) {
         Conversation conv = conversationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Hội thoại không tồn tại"));
 
+
         conv.setTrangThai("WAITING");
         conversationRepository.save(conv);
+
 
         // Bắn thông báo cho StaffChat cập nhật danh sách
         messagingTemplate.convertAndSend("/topic/chat/new-waiting", "NEW");
         return ResponseEntity.ok().build();
     }
+
 
     @PutMapping("/{id}/assign")
     public Conversation assignStaff(@PathVariable Integer id, @RequestBody Map<String, Integer> req) {
@@ -140,14 +162,17 @@ public class ChatWsController {
         Conversation conv = conversationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Hội thoại không tồn tại"));
 
+
         if (conv.getNhanVien() != null) {
             throw new RuntimeException("Khách hàng này đã có người khác hỗ trợ!");
         }
+
 
         NhanVien nv = nhanVienRepository.findById(staffId).orElseThrow();
         conv.setNhanVien(nv);
         conv.setTrangThai("ACTIVE");
         Conversation saved = conversationRepository.save(conv);
+
 
         Message sysMsg = Message.builder()
                 .conversation(saved)
@@ -156,6 +181,7 @@ public class ChatWsController {
                 .content("Nhân viên " + nv.getHoTen() + " đã tham gia cuộc trò chuyện. Bạn có thể bắt đầu trao đổi.")
                 .build();
         Message savedSysMsg = messageRepository.save(sysMsg);
+
 
         ChatMessageResponse response = ChatMessageResponse.builder()
                 .id(savedSysMsg.getId())
@@ -168,10 +194,13 @@ public class ChatWsController {
                 .build();
         messagingTemplate.convertAndSend("/topic/chat/" + saved.getId(), response);
 
+
         messagingTemplate.convertAndSend("/topic/chat/reload-waiting", "RELOAD");
+
 
         return saved;
     }
+
 
     @GetMapping("/{id}/messages")
     public List<ChatMessageResponse> getMessages(@PathVariable Integer id,
@@ -180,7 +209,9 @@ public class ChatWsController {
         Conversation conv = conversationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Hội thoại không tồn tại"));
 
+
         List<Message> messages = messageRepository.findByConversationOrderBySentAtAsc(conv, PageRequest.of(page, size)).getContent();
+
 
         return messages.stream().map(msg -> ChatMessageResponse.builder()
                 .id(msg.getId())
@@ -193,17 +224,21 @@ public class ChatWsController {
                 .build()).toList();
     }
 
+
     @PostMapping("/get-or-create")
     public ResponseEntity<?> getOrCreate(@RequestBody Map<String, Object> req) {
         Integer khachHangId = (Integer) req.get("khachHangId");
         KhachHang kh = khachHangRepository.findById(khachHangId).orElseThrow();
 
+
         Optional<Conversation> lastOpt =
                 conversationRepository.findTopByKhachHangOrderByIdDesc(kh);
+
 
         if (lastOpt.isPresent()) {
             return ResponseEntity.ok(lastOpt.get()); // 🔥 luôn đúng conversation mới nhất
         }
+
 
         Conversation newConv = Conversation.builder()
                 .khachHang(kh)
@@ -211,9 +246,11 @@ public class ChatWsController {
                 .trangThai("BOT")
                 .build();
 
+
         Conversation saved = conversationRepository.save(newConv);
         return ResponseEntity.ok(saved);
     }
+
 
     @GetMapping("/staff/{staffId}")
     public List<Conversation> getStaffConversations(@PathVariable Integer staffId) {
@@ -221,34 +258,50 @@ public class ChatWsController {
         return conversationRepository.findByNhanVien(nv);
     }
 
+
     @PutMapping("/{id}/cancel-request")
     public ResponseEntity<?> cancelRequest(@PathVariable Integer id) {
 
+
         Conversation conv = conversationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Hội thoại không tồn tại"));
+
 
         // chỉ cho hủy khi đang WAITING
         if (!"WAITING".equals(conv.getTrangThai())) {
             return ResponseEntity.badRequest().body("Không thể hủy yêu cầu");
         }
 
+
         conv.setTrangThai("BOT");
         conv.setNhanVien(null);
         conversationRepository.save(conv);
 
+
         // gửi thông báo realtime cho admin/staff cập nhật danh sách
         messagingTemplate.convertAndSend("/topic/chat/reload-waiting", "RELOAD");
+
 
         return ResponseEntity.ok().build();
     }
     @PutMapping("/{id}/end")
     public ResponseEntity<?> endConversation(@PathVariable Integer id) {
 
+
         Conversation conv = conversationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Hội thoại không tồn tại"));
 
-        conv.setTrangThai("ENDED"); // hoặc CLOSED
+
+        // 🔥 FIX 1: reset về BOT
+        conv.setTrangThai("BOT");
+
+
+        // 🔥 FIX 2: bỏ nhân viên
+        conv.setNhanVien(null);
+
+
         conversationRepository.save(conv);
+
 
         messagingTemplate.convertAndSend(
                 "/topic/chat/" + id,
@@ -258,22 +311,33 @@ public class ChatWsController {
                 )
         );
 
+
         return ResponseEntity.ok().build();
     }
     @PutMapping("/{id}/timeout")
     public ResponseEntity<?> timeoutConversation(@PathVariable Integer id) {
 
+
         Conversation conv = conversationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Hội thoại không tồn tại"));
 
-        conv.setTrangThai("ENDED");
-        conversationRepository.save(conv);
 
+        // 🔥 FIX giống end
+        conv.setTrangThai("BOT");
+        conv.setNhanVien(null);
+
+
+        conversationRepository.save(conv);
         messagingTemplate.convertAndSend(
                 "/topic/chat/" + id,
-                "TIMEOUT"
+                (Object) Map.of(
+                        "type", "TIMEOUT",
+                        "message", "Cuộc trò chuyện đã hết thời gian"
+                )
         );
+
 
         return ResponseEntity.ok().build();
     }
 }
+
