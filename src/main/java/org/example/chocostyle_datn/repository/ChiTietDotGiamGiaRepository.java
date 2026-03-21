@@ -20,14 +20,14 @@ public interface ChiTietDotGiamGiaRepository extends JpaRepository<ChiTietDotGia
 
     // 1. Tìm khuyến mãi đang hoạt động của 1 chi tiết sản phẩm (Dùng để tính giá trong Service)
     @Query("""
-SELECT c FROM ChiTietDotGiamGia c
-WHERE c.idSpct.id = :idSpct
-AND c.trangThai = 1
-AND c.idDotGiamGia.trangThai = 1
-AND c.idDotGiamGia.ngayBatDau <= CURRENT_TIMESTAMP
-AND c.idDotGiamGia.ngayKetThuc >= CURRENT_TIMESTAMP
-ORDER BY c.idDotGiamGia.giaTriGiam DESC
-""")
+            SELECT c FROM ChiTietDotGiamGia c
+            WHERE c.idSpct.id = :idSpct
+            AND c.trangThai = 1
+            AND c.idDotGiamGia.trangThai = 1
+            AND c.idDotGiamGia.ngayBatDau <= CURRENT_TIMESTAMP
+            AND c.idDotGiamGia.ngayKetThuc >= CURRENT_TIMESTAMP
+            ORDER BY c.idDotGiamGia.giaTriGiam DESC
+            """)
     List<ChiTietDotGiamGia> findActiveDiscountBySpctId(Integer idSpct);
 
     // 2. 👉 THÊM MỚI: Tìm TẤT CẢ các Chi tiết sản phẩm đang được Sale (Dùng cho trang Ưu đãi)

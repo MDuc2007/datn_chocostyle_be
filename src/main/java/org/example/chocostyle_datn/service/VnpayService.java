@@ -82,4 +82,122 @@ public class VnpayService {
         String calculatedHash = VnpayConfig.hmacSHA512(VnpayConfig.vnp_HashSecret, hashData.toString());
         return calculatedHash.equalsIgnoreCase(vnp_SecureHash);
     }
+    // ==========================================
+    // LOGIC TẠO THANH TOÁN MOMO
+    // ==========================================
+    public String createMomoUrl(Integer hoaDonId, BigDecimal amount) throws Exception {
+        // Thông tin cấu hình Test của MoMo (Bạn sẽ thay bằng Key thật của bạn sau)
+        String partnerCode = "MOMO";
+        String accessKey = "F8BBA842ECF85";
+        String secretKey = "K951B6PE1waDMi640xX08PD3vg6EkVlz";
+        String endpoint = "https://test-payment.momo.vn/v2/gateway/api/create";
+        String returnUrl = "http://localhost:8080/api/vnpay/momo/payment-return";
+        String notifyUrl = "http://localhost:8080/api/vnpay/momo/payment-notify";
+
+        String orderId = "MOMO_" + hoaDonId + "_" + System.currentTimeMillis();
+        String amountStr = String.valueOf(amount.longValue());
+        String orderInfo = "Thanh toan don hang " + hoaDonId;
+        String requestId = String.valueOf(System.currentTimeMillis());
+        String extraData = "";
+
+        // Raw signature data
+        String rawHash = "accessKey=" + accessKey +
+                "&amount=" + amountStr +
+                "&extraData=" + extraData +
+                "&ipnUrl=" + notifyUrl +
+                "&orderId=" + orderId +
+                "&orderInfo=" + orderInfo +
+                "&partnerCode=" + partnerCode +
+                "&redirectUrl=" + returnUrl +
+                "&requestId=" + requestId +
+                "&requestType=payWithMethod";
+
+        String signature = hmacSHA256(rawHash, secretKey);
+
+        // Tạo JSON body để bắn sang MoMo
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("partnerCode", partnerCode);
+        requestBody.put("partnerName", "ChocoStyle");
+        requestBody.put("storeId", "ChocoStyleStore");
+        requestBody.put("requestId", requestId);
+        requestBody.put("amount", amount.longValue());
+        requestBody.put("orderId", orderId);
+        requestBody.put("orderInfo", orderInfo);
+        requestBody.put("redirectUrl", returnUrl);
+        requestBody.put("ipnUrl", notifyUrl);
+        requestBody.put("lang", "vi");
+        requestBody.put("extraData", extraData);
+        requestBody.put("requestType", "payWithMethod");
+        requestBody.put("signature", signature);
+
+        // Gọi API sang MoMo bằng RestTemplate
+        org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+        Map<String, Object> response = restTemplate.postForObject(endpoint, requestBody, Map.class);
+
+        if (response != null && response.containsKey("payUrl")) {
+            return (String) response.get("payUrl");
+        }
+        throw new RuntimeException("Không thể tạo URL MoMo");
+    }
+
+    // Thuật toán mã hoá riêng của MoMo (HmacSHA256)
+    private String hmacSHA256(String data, String key) throws Exception {
+        javax.crypto.Mac sha256_HMAC = javax.crypto.Mac.getInstance("HmacSHA256");
+        javax.crypto.spec.SecretKeySpec secret_key = new javax.crypto.spec.SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
+        sha256_HMAC.init(secret_key);
+        byte[] hash = sha256_HMAC.doFinal(data.getBytes("UTF-8"));
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) hexString.append('0');
+            hexString.append(hex);
+        }
+        return hexString.toString();
+    }
+    public String createZaloPayUrl(Integer hoaDonId, BigDecimal amount) throws Exception {
+        // 1. ĐỔI appId TỪ STRING SANG INT (Số nguyên)
+        int appId = 2553;
+        String key1 = "PcY4iZIKFCIdgZvA6ueMcMHHUbRLYjPL";
+        String endpoint = "https://sb-openapi.zalopay.vn/v2/create";
+
+        String returnUrl = "http://localhost:8080/api/vnpay/zalopay/payment-return?hoaDonId=" + hoaDonId;
+
+        String appTransId = new java.text.SimpleDateFormat("yyMMdd").format(new Date()) + "_" + hoaDonId + "_" + System.currentTimeMillis();
+        long amountZalo = amount.longValue();
+
+        Map<String, Object> order = new HashMap<>();
+        order.put("app_id", appId); // Đã sửa: truyền Số nguyên thay vì Chuỗi
+        order.put("app_trans_id", appTransId);
+        order.put("app_time", System.currentTimeMillis());
+        order.put("app_user", "ChocoStyle_Customer");
+        order.put("amount", amountZalo);
+        order.put("description", "ChocoStyle - Thanh toan don hang #" + hoaDonId);
+
+        // 2. XÓA BỎ DÒNG bank_code RỖNG ĐỂ TRÁNH LỖI VALIDATE TỪ ZALOPAY
+        // order.put("bank_code", "");
+
+        order.put("item", "[]");
+        order.put("embed_data", "{\"redirecturl\": \"" + returnUrl + "\"}");
+
+        // Tạo chuỗi data để băm chữ ký MAC
+        String data = appId + "|" + appTransId + "|" + order.get("app_user") + "|" + amountZalo + "|"
+                + order.get("app_time") + "|" + order.get("embed_data") + "|" + order.get("item");
+
+        String mac = hmacSHA256(data, key1);
+        order.put("mac", mac);
+
+        // Gọi API sang ZaloPay
+        org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        org.springframework.http.HttpEntity<Map<String, Object>> entity = new org.springframework.http.HttpEntity<>(order, headers);
+
+        Map<String, Object> response = restTemplate.postForObject(endpoint, entity, Map.class);
+
+        // Kiểm tra mã thành công return_code = 1
+        if (response != null && (Integer) response.get("return_code") == 1) {
+            return (String) response.get("order_url");
+        }
+        throw new RuntimeException("Không thể tạo URL ZaloPay: " + response);
+    }
 }

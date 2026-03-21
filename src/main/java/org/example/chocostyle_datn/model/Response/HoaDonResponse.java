@@ -24,4 +24,7 @@ public class HoaDonResponse {
     private Integer loaiDon;
     private Integer trangThai;
     private LocalDateTime ngayTao; // Lưu ý: Entity dùng DATETIME[cite: 201], nên check xem DTO đang để LocalDate hay LocalDateTime
+
+    // Thêm trường này vào HoaDonResponse.java
+    private String trangThaiHuyChiTiet;
 }

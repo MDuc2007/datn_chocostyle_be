@@ -25,7 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -82,6 +84,13 @@ public class HoaDonController {
     public ResponseEntity<?> taoHoaDon(@RequestBody CreateOrderRequest request) {
         try {
             Integer idHoaDon = hoaDonService.taoHoaDonMoi(request);
+            HoaDon hoaDon = hoaDonRepository.findById(idHoaDon).orElseThrow();
+            Map<String, Object> noti = new HashMap<>();
+            noti.put("title", "Đơn hàng mới");
+            System.out.println("SEND NOTIFICATION: " + hoaDon.getMaHoaDon());
+            noti.put("content", "Có đơn #" + hoaDon.getMaHoaDon());
+            noti.put("orderId", idHoaDon);
+            messagingTemplate.convertAndSend("/topic/notification", (Object) noti);
             return ResponseEntity.status(201).body("Tạo đơn thành công. ID: " + idHoaDon);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -203,6 +212,7 @@ public class HoaDonController {
             return ResponseEntity.badRequest().body("Lỗi tải lịch sử đơn hàng: " + e.getMessage());
         }
     }
+
     @PutMapping("/{id}/thong-tin-nhan-hang")
     public ResponseEntity<?> capNhatThongTinNhanHang(
             @PathVariable Integer id,
@@ -216,18 +226,21 @@ public class HoaDonController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
     @PutMapping("/{id}/so-luong-san-pham")
     public ResponseEntity<?> capNhatSoLuongSanPham(
             @PathVariable Integer id,
             @RequestParam Integer idSpct,
-            @RequestParam int soLuongMoi) {
+            @RequestParam int soLuongMoi,
+            @RequestParam(required = false) BigDecimal donGia) { // Thêm donGia
         try {
-            hoaDonService.capNhatSoLuongChiTiet(id, idSpct, soLuongMoi);
+            hoaDonService.capNhatSoLuongChiTiet(id, idSpct, soLuongMoi, donGia); // Truyền donGia vào service
             return ResponseEntity.ok("Cập nhật số lượng thành công!");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
     // Trong HoaDonController.java
     @PutMapping("/{id}/thay-doi-gia")
     public ResponseEntity<?> thayDoiGiaSanPham(
@@ -241,6 +254,7 @@ public class HoaDonController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
     // ==========================================
     // API TIẾP SÓNG REALTIME (VUE -> SPRING BOOT -> FLUTTER)
     // ==========================================
@@ -256,6 +270,7 @@ public class HoaDonController {
             return ResponseEntity.internalServerError().body("Lỗi đồng bộ: " + e.getMessage());
         }
     }
+
     @PostMapping("/{id}/thanh-toan-thu-cong")
     public ResponseEntity<?> thanhToanThuCong(@PathVariable Integer id, @RequestBody java.util.Map<String, String> body) {
         try {
@@ -266,5 +281,46 @@ public class HoaDonController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+    @GetMapping("/dashboard/recent")
+    public ResponseEntity<?> getDashboardInvoices() {
+        try {
+            // Lấy 50 hóa đơn mới nhất (Sắp xếp giảm dần theo ID để luôn lấy đơn mới nhất)
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                    0, 50, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id")
+            );
+            Page<HoaDon> hdPage = hoaDonRepository.findAll(pageable);
 
+            // Chuyển đổi dữ liệu sang dạng Map để trả về đúng tên biến mà Vue đang cần
+            List<java.util.Map<String, Object>> result = hdPage.getContent().stream().map(hd -> {
+                java.util.Map<String, Object> map = new java.util.HashMap<>();
+                map.put("id", hd.getId());
+                map.put("maHoaDon", hd.getMaHoaDon());
+                map.put("ngayTao", hd.getNgayTao());
+
+                // Tránh lỗi 0đ: Lấy chính xác tổng tiền thanh toán
+                map.put("tongTienThanhToan", hd.getTongTienThanhToan() != null ? hd.getTongTienThanhToan() : 0);
+                map.put("loaiDon", hd.getLoaiDon());
+                map.put("trangThai", hd.getTrangThai());
+
+                // Xác định Phương thức thanh toán (Dựa trên PT001, PT002)
+                String pttt = "Tiền mặt";
+                List<ThanhToan> tts = thanhToanRepository.findByIdHoaDon_Id(hd.getId());
+                if (tts != null && !tts.isEmpty()) {
+                    org.example.chocostyle_datn.entity.PhuongThucThanhToan pt = tts.get(0).getIdPttt();
+                    if (pt != null && pt.getMaPttt() != null) {
+                        if (pt.getMaPttt().equals("PT002") || pt.getMaPttt().equals("PT003")) {
+                            pttt = "Chuyển khoản";
+                        }
+                    }
+                }
+                map.put("pttt", pttt);
+
+                return map;
+            }).collect(Collectors.toList());
+
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi tải dữ liệu Dashboard: " + e.getMessage());
+        }
+    }
 }

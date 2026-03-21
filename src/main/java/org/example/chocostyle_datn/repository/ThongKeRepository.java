@@ -45,8 +45,6 @@ public interface ThongKeRepository extends JpaRepository<ChiTietSanPham, Integer
     """, nativeQuery = true)
     List<DoanhThuResponse> getDoanhThuChart(@Param("startDate") LocalDate startDate,
                                             @Param("endDate") LocalDate endDate);
-
-
     // 2. TOP SẢN PHẨM BÁN CHẠY (Đã sửa lỗi lấy sai cột Ảnh)
     @Query(value = """
        SELECT TOP 5
