@@ -10,6 +10,7 @@ import org.example.chocostyle_datn.repository.KhachHangRepository;
 import org.example.chocostyle_datn.repository.PhieuGiamGiaKhachHangRepository;
 import org.example.chocostyle_datn.repository.PhieuGiamGiaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,19 @@ public class PhieuGiamGiaService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    /* ================= GET ================= */
+
+    private void broadcastPublicUpdate() {
+        try {
+            messagingTemplate.convertAndSend("/topic/public-updates", "UPDATED");
+            System.out.println("🚀 Đã bắn tín hiệu cập nhật giá/voucher cho tất cả client!");
+        } catch (Exception e) {
+            System.out.println("❌ Lỗi gửi WebSocket Update: " + e.getMessage());
+        }
+    }
 
     public List<PhieuGiamGiaResponse> getAllPGG() {
         return phieuGiamGiaRepository.findAllOrderByIdDesc()
@@ -141,6 +155,7 @@ public class PhieuGiamGiaService {
         // ✅ Chỉ toggle cho phép / không cho phép
         pgg.setTrangThai(pgg.getTrangThai() == 1 ? 0 : 1);
 
+        broadcastPublicUpdate();
 
         return toResponse(phieuGiamGiaRepository.save(pgg));
     }
@@ -207,6 +222,7 @@ public class PhieuGiamGiaService {
                 emailService.sendVoucherCreatedEmail(cus, pgg);
             }
         }
+        broadcastPublicUpdate();
 
         return toResponse(pgg);
     }
@@ -346,6 +362,7 @@ public class PhieuGiamGiaService {
             }
         }
 
+        broadcastPublicUpdate();
 
         return toResponse(phieuGiamGiaRepository.save(pgg));
     }

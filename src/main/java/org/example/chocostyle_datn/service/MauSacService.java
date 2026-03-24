@@ -27,8 +27,7 @@ public class MauSacService {
         if (repo.existsByTenIgnoreSpace(e.getTenMauSac())) {
             throw new DuplicateException("Tên màu sắc đã tồn tại");
         }
-        e.setMaMauSac(genMa("MS", repo.findMaxMa()));
-
+        e.setMaMauSac(genMa("MS"));
         // field mới
         e.setNgayTao(LocalDate.now());
         e.setNguoiTao(e.getNguoiTao()); // từ request
@@ -77,9 +76,20 @@ public class MauSacService {
         repo.deleteById(id);
     }
 
-    private String genMa(String p, String max) {
-        if (max == null) return p + "001";
-        return p + String.format("%03d", Integer.parseInt(max.replace(p, "")) + 1);
+    // THAY THẾ HÀM GEN MÃ BẰNG HÀM NÀY
+    private String genMa(String prefix) {
+        // Lấy tất cả mã, lọc phần số và tìm số to nhất
+        int max = repo.findAll().stream()
+                .map(MauSac::getMaMauSac)
+                .filter(ma -> ma != null && ma.startsWith(prefix))
+                .map(ma -> ma.replaceAll("[^0-9]", "")) // Chỉ giữ lại số
+                .filter(s -> !s.isEmpty())
+                .mapToInt(Integer::parseInt)
+                .max()
+                .orElse(0); // Nếu chưa có gì thì là 0
+
+        // Cộng 1 và format về 3 chữ số (VD: 3 -> MS003)
+        return prefix + String.format("%03d", max + 1);
     }
 }
 
