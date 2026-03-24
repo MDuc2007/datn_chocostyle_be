@@ -17,6 +17,7 @@ import org.example.chocostyle_datn.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import static org.example.chocostyle_datn.util.TextNormalizeUtil.normalize;
@@ -44,6 +45,20 @@ public class SanPhamService {
     private final KieuDangRepository kieuDangRepo;
     @Autowired
     private QrCodeService qrCodeService;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    /* ================= GET ================= */
+
+    private void broadcastPublicUpdate() {
+        try {
+            messagingTemplate.convertAndSend("/topic/public-updates", "UPDATED");
+            System.out.println("🚀 Đã bắn tín hiệu cập nhật giá/voucher cho tất cả client!");
+        } catch (Exception e) {
+            System.out.println("❌ Lỗi gửi WebSocket Update: " + e.getMessage());
+        }
+    }
 
 
     public List<SanPhamResponse> getAll() {
@@ -119,6 +134,7 @@ public class SanPhamService {
         sanPhamRepo.save(sp);
 
         updateBienThe(sp, request);
+        broadcastPublicUpdate();
 
         return toResponse(sp);
     }
@@ -325,6 +341,7 @@ public class SanPhamService {
             ct.setNgayCapNhat(LocalDate.now());
             ct.setNguoiCapNhat(nguoiCapNhat);
         }
+        broadcastPublicUpdate();
 
         chiTietRepo.saveAll(ctList);
     }
@@ -371,6 +388,7 @@ public class SanPhamService {
         } else if (sp.getTrangThai() != null && sp.getTrangThai() != 2) {
             sp.setTrangThai(1);
         }
+        broadcastPublicUpdate();
 
         sanPhamRepo.save(sp);
     }
@@ -556,6 +574,8 @@ public class SanPhamService {
 
             // Cập nhật trạng thái sản phẩm cha
             autoUpdateTrangThaiSanPham(ct.getIdSanPham());
+            broadcastPublicUpdate();
+
         }
     }
 }
