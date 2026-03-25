@@ -99,8 +99,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/login/customer",
                                 "/api/auth/register",
-                                "/api/auth/forgot-password",
-                                "/api/auth/reset-password"
+                                "/api/auth/customer/forgot-password", // 👉 Cập nhật link mới
+                                "/api/auth/customer/reset-password"   // 👉 Cập nhật link mới
                         ).permitAll()
 
                         // ============================
@@ -108,8 +108,8 @@ public class SecurityConfig {
                         // ============================
                         .requestMatchers(
                                 "/api/auth/login/staff",
-                                "/api/auth/forgot-password",
-                                "/api/auth/reset-password"
+                                "/api/auth/staff/forgot-password", // 👉 Cập nhật link mới
+                                "/api/auth/staff/reset-password"   // 👉 Cập nhật link mới
                         ).permitAll()
 
                         // ============================
