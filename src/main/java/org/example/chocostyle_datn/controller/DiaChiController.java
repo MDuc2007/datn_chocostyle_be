@@ -24,6 +24,7 @@ public class DiaChiController {
     private DiaChiService diaChiService;
 
 
+
     // 1. LẤY DANH SÁCH ĐỊA CHỈ THEO ID KHÁCH HÀNG
     @GetMapping("/khach-hang/{khachHangId}")
     public ResponseEntity<List<DiaChi>> getDiaChiByKhachHang(@PathVariable Integer khachHangId) {
@@ -36,7 +37,18 @@ public class DiaChiController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
+    // 4. CẬP NHẬT ĐỊA CHỈ (THÊM HÀM NÀY ĐỂ FIX LỖI SỬA)
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateDiaChi(@PathVariable Integer id, @RequestBody DiaChiRequest req) {
+        try {
+            // Lưu ý: Bạn cần phải viết hàm updateDiaChi ở trong DiaChiService nữa nhé!
+            DiaChi updated = diaChiService.updateDiaChi(id, req);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi cập nhật địa chỉ: " + e.getMessage());
+        }
+    }
 
 
     // 2. THÊM NHANH ĐỊA CHỈ MỚI

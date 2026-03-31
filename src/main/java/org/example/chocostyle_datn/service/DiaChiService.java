@@ -89,4 +89,45 @@ public class DiaChiService {
         newDefault.setMacDinh(true);
         diaChiRepository.save(newDefault);
     }
+
+    // =========================================================================
+    // 4. CẬP NHẬT ĐỊA CHỈ (MỚI THÊM)
+    // =========================================================================
+    @Transactional
+    public DiaChi updateDiaChi(Integer id, DiaChiRequest req) {
+        // 1. Tìm địa chỉ cũ
+        DiaChi existingDiaChi = diaChiRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy địa chỉ với ID: " + id));
+
+        // 2. Xử lý logic địa chỉ mặc định
+        if (req.getMacDinh() != null && req.getMacDinh()) {
+            Integer khachHangId = existingDiaChi.getKhachHang().getId();
+
+            // Tìm địa chỉ mặc định cũ của khách hàng này
+            Optional<DiaChi> oldDefault = diaChiRepository.findByKhachHangIdAndMacDinhTrue(khachHangId);
+
+            // Nếu có địa chỉ mặc định cũ VÀ nó không phải là cái đang sửa -> Gỡ mặc định
+            if (oldDefault.isPresent() && !oldDefault.get().getId().equals(id)) {
+                DiaChi oldAddr = oldDefault.get();
+                oldAddr.setMacDinh(false);
+                diaChiRepository.save(oldAddr);
+            }
+            existingDiaChi.setMacDinh(true);
+        } else if (req.getMacDinh() != null) {
+            existingDiaChi.setMacDinh(false);
+        }
+
+        // 3. Cập nhật thông tin
+        existingDiaChi.setThanhPho(req.getThanhPho());
+        existingDiaChi.setQuan(req.getQuan());
+        existingDiaChi.setPhuong(req.getPhuong());
+        existingDiaChi.setDiaChiCuThe(req.getDiaChiCuThe());
+
+        if (req.getTenDiaChi() != null) {
+            existingDiaChi.setTenDiaChi(req.getTenDiaChi());
+        }
+
+        // 4. Lưu lại
+        return diaChiRepository.save(existingDiaChi);
+    }
 }
