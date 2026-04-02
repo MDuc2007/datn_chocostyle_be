@@ -13,6 +13,7 @@ import org.example.chocostyle_datn.repository.ChiTietDotGiamGiaRepository;
 import org.example.chocostyle_datn.repository.ChiTietSanPhamRepository;
 import org.example.chocostyle_datn.repository.DotGiamGiaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -40,6 +41,19 @@ public class DotGiamGiaService {
 
     @Autowired
     private DotGiamGiaRepository dotGiamGiaRepository;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    /* ================= GET ================= */
+
+    private void broadcastPublicUpdate() {
+        try {
+            messagingTemplate.convertAndSend("/topic/public-updates", "UPDATED");
+            System.out.println("🚀 Đã bắn tín hiệu cập nhật giá/voucher cho tất cả client!");
+        } catch (Exception e) {
+            System.out.println("❌ Lỗi gửi WebSocket Update: " + e.getMessage());
+        }
+    }
 
 
     public List<DotGiamGiaResponse> getAllDGG() {
@@ -119,6 +133,7 @@ public class DotGiamGiaService {
                 chiTietDotGiamGiaRepository.save(ct);
             }
         }
+        broadcastPublicUpdate();
 
 
         return dgg;
@@ -186,6 +201,7 @@ public class DotGiamGiaService {
             }
         }
 
+        broadcastPublicUpdate();
 
         return dgg;
     }
@@ -298,7 +314,7 @@ public class DotGiamGiaService {
             }
         }
 
-
+        broadcastPublicUpdate();
         dotGiamGiaRepository.save(dgg);
         return toResponse(dgg);
     }
@@ -409,6 +425,8 @@ public class DotGiamGiaService {
             }
         }
         dotGiamGiaRepository.saveAll(all);
+        broadcastPublicUpdate();
+
     }
 
 

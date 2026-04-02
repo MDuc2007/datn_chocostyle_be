@@ -12,6 +12,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
 
 
 import java.time.format.DateTimeFormatter;
@@ -292,7 +293,7 @@ public class EmailService {
         return value + " VND";
     }
 
-
+    @Async
     public void sendSimpleMessage(String to, String subject, String text) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
@@ -301,7 +302,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
-
+    @Async
     public void sendAccountInfo(String toEmail, String username, String password) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();

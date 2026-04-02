@@ -6,8 +6,10 @@ import org.example.chocostyle_datn.entity.*;
 import org.example.chocostyle_datn.model.Request.ChiTietSanPhamRequest;
 import org.example.chocostyle_datn.model.Response.ChiTietSanPhamResponse;
 import org.example.chocostyle_datn.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -30,8 +32,19 @@ public class ChiTietSanPhamService {
     private final ChiTietSanPhamRepository chiTietSanPhamRepository;
 
     private final ChiTietDotGiamGiaRepository chiTietDotGiamGiaRepository;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     /* ================= GET ================= */
+
+    private void broadcastPublicUpdate() {
+        try {
+            messagingTemplate.convertAndSend("/topic/public-updates", "UPDATED");
+            System.out.println("🚀 Đã bắn tín hiệu cập nhật giá/voucher cho tất cả client!");
+        } catch (Exception e) {
+            System.out.println("❌ Lỗi gửi WebSocket Update: " + e.getMessage());
+        }
+    }
 
     public List<ChiTietSanPhamResponse> getAll() {
         return repository.findAll()
@@ -117,7 +130,7 @@ public class ChiTietSanPhamService {
 
         // Cập nhật trạng thái sản phẩm cha
         updateParentSanPhamStatus(ctsp.getIdSanPham().getId());
-
+        broadcastPublicUpdate();
         return mapToResponse(ctsp);
     }
 
@@ -180,6 +193,7 @@ public class ChiTietSanPhamService {
         chiTietSanPhamRepository.save(sp);
 
         updateParentSanPhamStatus(sp.getIdSanPham().getId());
+        broadcastPublicUpdate();
     }
     public List<ChiTietSanPham> getDataExport(List<Integer> ids, Integer productId) {
 

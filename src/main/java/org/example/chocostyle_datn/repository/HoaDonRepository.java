@@ -32,7 +32,7 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
             "AND (:endDate IS NULL OR CAST(h.ngayTao AS date) <= :endDate) " +
             "AND NOT (h.loaiDon = 1 AND h.trangThai = 0) " +
             // SỬA ORDER BY Ở ĐÂY: Mới nhất đưa lên đầu
-            "ORDER BY h.ngayTao DESC")
+            "ORDER BY h.ngayTao ASC")
     Page<HoaDon> findAllByFilter(@Param("keyword") String keyword,
                                  @Param("loaiDon") Integer loaiDon,
                                  @Param("trangThai") Integer trangThai,
