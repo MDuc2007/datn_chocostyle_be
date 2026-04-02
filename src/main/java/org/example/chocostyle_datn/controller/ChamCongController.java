@@ -68,9 +68,11 @@ public class ChamCongController {
     public ResponseEntity<?> getDanhSachGiaoCa(
             @RequestParam(required = false, defaultValue = "") String keyword,
             @RequestParam(required = false, defaultValue = "") String fromDate,
-            @RequestParam(required = false, defaultValue = "") String toDate) {
+            @RequestParam(required = false, defaultValue = "") String toDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size) {
         try {
-            return ResponseEntity.ok(service.getDanhSachGiaoCa(keyword, fromDate, toDate));
+            return ResponseEntity.ok(service.getDanhSachGiaoCa(keyword, fromDate, toDate, page, size));
         } catch (Exception e) {
             e.printStackTrace(); // In lỗi ra Console để xem lỗi thực sự của SQL là gì
             return ResponseEntity.badRequest().body(e.getMessage());

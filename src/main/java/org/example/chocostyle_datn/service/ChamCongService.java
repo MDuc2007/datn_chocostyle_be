@@ -8,6 +8,9 @@ import org.example.chocostyle_datn.repository.ChamCongRepository;
 import org.example.chocostyle_datn.repository.LichLamViecRepository;
 import org.example.chocostyle_datn.repository.NhanVienRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -89,12 +93,30 @@ public class ChamCongService {
             throw new RuntimeException("Hôm nay bạn không có ca làm!");
         }
 
-        // 👉 LỌC CA THÔNG MINH: Tìm đúng ca đang ở trạng thái "Chờ làm" (2) để check-in
+        // 👉 LỌC CA THÔNG MINH V2: Ưu tiên bốc đúng ca đang trong khung giờ
         LichLamViec caHienTai = null;
+
+        // Ưu tiên 1: Tìm xem có ca nào ĐANG NẰM TRONG GIỜ được phép check-in không (trước 30p)
         for (LichLamViec l : lich) {
             if (l.getTrangThai() == 2) {
-                caHienTai = l;
-                break;
+                LocalTime start = l.getCaLamViec().getGioBatDau().minusMinutes(30);
+                LocalTime end = l.getCaLamViec().getGioKetThuc();
+
+                // Nếu giờ hiện tại lọt vào khoảng (Bắt đầu - 30p) đến (Kết thúc)
+                if (!now.isBefore(start) && !now.isAfter(end)) {
+                    caHienTai = l;
+                    break; // Tìm thấy ca chuẩn thì dừng vòng lặp luôn
+                }
+            }
+        }
+
+        // Ưu tiên 2: Nếu không có ca nào khớp giờ hiện tại, lấy đại ca "Chờ làm" tiếp theo để ném ra thông báo lỗi
+        if (caHienTai == null) {
+            for (LichLamViec l : lich) {
+                if (l.getTrangThai() == 2) {
+                    caHienTai = l;
+                    break;
+                }
             }
         }
 
@@ -104,17 +126,19 @@ public class ChamCongService {
 
         LocalTime gioBatDau = caHienTai.getCaLamViec().getGioBatDau();
         LocalTime gioKetThuc = caHienTai.getCaLamViec().getGioKetThuc();
-        LocalTime gioMoCaSom = gioBatDau.minusMinutes(30); // Cho phép check-in sớm 30p
 
-        // 2️⃣ Kiểm tra giờ
-        boolean isThoiGianHopLe = false;
-        if (gioBatDau.isBefore(gioKetThuc)) {
-            isThoiGianHopLe = now.isAfter(gioMoCaSom) && now.isBefore(gioKetThuc);
-        } else {
-            isThoiGianHopLe = now.isAfter(gioMoCaSom) || now.isBefore(gioKetThuc);
+        // (Phần check isAfter, isBefore bên dưới của bạn giữ nguyên không cần đổi)
+
+        // 2️⃣ KIỂM TRA GIỜ (Đã bỏ logic ca đêm, chia thông báo rõ ràng)
+        // 2.1 - Nếu thời gian hiện tại đã vượt qua giờ kết thúc ca
+        if (now.isAfter(gioKetThuc)) {
+            throw new RuntimeException("Ca làm việc đã kết thúc vào lúc " + gioKetThuc + ". Không thể mở ca!");
         }
-        if (!isThoiGianHopLe) {
-            throw new RuntimeException("Hiện tại không nằm trong thời gian cho phép vào ca!");
+
+        // 2.2 - Nếu vào quá sớm (chưa tới ngưỡng 30 phút trước khi bắt đầu)
+        LocalTime gioMoCaSom = gioBatDau.minusMinutes(30); // Cho phép check-in sớm 30p
+        if (now.isBefore(gioMoCaSom)) {
+            throw new RuntimeException("Chưa đến ca! Bạn chỉ được mở ca trước giờ bắt đầu (" + gioBatDau + ") tối đa 30 phút.");
         }
 
         // 3️⃣ Kiểm tra xem có ca nào đang mở không (chống mở đúp)
@@ -218,17 +242,22 @@ public class ChamCongService {
     }
 
     // HÀM LẤY DANH SÁCH GIAO CA
-    public List<GiaoCaResponse> getDanhSachGiaoCa(String keyword, String fromDate, String toDate) {
+    public Map<String, Object> getDanhSachGiaoCa(String keyword, String fromDate, String toDate, int page, int size) {
 
         // 👉 MẸO FIX LỖI 400 TỪ SQL SERVER: Không dùng null nữa!
         String kw = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : "";
         String fd = (fromDate != null && !fromDate.trim().isEmpty()) ? fromDate.trim() : "1900-01-01";
         String td = (toDate != null && !toDate.trim().isEmpty()) ? toDate.trim() : "2100-01-01";
 
-        List<Map<String, Object>> results = chamCongRepository.getDanhSachGiaoCa(kw, fd, td);
+        // Khởi tạo đối tượng phân trang
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Gọi hàm từ repository đã được sửa thành trả về Page
+        Page<Map<String, Object>> pageResult = chamCongRepository.getDanhSachGiaoCa(kw, fd, td, pageable);
         List<GiaoCaResponse> responses = new ArrayList<>();
 
-        for (Map<String, Object> row : results) {
+        // Thay results bằng pageResult.getContent() để lấy data của trang hiện tại
+        for (Map<String, Object> row : pageResult.getContent()) {
             GiaoCaResponse dto = new GiaoCaResponse();
             dto.setId((Integer) row.get("id"));
             dto.setNhanVien((String) row.get("nhanVien"));
@@ -271,7 +300,15 @@ public class ChamCongService {
 
             responses.add(dto);
         }
-        return responses;
+
+        // Đóng gói danh sách GiaoCaResponse và các thông số phân trang vào Map để trả về Controller
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", responses);
+        response.put("currentPage", pageResult.getNumber());
+        response.put("totalItems", pageResult.getTotalElements());
+        response.put("totalPages", pageResult.getTotalPages());
+
+        return response;
     }
 
     public Map<String, Double> laySoDuCaTruoc() {
