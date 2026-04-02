@@ -37,16 +37,16 @@ public class CaLamViecService {
         String tenCaClean = req.getTenCa().trim();
         req.setTenCa(tenCaClean);
 
-//        // 2. Kiểm tra logic giờ giấc
-//        if (req.getGioBatDau().isAfter(req.getGioKetThuc()) || req.getGioBatDau().equals(req.getGioKetThuc())) {
-//            throw new RuntimeException("Giờ bắt đầu phải diễn ra trước giờ kết thúc!");
-//        }
+        // 2. CHẶN TUYỆT ĐỐI: Giờ bắt đầu phải diễn ra trước giờ kết thúc
+        if (!req.getGioBatDau().isBefore(req.getGioKetThuc())) {
+            throw new RuntimeException("Giờ bắt đầu phải diễn ra trước giờ kết thúc!");
+        }
 
-//        // 3. Thời gian ca làm việc tối thiểu phải là 30 phút
-//        long minutes = java.time.Duration.between(req.getGioBatDau(), req.getGioKetThuc()).toMinutes();
-//        if (minutes < 30) {
-//            throw new RuntimeException("Tổng thời gian ca làm việc tối thiểu phải là 30 phút!");
-//        }
+        // 3. Thời gian ca làm việc tối thiểu phải là 30 phút
+        long minutes = java.time.Duration.between(req.getGioBatDau(), req.getGioKetThuc()).toMinutes();
+        if (minutes < 30) {
+            throw new RuntimeException("Thời gian ca làm việc không hợp lệ (Tối thiểu phải là 30 phút)!");
+        }
 
         // 4. Kiểm tra trùng lặp Tên Ca
         if (idCa == null) { // Nếu là Thêm mới
@@ -59,17 +59,16 @@ public class CaLamViecService {
             }
         }
 
-        // 5. Kiểm tra trùng lặp KHUNG GIỜ y hệt với ca khác
+        // 5. Kiểm tra trùng lặp KHUNG GIỜ
         List<CaLamViec> allShifts = repo.findAll();
         for (CaLamViec ca : allShifts) {
-            if (idCa != null && ca.getIdCa().equals(idCa)) continue; // Bỏ qua chính nó khi sửa
+            if (idCa != null && ca.getIdCa().equals(idCa)) continue;
 
             if (ca.getGioBatDau().equals(req.getGioBatDau()) && ca.getGioKetThuc().equals(req.getGioKetThuc())) {
                 throw new RuntimeException("Khung giờ này đã bị trùng y hệt với ca: " + ca.getTenCa());
             }
         }
     }
-
     // 3. Tạo mới ca làm việc (Đổi tham số sang Request)
     public CaLamViec create(CaLamViecRequest request) {
         // Kiểm tra toàn bộ logic trước khi lưu
@@ -116,8 +115,8 @@ public class CaLamViecService {
         return String.format("CA%03d", count + 1);
     }
 
-    // BỔ SUNG XỬ LÝ NULL ĐỂ FIX LỖI ÉP KIỂU CỦA SQL SERVER
-    public Page<CaLamViec> searchCaLamViec(Integer trangThai, LocalTime gioBatDau, LocalTime gioKetThuc, int page, int size) {
+    // BỔ SUNG THAM SỐ KEYWORD
+    public Page<CaLamViec> searchCaLamViec(String keyword, Integer trangThai, LocalTime gioBatDau, LocalTime gioKetThuc, int page, int size) {
         // Lưu ý: Dùng Native Query nên phải sort theo đúng tên cột trong DB là "id_ca"
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id_ca"));
 
@@ -125,6 +124,7 @@ public class CaLamViecService {
         String startStr = (gioBatDau != null) ? gioBatDau.toString() : null;
         String endStr = (gioKetThuc != null) ? gioKetThuc.toString() : null;
 
-        return repo.searchCaLamViec(trangThai, startStr, endStr, pageable);
+        // Truyền thêm keyword xuống repo
+        return repo.searchCaLamViec(keyword, trangThai, startStr, endStr, pageable);
     }
 }

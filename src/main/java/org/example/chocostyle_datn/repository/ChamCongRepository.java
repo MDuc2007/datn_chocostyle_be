@@ -1,6 +1,8 @@
 package org.example.chocostyle_datn.repository;
 
 import org.example.chocostyle_datn.entity.ChamCong;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -50,10 +52,25 @@ public interface ChamCongRepository extends JpaRepository<ChamCong, Integer> {
             "WHERE (:keyword IS NULL OR :keyword = '' OR nv.ho_ten LIKE '%' + :keyword + '%' OR clv.ma_ca LIKE '%' + :keyword + '%') " +
             "AND (:fromDate IS NULL OR :fromDate = '' OR cc.ngay >= CAST(:fromDate AS DATE)) " +
             "AND (:toDate IS NULL OR :toDate = '' OR cc.ngay <= CAST(:toDate AS DATE)) " +
-            "ORDER BY cc.ngay DESC, cc.gio_check_in DESC", nativeQuery = true)
-    List<Map<String, Object>> getDanhSachGiaoCa(@Param("keyword") String keyword,
+            "ORDER BY cc.ngay DESC, cc.gio_check_in DESC",
+
+            countQuery = "SELECT COUNT(*) FROM cham_cong cc " +
+                    "JOIN nhan_vien nv ON cc.id_nhan_vien = nv.id_nv " +
+                    "OUTER APPLY ( " +
+                    "    SELECT TOP 1 c.ten_ca, c.ma_ca " +
+                    "    FROM lich_lam_viec l " +
+                    "    JOIN ca_lam_viec c ON l.id_ca = c.id_ca " +
+                    "    WHERE l.id_nhan_vien = cc.id_nhan_vien AND l.ngay_lam_viec = cc.ngay " +
+                    "    ORDER BY ABS(DATEDIFF(MINUTE, cc.gio_check_in, c.gio_bat_dau)) " +
+                    ") clv " +
+                    "WHERE (:keyword IS NULL OR :keyword = '' OR nv.ho_ten LIKE '%' + :keyword + '%' OR clv.ma_ca LIKE '%' + :keyword + '%') " +
+                    "AND (:fromDate IS NULL OR :fromDate = '' OR cc.ngay >= CAST(:fromDate AS DATE)) " +
+                    "AND (:toDate IS NULL OR :toDate = '' OR cc.ngay <= CAST(:toDate AS DATE))",
+            nativeQuery = true)
+    Page<Map<String, Object>> getDanhSachGiaoCa(@Param("keyword") String keyword,
                                                 @Param("fromDate") String fromDate,
-                                                @Param("toDate") String toDate);
+                                                @Param("toDate") String toDate,
+                                                Pageable pageable);
 
     @Query(value = "SELECT ISNULL(SUM(tong_tien_thanh_toan), 0) FROM hoa_don " +
             "WHERE id_nhan_vien = :idNv " +

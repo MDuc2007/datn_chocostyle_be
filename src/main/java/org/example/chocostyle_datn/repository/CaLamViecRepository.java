@@ -21,12 +21,15 @@ public interface CaLamViecRepository extends JpaRepository<CaLamViec, Integer> {
 
     // BỎ CHỮ 'IS NULL' Ở PHẦN GIỜ ĐI
     // Dùng Native Query để qua mặt cơ chế kiểm tra kiểu dữ liệu khắt khe của Hibernate
+    // BỔ SUNG ĐIỀU KIỆN TÌM KIẾM KEYWORD VÀO NATIVE QUERY
     @Query(value = "SELECT * FROM ca_lam_viec WHERE " +
+            "(:keyword IS NULL OR LOWER(ma_ca) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(ten_ca) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
             "(:trangThai IS NULL OR trang_thai = :trangThai) AND " +
             "(:gioBatDau IS NULL OR gio_bat_dau >= :gioBatDau) AND " +
             "(:gioKetThuc IS NULL OR gio_ket_thuc <= :gioKetThuc)",
             nativeQuery = true)
     Page<CaLamViec> searchCaLamViec(
+            @Param("keyword") String keyword, // Thêm param keyword
             @Param("trangThai") Integer trangThai,
             @Param("gioBatDau") String gioBatDau,
             @Param("gioKetThuc") String gioKetThuc,

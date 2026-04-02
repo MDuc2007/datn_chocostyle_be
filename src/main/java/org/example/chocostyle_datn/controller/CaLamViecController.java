@@ -22,18 +22,19 @@ public class CaLamViecController {
     private CaLamViecService service;
 
     // QUAN TRỌNG: Đặt API /search lên TRƯỚC API /{id} để tránh bị nhận diện nhầm
+    // QUAN TRỌNG: Đặt API /search lên TRƯỚC API /{id} để tránh bị nhận diện nhầm
     @GetMapping("/search")
     public ResponseEntity<Page<CaLamViec>> search(
+            @RequestParam(required = false) String keyword, // Thêm param keyword để tìm mã và tên
             @RequestParam(required = false) Integer trangThai,
-            // Đổi iso thành pattern = "HH:mm:ss"
             @RequestParam(required = false) @DateTimeFormat(pattern = "HH:mm:ss") LocalTime gioBatDau,
             @RequestParam(required = false) @DateTimeFormat(pattern = "HH:mm:ss") LocalTime gioKetThuc,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "8") int size) {
 
-        return ResponseEntity.ok(service.searchCaLamViec(trangThai, gioBatDau, gioKetThuc, page, size));
+        // Truyền thêm keyword xuống tầng service
+        return ResponseEntity.ok(service.searchCaLamViec(keyword, trangThai, gioBatDau, gioKetThuc, page, size));
     }
-
     // Lấy tất cả danh sách ca
     @GetMapping
     public ResponseEntity<List<CaLamViec>> getAll() {
