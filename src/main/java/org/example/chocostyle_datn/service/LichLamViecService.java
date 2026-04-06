@@ -47,7 +47,7 @@ public class LichLamViecService {
         lich.setCaLamViec(ca);
         lich.setNgayLamViec(req.getNgayLamViec());
         lich.setGhiChu(req.getGhiChu());
-        lich.setTrangThai(req.getTrangThai() != null ? req.getTrangThai() : 1);
+        lich.setTrangThai(req.getTrangThai() != null ? req.getTrangThai() : 2);
 
         return lichRepo.save(lich);
     }
@@ -85,6 +85,25 @@ public class LichLamViecService {
     // 5. BATCH CREATE
     @Transactional(rollbackFor = Exception.class)
     public List<LichLamViec> createBatchSchedule(List<LichLamViecRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            throw new RuntimeException("Danh sách lịch làm việc trống!");
+        }
+
+        // 👉 ĐOẠN THÊM MỚI: TÌM NGÀY NHỎ NHẤT VÀ LỚN NHẤT TRONG DANH SÁCH LẶP
+        LocalDate minDate = requests.get(0).getNgayLamViec();
+        LocalDate maxDate = requests.get(0).getNgayLamViec();
+
+        for (LichLamViecRequest req : requests) {
+            if (req.getNgayLamViec().isBefore(minDate)) minDate = req.getNgayLamViec();
+            if (req.getNgayLamViec().isAfter(maxDate)) maxDate = req.getNgayLamViec();
+        }
+
+        // Kiểm tra khoảng cách: Nếu vượt quá 365 ngày thì chặn luôn
+        long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(minDate, maxDate);
+        if (daysBetween > 365) {
+            throw new RuntimeException("Vượt quá giới hạn! Hệ thống chỉ cho phép lặp lịch tối đa trong vòng 1 năm (365 ngày).");
+        }
+
         List<LichLamViec> result = new ArrayList<>();
         String batchId = UUID.randomUUID().toString();
 
@@ -99,8 +118,8 @@ public class LichLamViecService {
                 lich.setCaLamViec(ca);
                 lich.setNgayLamViec(req.getNgayLamViec());
                 lich.setGhiChu(req.getGhiChu());
-                lich.setTrangThai(req.getTrangThai() != null ? req.getTrangThai() : 1);
-
+                lich.setTrangThai(req.getTrangThai() != null ? req.getTrangThai() : 2); // Trạng thái 2: Chờ làm
+                lich.setMaLapLai(batchId);
                 result.add(lichRepo.save(lich));
             } catch (RuntimeException e) {
                 throw new RuntimeException("Lỗi xếp lịch ngày " + req.getNgayLamViec() + ": " + e.getMessage());
@@ -173,21 +192,34 @@ public class LichLamViecService {
         List<LichLamViec> existing = lichRepo.findByNhanVienAndNgay(idNv, ngay);
 
         for (LichLamViec old : existing) {
-            // Bỏ qua nếu đang sửa chính lịch đó
-            if (currentId != null && old.getId().equals(currentId)) continue;
-
-            // 👉 ĐÃ SỬA: Bỏ qua ca Đã hủy (0) VÀ ca Đã đóng/Kết thúc (1)
-            if (old.getTrangThai() != null && (old.getTrangThai() == 0 || old.getTrangThai() == 1)) {
+            // 1. Bỏ qua nếu đang sửa chính lịch đó
+            if (currentId != null && old.getId().equals(currentId)) {
                 continue;
             }
 
             CaLamViec caCu = old.getCaLamViec();
+
+            // 2. CHẶN TUYỆT ĐỐI: Không bao giờ được phân trùng đúng cái ID Ca đó lần 2 (Dù đã đóng hay chưa)
+            if (caCu.getIdCa().equals(caMoi.getIdCa())) {
+                // Chỉ chặn nếu ca cũ không phải là ca đã Hủy (nếu sau này bạn có trạng thái Hủy)
+                if (old.getTrangThai() != null && old.getTrangThai() != 0) {
+                    throw new RuntimeException("Nhân viên này đã có lịch cho ca [" + caCu.getTenCa() + "] trong ngày này!");
+                }
+            }
+
+            // 3. KIỂM TRA TRÙNG GIỜ (Overlap)
+            // Nếu ca cũ ĐÃ ĐÓNG (1), chúng ta bỏ qua không check trùng giờ nữa (cho phép phân ca khác trùng giờ)
+            if (old.getTrangThai() != null && old.getTrangThai() == 1) {
+                continue;
+            }
+
+            // Nếu ca cũ đang ở trạng thái Đang chờ (2) hoặc Đang làm (3), tiến hành check trùng khung giờ
             boolean isOverlap = caMoi.getGioBatDau().isBefore(caCu.getGioKetThuc())
                     && caMoi.getGioKetThuc().isAfter(caCu.getGioBatDau());
 
             if (isOverlap) {
-                throw new RuntimeException("Nhân viên này đã có lịch trùng giờ: [" + caCu.getTenCa()
-                        + " từ " + caCu.getGioBatDau() + " - " + caCu.getGioKetThuc() + "] !");
+                throw new RuntimeException("Nhân viên này đang có một ca khác chưa kết thúc trùng khung giờ: ["
+                        + caCu.getTenCa() + " từ " + caCu.getGioBatDau() + " - " + caCu.getGioKetThuc() + "] !");
             }
         }
     }
