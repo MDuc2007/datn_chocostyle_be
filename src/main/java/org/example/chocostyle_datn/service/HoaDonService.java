@@ -57,7 +57,6 @@ public class HoaDonService {
     private SimpMessagingTemplate messagingTemplate;
     @Autowired
     private ThongBaoService thongBaoService;
-
     // =================================================================
     // 1. LẤY CHI TIẾT (GET DETAIL)
     // =================================================================
@@ -132,7 +131,6 @@ public class HoaDonService {
 
                     return HoaDonSanPhamResponse.builder()
                             .idSpct(ct.getIdSpct() != null ? ct.getIdSpct().getId() : null)
-                            .maSpct(ct.getIdSpct() != null ? ct.getIdSpct().getMaChiTietSanPham() : null)
                             .tenSanPham(tenSp)
                             .hinhAnh(hinhAnh)
                             .mauSac(tenMau)
@@ -239,7 +237,6 @@ public class HoaDonService {
         if (req.getTrangThaiMoi() == 5) {
             thongBaoService.thongBaoHuyDon(hd.getId());
         }
-
         // === PHÂN BIỆT AI LÀ NGƯỜI HỦY ĐƠN ĐỂ GHI LỊCH SỬ ===
         String actionName = getActionName(req.getTrangThaiMoi());
 
@@ -597,7 +594,6 @@ public class HoaDonService {
 
         HoaDon savedHd = hoaDonRepo.save(hd);
         thongBaoService.thongBaoDonHangMoi(savedHd.getId());
-
         // Lưu sản phẩm chi tiết
         if (req.getSanPhamChiTiet() != null) {
             for (org.example.chocostyle_datn.model.Request.CartItemRequest item : req.getSanPhamChiTiet()) {
@@ -1034,12 +1030,15 @@ public class HoaDonService {
     }
 
     @Transactional
-    public void capNhatSoLuongChiTiet(Integer idHoaDon, Integer idSpct, int soLuongMoi, BigDecimal donGiaRow) {
+    public void capNhatSoLuongChiTiet(Integer idHoaDon, Integer idSpct, int soLuongMoi) {
         HoaDon hd = hoaDonRepo.findById(idHoaDon).orElseThrow();
         if (hd.getTrangThai() != 0) {
             throw new RuntimeException("Chỉ được sửa số lượng khi đơn hàng chờ xác nhận!");
         }
 
+        // =========================================================
+        // CASE: THANH TOÁN CHUYỂN KHOẢN -> KHÔNG ĐƯỢC SỬA SẢN PHẨM
+        // =========================================================
         boolean isChuyenKhoan = thanhToanRepo.findByIdHoaDon_Id(idHoaDon).stream()
                 .anyMatch(tt -> tt.getIdPttt() != null &&
                         (tt.getIdPttt().getId() == 2 ||
@@ -1054,63 +1053,61 @@ public class HoaDonService {
             throw new RuntimeException("Số lượng sản phẩm phải >= 1. Không thể để rỗng!");
         }
 
-        // SỬA LỖI TÌM NHẦM DÒNG: Phải khớp cả idSpct VÀ donGia (nếu FE có truyền lên)
         HoaDonChiTiet hdct = hdctRepo.findByIdHoaDon_Id(idHoaDon).stream()
-                .filter(ct -> ct.getIdSpct().getId().equals(idSpct) &&
-                        (donGiaRow == null || ct.getDonGia().compareTo(donGiaRow) == 0))
+                .filter(ct -> ct.getIdSpct().getId().equals(idSpct))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Sản phẩm không có trong đơn hoặc sai mức giá"));
+                .orElseThrow(() -> new RuntimeException("Sản phẩm không có trong đơn"));
 
         int oldQty = hdct.getSoLuong();
         int diff = soLuongMoi - oldQty;
 
+        // =========================================================
+        // CASE: TIỀN MẶT -> ĐỔI GIÁ MÀ MUỐN TĂNG SỐ LƯỢNG -> TÁCH DÒNG
+        // =========================================================
         ChiTietSanPham spct = hdct.getIdSpct();
+
+        // SỬ DỤNG HÀM LẤY GIÁ THỰC TẾ (BAO GỒM GIẢM GIÁ) THAY VÌ GIÁ GỐC
         BigDecimal giaHienTai = getGiaHienTai(spct);
 
         if (diff > 0 && giaHienTai.compareTo(hdct.getDonGia()) != 0) {
+
+            // Tìm xem trong đơn đã có dòng nào của SP này với giá mới chưa
             Optional<HoaDonChiTiet> existingNewPriceItem = hdctRepo.findByIdHoaDon_Id(idHoaDon).stream()
                     .filter(ct -> ct.getIdSpct().getId().equals(idSpct) && ct.getDonGia().compareTo(giaHienTai) == 0)
                     .findFirst();
 
             if (existingNewPriceItem.isPresent()) {
+                // Nếu có rồi -> Cộng dồn vào dòng giá mới
                 HoaDonChiTiet newHdct = existingNewPriceItem.get();
                 newHdct.setSoLuong(newHdct.getSoLuong() + diff);
                 newHdct.setThanhTien(newHdct.getDonGia().multiply(BigDecimal.valueOf(newHdct.getSoLuong())));
                 hdctRepo.save(newHdct);
             } else {
+                // Nếu chưa có -> Thêm 1 dòng sản phẩm mới hoàn toàn xuống dưới
                 HoaDonChiTiet newHdct = new HoaDonChiTiet();
                 newHdct.setIdHoaDon(hd);
                 newHdct.setIdSpct(spct);
                 newHdct.setSoLuong(diff);
-                newHdct.setDonGia(giaHienTai);
+                newHdct.setDonGia(giaHienTai); // Lấy giá mới
                 newHdct.setThanhTien(giaHienTai.multiply(BigDecimal.valueOf(diff)));
                 hdctRepo.save(newHdct);
             }
+
+            // Ghi lịch sử để FE bắt chuỗi [PRICE_CHANGE] hiển thị màu vàng
             String msg = String.format("[PRICE_CHANGE] ID %d: Từ %s thành %s (Tách dòng mới)", idSpct, hdct.getDonGia().toString(), giaHienTai.toString());
-            ghiLichSu(hd, 0, xacDinhNguoiThaoTac("Thêm số lượng khi giá thay đổi"), msg);
+            ghiLichSu(hd, 0, "Thêm số lượng khi giá thay đổi", msg);
+
             tinhLaiTongTienHoaDon(hd);
-            return;
+            return; // Dừng tại đây, giữ nguyên số lượng của dòng giá cũ
         }
 
+        // Nếu chỉ giảm số lượng, hoặc tăng số lượng nhưng giá không đổi -> Update bình thường
         hdct.setSoLuong(soLuongMoi);
         hdct.setThanhTien(hdct.getDonGia().multiply(BigDecimal.valueOf(soLuongMoi)));
         hdctRepo.save(hdct);
+
         tinhLaiTongTienHoaDon(hd);
-
-        // Ghi nhận chính xác ai thao tác
-        String tenHanhDong = xacDinhNguoiThaoTac("Sửa số lượng SP");
-        ghiLichSu(hd, 0, tenHanhDong, "Sản phẩm ID " + idSpct + " thay đổi SL từ " + oldQty + " -> " + soLuongMoi);
-    }
-
-    // HÀM BỔ TRỢ ĐỂ XÁC ĐỊNH NGƯỜI THAO TÁC LÀ KHÁCH HAY ADMIN
-    private String xacDinhNguoiThaoTac(String hanhDongGoc) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            if (khachHangRepo.findByEmail(auth.getName()).isPresent()) {
-                return "Khách hàng " + hanhDongGoc; // Gắn cờ để nhận diện
-            }
-        }
-        return hanhDongGoc;
+        ghiLichSu(hd, 0, "Sửa số lượng SP", "Sản phẩm ID " + idSpct + " thay đổi SL từ " + oldQty + " -> " + soLuongMoi);
     }
 
     // Hàm dùng chung cho Case 3 và 4
