@@ -217,6 +217,8 @@ public class ChiTietSanPhamService {
             if (ctsp.getTrangThai() != null && ctsp.getTrangThai() == 2) return;
             ctsp.setTrangThai(1);
         }
+        broadcastPublicUpdate();
+
     }
 
     // 🔴 HÀM MỚI: Đồng bộ trạng thái Sản Phẩm cha khi sửa Chi Tiết
@@ -235,6 +237,7 @@ public class ChiTietSanPhamService {
             sp.setTrangThai(1); // Đang bán
         }
         sanPhamRepository.save(sp);
+        broadcastPublicUpdate();
     }
 
 

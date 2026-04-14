@@ -398,7 +398,7 @@ public class DotGiamGiaService {
         return res;
     }
 
-    @Scheduled(cron = "1 0 0 * * *")
+    @Scheduled(cron = "0 * * * * *")
     @Transactional
     public void tuDongCapNhatTrangThai() {
         List<DotGiamGia> all = dotGiamGiaRepository.findAll();

@@ -530,6 +530,7 @@ public class SanPhamService {
         } else {
             ct.setTrangThai(1);
         }
+        broadcastPublicUpdate();
     }
 
     private void autoUpdateTrangThaiSanPham(SanPham sp) {
@@ -548,6 +549,8 @@ public class SanPhamService {
         }
 
         sanPhamRepo.save(sp);
+        broadcastPublicUpdate();
+
     }
 
     @Transactional
