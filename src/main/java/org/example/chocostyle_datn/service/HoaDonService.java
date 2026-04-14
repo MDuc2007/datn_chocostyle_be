@@ -419,7 +419,12 @@ public class HoaDonService {
         BigDecimal tienGiam = xuLyVoucher(req, hd);
 
         // Tính tổng tiền
-        BigDecimal phiShip = req.getPhiShip() != null ? req.getPhiShip() : BigDecimal.ZERO;
+        BigDecimal phiShip = BigDecimal.ZERO;
+
+        if (loaiDon == 3) { // chỉ khi giao hàng mới có ship
+            phiShip = req.getPhiShip() != null ? req.getPhiShip() : BigDecimal.ZERO;
+        }
+
         hd.setPhiVanChuyen(phiShip);
         BigDecimal tongCuoiCung = req.getTongTienHang().add(phiShip).subtract(tienGiam);
         if (tongCuoiCung.compareTo(BigDecimal.ZERO) < 0) tongCuoiCung = BigDecimal.ZERO;
