@@ -252,6 +252,7 @@ public class HoaDonService {
         }
 
         ghiLichSu(hd, req.getTrangThaiMoi(), actionName, req.getGhiChu());
+        broadcastOrderUpdate(id);
     }
 
     // =================================================================
@@ -792,6 +793,9 @@ public class HoaDonService {
 
         sp.setSoLuongTon(sp.getSoLuongTon() + soLuongThayDoi);
         spctRepo.save(sp);
+        try {
+            messagingTemplate.convertAndSend("/topic/public-updates", "UPDATED");
+        } catch (Exception e) {}
     }
 
     // =================================================================
