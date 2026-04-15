@@ -1260,4 +1260,25 @@ public class HoaDonService {
         // Ghi lịch sử hóa đơn
         ghiLichSu(hd, hd.getTrangThai(), "Xác nhận thanh toán", "Đã thu: " + soTienCanThu + "đ. Ghi chú: " + (ghiChu != null ? ghiChu : ""));
     }
+    @Autowired
+    private ChamCongRepository chamCongRepository;
+
+    public List<HoaDon> getHoaDonCaHienTai(Integer idNv) {
+        LocalDate today = LocalDate.now();
+
+        // 1. Tìm bản ghi chấm công ngày hôm nay của nhân viên này
+        ChamCong caHienTai = chamCongRepository.findByNhanVien_IdAndNgay(idNv, today)
+                .orElseThrow(() -> new RuntimeException("Bạn chưa mở ca làm việc ngày hôm nay!"));
+
+        // Kiểm tra xem đã vào ca chưa (Trạng thái = 3 là Đang làm)
+        if (caHienTai.getTrangThai() != 3) {
+            throw new RuntimeException("Bạn hiện không ở trong ca làm việc, không thể xem hóa đơn!");
+        }
+
+        // 2. Ghép Ngày + Giờ Check-in thành mốc thời gian (LocalDateTime)
+        LocalDateTime thoiGianVaoCa = LocalDateTime.of(caHienTai.getNgay(), caHienTai.getGioCheckIn());
+
+        // 3. Truy vấn hóa đơn từ lúc vào ca đến hiện tại
+        return hoaDonRepo.findHoaDonTuLucVaoCa(thoiGianVaoCa);
+    }
 }

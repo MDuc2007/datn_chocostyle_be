@@ -54,4 +54,8 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
     Optional<HoaDon> findByMaHoaDon(String maHoaDon);
 
     List<HoaDon> findByIdKhachHang_IdOrderByIdAsc(Integer idKhachHang);
+
+    // Tìm hóa đơn được tạo TỪ một mốc thời gian cụ thể (Ví dụ: Lúc bắt đầu ca)
+    @Query("SELECT h FROM HoaDon h WHERE h.ngayTao >= :thoiGianVaoCa ORDER BY h.ngayTao DESC")
+    List<HoaDon> findHoaDonTuLucVaoCa(@Param("thoiGianVaoCa") LocalDateTime thoiGianVaoCa);
 }
