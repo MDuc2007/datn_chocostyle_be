@@ -471,15 +471,17 @@ public class HoaDonService {
         // ===============================================================
         // MỚI THÊM TỪ TRƯỚC: GHI LẠI LỊCH SỬ THANH TOÁN
         // ===============================================================
-        Integer ptttId = 1; // 1 = Tiền mặt (Mặc định)
-        boolean isCOD = false;
+        Integer ptttId = 1; // mặc định tiền mặt
 
         if (req.getGhiChu() != null) {
             String noteLower = req.getGhiChu().toLowerCase();
+
             if (noteLower.contains("chuyển khoản")) {
-                ptttId = 2; // 2 = Chuyển khoản
-            } else if (noteLower.contains("cod") || noteLower.contains("khi nhận hàng")) {
-                isCOD = true;
+                ptttId = 2; // chuyển khoản
+            } else if (noteLower.contains("cod")
+                    || noteLower.contains("khi nhận hàng")
+                    || noteLower.contains("trả sau")) {
+                ptttId = 7; // trả sau / COD
             }
         }
 
@@ -498,10 +500,10 @@ public class HoaDonService {
         } catch (Exception e) {
         }
 
-        if (isCOD) {
-            thanhToan.setTrangThai(0); // COD -> Chờ thanh toán
+        if (ptttId == 7) {
+            thanhToan.setTrangThai(0); // chờ thanh toán
         } else {
-            thanhToan.setTrangThai(1); // Tiền mặt / CK -> Đã thanh toán
+            thanhToan.setTrangThai(1); // đã thanh toán
         }
 
         thanhToan.setThoiGianThanhToan(LocalDateTime.now());
