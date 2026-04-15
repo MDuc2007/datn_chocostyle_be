@@ -1200,16 +1200,22 @@ public class HoaDonService {
             hdctRepo.flush();
             Object dataMoiNhat = this.getDetail(idHoaDon);
 
-            // 👉 THÊM DÒNG PRINT NÀY
-            System.out.println("🚀 CHUẨN BỊ PHÁT SÓNG LÊN KÊNH: /topic/order/" + idHoaDon);
-
+            // 👉 1. Phát sóng cho trang Chi tiết đơn hàng (Dựa vào ID Hóa Đơn)
+            System.out.println("🚀 CHUẨN BỊ PHÁT SÓNG LÊN KÊNH CHI TIẾT: /topic/order/" + idHoaDon);
             messagingTemplate.convertAndSend("/topic/order/" + idHoaDon, dataMoiNhat);
 
-            // 👉 THÊM DÒNG PRINT NÀY
+            // 👉 2. Phát sóng cho trang Danh sách đơn hàng (Dựa vào ID Khách Hàng)
+            HoaDon hd = hoaDonRepo.findById(idHoaDon).orElse(null);
+            if (hd != null && hd.getIdKhachHang() != null) {
+                Integer idKhach = hd.getIdKhachHang().getId();
+                System.out.println("🚀 CHUẨN BỊ PHÁT SÓNG LÊN KÊNH DANH SÁCH KHÁCH HÀNG: /topic/orders/" + idKhach);
+                messagingTemplate.convertAndSend("/topic/orders/" + idKhach, dataMoiNhat);
+            }
+
             System.out.println("✅ PHÁT SÓNG THÀNH CÔNG!");
         } catch (Exception e) {
             System.out.println("❌ Lỗi khi phát sóng WebSocket: " + e.getMessage());
-            e.printStackTrace(); // In chi tiết lỗi ra nếu có
+            e.printStackTrace();
         }
     }
 
