@@ -115,8 +115,11 @@ public class HoaDonService {
                     String tenMau = "-";
                     String tenSize = "-";
                     String hinhAnh = "";
+                    String maSpct = "";
 
                     if (ct.getIdSpct() != null) {
+                        maSpct = ct.getIdSpct().getMaChiTietSanPham();
+
                         if (ct.getIdSpct().getIdSanPham() != null) {
                             tenSp = ct.getIdSpct().getIdSanPham().getTenSp();
                             hinhAnh = ct.getIdSpct().getIdSanPham().getHinhAnh();
@@ -131,6 +134,7 @@ public class HoaDonService {
 
                     return HoaDonSanPhamResponse.builder()
                             .idSpct(ct.getIdSpct() != null ? ct.getIdSpct().getId() : null)
+                            .maSpct(maSpct)
                             .tenSanPham(tenSp)
                             .hinhAnh(hinhAnh)
                             .mauSac(tenMau)
