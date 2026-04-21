@@ -5,7 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface XuatXuRepository extends JpaRepository<XuatXu,Integer> {
+    List<XuatXu> findAllByOrderByIdDesc();
     @Query("select max(x.maXuatXu) from XuatXu x")
     String findMaxMa();
     @Query("""

@@ -20,7 +20,7 @@ public class KieuDangService {
     private final KieuDangRepository repo;
 
     public List<KieuDang> getAll() {
-        return repo.findAll();
+        return repo.findAllByOrderByIdDesc();
     }
 
     public KieuDang create(KieuDang e) {

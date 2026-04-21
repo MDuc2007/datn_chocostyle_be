@@ -20,7 +20,7 @@ public class LoaiAoService {
     private final LoaiAoRepository repo;
 
     public List<LoaiAo> getAll() {
-        return repo.findAll();
+        return repo.findAllByOrderByIdDesc();
     }
 
     public LoaiAo create(LoaiAo e) {

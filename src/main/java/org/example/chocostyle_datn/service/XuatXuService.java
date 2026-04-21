@@ -21,7 +21,7 @@ public class XuatXuService {
     private final XuatXuRepository repo;
 
     public List<XuatXu> getAll() {
-        return repo.findAll();
+        return repo.findAllByOrderByIdDesc();
     }
 
     public XuatXu create(XuatXu e) {
