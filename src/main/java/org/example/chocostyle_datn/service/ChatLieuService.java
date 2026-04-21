@@ -20,7 +20,7 @@ public class ChatLieuService {
     private final ChatLieuRepository repo;
 
     public List<ChatLieu> getAll() {
-        return repo.findAll();
+        return repo.findAllByOrderByIdDesc();
     }
 
     public ChatLieu create(ChatLieu e) {

@@ -20,7 +20,7 @@ public class MauSacService {
     private final MauSacRepository repo;
 
     public List<MauSac> getAll() {
-        return repo.findAll();
+        return repo.findAllByOrderByIdDesc();
     }
 
     public MauSac create(MauSac e) {

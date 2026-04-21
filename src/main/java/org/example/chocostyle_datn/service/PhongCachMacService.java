@@ -21,7 +21,7 @@ public class PhongCachMacService {
     private final PhongCachMacRepository repo;
 
     public List<PhongCachMac> getAll() {
-        return repo.findAll();
+        return repo.findAllByOrderByIdDesc();
     }
 
     public PhongCachMac create(PhongCachMac e) {

@@ -115,11 +115,8 @@ public class HoaDonService {
                     String tenMau = "-";
                     String tenSize = "-";
                     String hinhAnh = "";
-                    String maSpct = "";
 
                     if (ct.getIdSpct() != null) {
-                        maSpct = ct.getIdSpct().getMaChiTietSanPham();
-
                         if (ct.getIdSpct().getIdSanPham() != null) {
                             tenSp = ct.getIdSpct().getIdSanPham().getTenSp();
                             hinhAnh = ct.getIdSpct().getIdSanPham().getHinhAnh();
@@ -134,7 +131,7 @@ public class HoaDonService {
 
                     return HoaDonSanPhamResponse.builder()
                             .idSpct(ct.getIdSpct() != null ? ct.getIdSpct().getId() : null)
-                            .maSpct(maSpct)
+                            .maSpct(ct.getIdSpct() != null ? ct.getIdSpct().getMaChiTietSanPham() : null)
                             .tenSanPham(tenSp)
                             .hinhAnh(hinhAnh)
                             .mauSac(tenMau)
@@ -466,7 +463,7 @@ public class HoaDonService {
             hd.setTrangThai(4); // Hoàn thành luôn
             hd.setNgayThanhToan(LocalDateTime.now());
         } else if (loaiDon == 3) {
-            hd.setTrangThai(0); // Bắt đầu từ 0 y hệt Online
+            hd.setTrangThai(1); // Bắt đầu từ 0 y hệt Online
         }
         hd.setNgayCapNhat(LocalDateTime.now());
 

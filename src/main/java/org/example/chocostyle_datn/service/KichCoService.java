@@ -20,7 +20,7 @@ public class KichCoService {
     private final KichCoRepository repo;
 
     public List<KichCo> getAll() {
-        return repo.findAll();
+        return repo.findAllByOrderByIdDesc();
     }
 
     public KichCo create(KichCo e) {
