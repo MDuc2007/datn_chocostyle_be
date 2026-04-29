@@ -23,6 +23,7 @@ public class ChiTietSanPhamResponse {
     private Integer trangThai;
 
     private String tenMauSac;
+    private String rgb;
     private String tenKichCo;
     private String tenLoaiAo;
     private String tenPhongCachMac;
