@@ -57,6 +57,7 @@ public class HoaDonService {
     private SimpMessagingTemplate messagingTemplate;
     @Autowired
     private ThongBaoService thongBaoService;
+
     // =================================================================
     // 1. LẤY CHI TIẾT (GET DETAIL)
     // =================================================================
@@ -147,10 +148,20 @@ public class HoaDonService {
                     String nguoiThucHienHienTai = finalNguoiThucHien; // Mặc định là Admin/Nhân viên
                     String hanhDongHienTai = ls.getHanhDong();
 
-                    // Nhận diện nếu thao tác là do Khách hàng hủy
+                    // Bắt trường hợp Khách hàng hủy đơn
                     if (hanhDongHienTai != null && hanhDongHienTai.equals("Khách hàng hủy đơn")) {
-                        nguoiThucHienHienTai = "Khách hàng"; // Đổi người thực hiện thành Khách hàng
-                        hanhDongHienTai = "Đã hủy đơn hàng"; // Giữ nguyên hiển thị Hành động như cũ
+                        nguoiThucHienHienTai = "Khách hàng";
+                        hanhDongHienTai = "Đã hủy đơn hàng";
+                    }
+                    // Bắt trường hợp Khách hàng sửa thông tin
+                    else if (hanhDongHienTai != null && hanhDongHienTai.equals("Khách hàng sửa thông tin")) {
+                        nguoiThucHienHienTai = "Khách hàng";
+                        hanhDongHienTai = "Sửa thông tin nhận hàng";
+                    }
+                    // 👉 THÊM ĐOẠN NÀY: Bắt trường hợp Khách hàng sửa số lượng
+                    else if (hanhDongHienTai != null && hanhDongHienTai.equals("Khách hàng sửa số lượng SP")) {
+                        nguoiThucHienHienTai = "Khách hàng";
+                        hanhDongHienTai = "Cập nhật số lượng sản phẩm";
                     }
 
                     return HoaDonLichSuResponse.builder()
@@ -803,7 +814,8 @@ public class HoaDonService {
         spctRepo.save(sp);
         try {
             messagingTemplate.convertAndSend("/topic/public-updates", "UPDATED");
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
     }
 
     // =================================================================
@@ -1038,7 +1050,17 @@ public class HoaDonService {
         hd.setDiaChiKhachHang(diaChi);
         hoaDonRepo.save(hd);
 
-        ghiLichSu(hd, 0, "Sửa thông tin nhận hàng", oldInfo + " -> Mới: " + ten + " - " + sdt + " - " + diaChi);
+        // XÁC ĐỊNH NGƯỜI THỰC HIỆN LÀ AI
+        String actionName = "Sửa thông tin nhận hàng";
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            String email = auth.getName();
+            if (khachHangRepo.findByEmail(email).isPresent()) {
+                actionName = "Khách hàng sửa thông tin"; // Đổi tên hành động ngầm
+            }
+        }
+
+        ghiLichSu(hd, 0, actionName, oldInfo + " -> Mới: " + ten + " - " + sdt + " - " + diaChi);
     }
 
     @Transactional
@@ -1073,53 +1095,59 @@ public class HoaDonService {
         int oldQty = hdct.getSoLuong();
         int diff = soLuongMoi - oldQty;
 
+        // XÁC ĐỊNH NGƯỜI THỰC HIỆN ĐỂ GHI LỊCH SỬ
+        String actionName = "Sửa số lượng SP";
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            String email = auth.getName();
+            if (khachHangRepo.findByEmail(email).isPresent()) {
+                actionName = "Khách hàng sửa số lượng SP"; // Ngầm đánh dấu là khách hàng
+            }
+        }
+
         // =========================================================
         // CASE: TIỀN MẶT -> ĐỔI GIÁ MÀ MUỐN TĂNG SỐ LƯỢNG -> TÁCH DÒNG
         // =========================================================
         ChiTietSanPham spct = hdct.getIdSpct();
-
-        // SỬ DỤNG HÀM LẤY GIÁ THỰC TẾ (BAO GỒM GIẢM GIÁ) THAY VÌ GIÁ GỐC
         BigDecimal giaHienTai = getGiaHienTai(spct);
 
         if (diff > 0 && giaHienTai.compareTo(hdct.getDonGia()) != 0) {
 
-            // Tìm xem trong đơn đã có dòng nào của SP này với giá mới chưa
             Optional<HoaDonChiTiet> existingNewPriceItem = hdctRepo.findByIdHoaDon_Id(idHoaDon).stream()
                     .filter(ct -> ct.getIdSpct().getId().equals(idSpct) && ct.getDonGia().compareTo(giaHienTai) == 0)
                     .findFirst();
 
             if (existingNewPriceItem.isPresent()) {
-                // Nếu có rồi -> Cộng dồn vào dòng giá mới
                 HoaDonChiTiet newHdct = existingNewPriceItem.get();
                 newHdct.setSoLuong(newHdct.getSoLuong() + diff);
                 newHdct.setThanhTien(newHdct.getDonGia().multiply(BigDecimal.valueOf(newHdct.getSoLuong())));
                 hdctRepo.save(newHdct);
             } else {
-                // Nếu chưa có -> Thêm 1 dòng sản phẩm mới hoàn toàn xuống dưới
                 HoaDonChiTiet newHdct = new HoaDonChiTiet();
                 newHdct.setIdHoaDon(hd);
                 newHdct.setIdSpct(spct);
                 newHdct.setSoLuong(diff);
-                newHdct.setDonGia(giaHienTai); // Lấy giá mới
+                newHdct.setDonGia(giaHienTai);
                 newHdct.setThanhTien(giaHienTai.multiply(BigDecimal.valueOf(diff)));
                 hdctRepo.save(newHdct);
             }
 
-            // Ghi lịch sử để FE bắt chuỗi [PRICE_CHANGE] hiển thị màu vàng
             String msg = String.format("[PRICE_CHANGE] ID %d: Từ %s thành %s (Tách dòng mới)", idSpct, hdct.getDonGia().toString(), giaHienTai.toString());
-            ghiLichSu(hd, 0, "Thêm số lượng khi giá thay đổi", msg);
+            ghiLichSu(hd, 0, actionName, msg);
 
             tinhLaiTongTienHoaDon(hd);
-            return; // Dừng tại đây, giữ nguyên số lượng của dòng giá cũ
+            broadcastOrderUpdate(idHoaDon); // 👉 GỌI WEBSOCKET Ở ĐÂY
+            return;
         }
 
-        // Nếu chỉ giảm số lượng, hoặc tăng số lượng nhưng giá không đổi -> Update bình thường
         hdct.setSoLuong(soLuongMoi);
         hdct.setThanhTien(hdct.getDonGia().multiply(BigDecimal.valueOf(soLuongMoi)));
         hdctRepo.save(hdct);
 
         tinhLaiTongTienHoaDon(hd);
-        ghiLichSu(hd, 0, "Sửa số lượng SP", "Sản phẩm ID " + idSpct + " thay đổi SL từ " + oldQty + " -> " + soLuongMoi);
+        ghiLichSu(hd, 0, actionName, "Sản phẩm ID " + idSpct + " thay đổi SL từ " + oldQty + " -> " + soLuongMoi);
+
+        broadcastOrderUpdate(idHoaDon); // 👉 VÀ GỌI WEBSOCKET Ở ĐÂY NỮA
     }
 
     // Hàm dùng chung cho Case 3 và 4
@@ -1267,6 +1295,7 @@ public class HoaDonService {
         // Ghi lịch sử hóa đơn
         ghiLichSu(hd, hd.getTrangThai(), "Xác nhận thanh toán", "Đã thu: " + soTienCanThu + "đ. Ghi chú: " + (ghiChu != null ? ghiChu : ""));
     }
+
     @Autowired
     private ChamCongRepository chamCongRepository;
 

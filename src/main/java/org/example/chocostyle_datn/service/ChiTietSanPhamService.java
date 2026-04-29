@@ -264,6 +264,7 @@ public class ChiTietSanPhamService {
         res.setGiaBan(ctsp.getGiaBan());
 
         res.setTenMauSac(ctsp.getIdMauSac().getTenMauSac());
+        res.setRgb(ctsp.getIdMauSac().getRgb());
         res.setTenKichCo(ctsp.getIdKichCo().getTenKichCo());
         res.setTenLoaiAo(ctsp.getIdLoaiAo().getTenLoai());
         res.setTenPhongCachMac(ctsp.getIdPhongCachMac().getTenPhongCach());
